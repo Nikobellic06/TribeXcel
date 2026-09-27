@@ -1,26 +1,26 @@
 {
   "name": "system-a-document-intelligence",
   "version": "1.0.0",
-  "description": "Document Intelligence Engine for Ministry of Tribal Affairs (MoTA) Scholarship & Fellowship Management Prototype",
+  "description": "Deterministic Document Intelligence Engine for Ministry of Tribal Affairs (MoTA) Scholarship & Fellowship Management Prototype",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
+    "start:ocr": "python ocr-service/ocr_app.py",
     "test": "node tests/test-engine.js"
   },
   "keywords": [
     "mota",
     "document-intelligence",
-    "gemini",
+    "ocr",
+    "paddleocr",
     "scholarship",
     "verification"
   ],
   "author": "MoTA Technical Team",
   "license": "ISC",
   "dependencies": {
-    "@google/genai": "^2.24.0",
-    "@google/generative-ai": "^0.24.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

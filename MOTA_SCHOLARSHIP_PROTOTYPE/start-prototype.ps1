@@ -1,11 +1,13 @@
 # PowerShell Launcher for MoTA AI Scholarship Prototype
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host " MINISTRY OF TRIBAL AFFAIRS (MoTA) SCHOLARSHIP AI PROTOTYPE" -ForegroundColor Yellow
-Write-Host " Starting System A, System B, Integration API, and Dashboard..." -ForegroundColor Cyan
+Write-Host " Starting OCR Engine, System A, System B, Integration API, and Dashboard..." -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# Start Python OCR Microservice
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$scriptDir\system-a-document-intelligence\ocr-service'; python ocr_app.py"
 # Start System A
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$scriptDir\system-a-document-intelligence'; npm start"
 # Start System B
@@ -15,7 +17,8 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$sc
 # Start Frontend Dashboard
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$scriptDir\integration\frontend'; npm run dev"
 
-Write-Host "`nAll 4 services launched:" -ForegroundColor Green
+Write-Host "`nAll 5 services launched:" -ForegroundColor Green
+Write-Host "  - OCR Microservice       : http://localhost:5003"
 Write-Host "  - System A (Document AI) : http://localhost:5001"
 Write-Host "  - System B (Verification): http://localhost:5050"
 Write-Host "  - Integration API Server : http://localhost:5002"

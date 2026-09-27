@@ -1,6 +1,6 @@
 /**
  * Pre-Matric Scholarship for ST Students - Deterministic Rule Evaluator
- * Based on official Ministry of Tribal Affairs (MoTA) guidelines.
+ * Evaluates real extracted document intelligence from System A.
  *
  * Rules:
  * 1. Category: Must belong to Scheduled Tribe (ST)
@@ -12,22 +12,31 @@
  * 7. Supporting Documents: Required documents available/verified
  */
 
+const { adaptApplication } = require('../inputAdapter');
+
 function evaluatePreMatricRules(application, documentVerificationResults) {
   const evaluations = [];
-  const applicant = application.applicant || {};
-  const education = application.education || {};
-  const financial = application.financial || {};
-  const bank = application.bankDetails || applicant.bankDetails || financial.bankDetails || {};
+  const adapted = adaptApplication(application);
+  const applicant = adapted.applicant;
+  const education = adapted.education;
+  const financial = adapted.financial;
+  const bank = adapted.bank;
 
   // ---------------------------------------------------------
   // Rule 1: Scheduled Tribe Category (PM-CAT-01)
   // ---------------------------------------------------------
   const categoryRaw = applicant.category || applicant.casteCategory || "";
-  const isSt = /^(ST|SCHEDULED\s*TRIBE|PVTG)$/i.test(categoryRaw.trim());
-  let catStatus = "PASS";
-  let catReason = `Applicant belongs to ${categoryRaw.toUpperCase()} category.`;
+  const subCategory = applicant.subCategory || "";
+  const stCommunities = ["SANTHAL", "SANTAL", "MUNDA", "ORAON", "GOND", "BHIL", "BODO", "KHASI", "GARO", "HO", "KOL", "BIRHOR"];
+  const isRecognizedCommunity = stCommunities.some(c => 
+    String(categoryRaw).toUpperCase().includes(c) || String(subCategory).toUpperCase().includes(c)
+  );
+  const isSt = /^(ST|SCHEDULED\s*TRIBE|PVTG)$/i.test(String(categoryRaw).trim()) || isRecognizedCommunity;
 
-  if (!categoryRaw) {
+  let catStatus = "PASS";
+  let catReason = `Applicant belongs to ${categoryRaw || subCategory || 'ST'} category.`;
+
+  if (!categoryRaw && !subCategory) {
     catStatus = "INSUFFICIENT_DATA";
     catReason = "Social category not specified in application.";
   } else if (!isSt) {
@@ -39,7 +48,7 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
     ruleId: "PM-CAT-01",
     criterion: "Scheduled Tribe Category",
     expected: "ST or PVTG",
-    actual: categoryRaw || "Not provided",
+    actual: categoryRaw || subCategory || "Not provided",
     status: catStatus,
     reason: catReason
   });
@@ -57,7 +66,7 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
 
   if (!currentClassRaw) {
     classStatus = "INSUFFICIENT_DATA";
-    classReason = "Current class/standard is not specified.";
+    classReason = "Current class/standard is not specified in application.";
   } else if (!isEligibleClass) {
     classStatus = "FAIL";
     classReason = `Class "${currentClassRaw}" is not eligible. Pre-Matric is strictly for Class IX and X.`;
@@ -75,15 +84,16 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 3: Government or Recognized School (PM-INST-01)
   // ---------------------------------------------------------
+  const instName = education.institutionName || education.institution || education.schoolName || "";
   const instTypeRaw = education.institutionType || education.schoolType || "";
   const isRecognized = education.isRecognized !== false && education.isGovernmentOrRecognized !== false;
   const recognizedTypes = ["GOVERNMENT", "GOVT", "AIDED", "RECOGNIZED", "CENTRAL GOVT", "STATE GOVT", "KASTURBA GANDHI BALIKA VIDYALAYA", "EMRS", "ASHRAM SCHOOL"];
   const isEligibleInst = recognizedTypes.some((t) => instTypeRaw.toUpperCase().includes(t)) || isRecognized;
 
   let instStatus = "PASS";
-  let instReason = `School/Institution (${education.institutionName || 'Enrolled School'}) is Government or officially recognized.`;
+  let instReason = `School/Institution (${instName || 'Enrolled School'}) is Government or officially recognized.`;
 
-  if (!instTypeRaw && education.isRecognized === undefined) {
+  if (!instName && !instTypeRaw && education.isRecognized === undefined) {
     instStatus = "INSUFFICIENT_DATA";
     instReason = "Institution recognition/affiliation details not provided.";
   } else if (!isEligibleInst) {
@@ -95,7 +105,7 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
     ruleId: "PM-INST-01",
     criterion: "Recognized / Government Institution",
     expected: "Government / Aided / Recognized School",
-    actual: instTypeRaw || (education.isRecognized ? "Recognized" : "Not specified"),
+    actual: instName || instTypeRaw || (education.isRecognized ? "Recognized School" : "Not specified"),
     status: instStatus,
     reason: instReason
   });
@@ -103,64 +113,58 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 4: Annual Family Income <= ₹2.5 Lakh (PM-INCOME-01)
   // ---------------------------------------------------------
-  const incomeRaw = financial.annualFamilyIncome !== undefined
-    ? financial.annualFamilyIncome
-    : financial.annualIncome !== undefined
-      ? financial.annualIncome
-      : applicant.annualFamilyIncome;
-
-  const income = typeof incomeRaw === 'string' ? parseFloat(incomeRaw.replace(/[^0-9.]/g, '')) : incomeRaw;
+  const income = financial.annualIncome;
   const CEILING = 250000;
 
   let incStatus = "PASS";
-  let incReason = `Reported annual family income of ₹${Number(income).toLocaleString('en-IN')} is within the scheme limit of ₹2,50,000.`;
+  let incReason = "";
 
   if (income === undefined || income === null || isNaN(income)) {
     incStatus = "INSUFFICIENT_DATA";
     incReason = "Annual family income figure is missing from application.";
-  } else if (income <= CEILING) {
-    incStatus = "PASS";
-  } else {
+  } else if (income > CEILING) {
     incStatus = "FAIL";
-    incReason = `Annual family income of ₹${Number(income).toLocaleString('en-IN')} exceeds the scheme ceiling of ₹2,50,000.`;
+    incReason = `Reported annual family income of ₹${Number(income).toLocaleString('en-IN')} exceeds the scheme ceiling of ₹2,50,000.`;
+  } else {
+    incStatus = "PASS";
+    incReason = `Reported annual family income of ₹${Number(income).toLocaleString('en-IN')} is within the scheme limit of ₹2,50,000.`;
   }
 
   evaluations.push({
     ruleId: "PM-INCOME-01",
-    criterion: "Annual family income",
+    criterion: "Annual family income <= 2.5 Lakh",
     expected: "<= 250000",
-    actual: income !== undefined && !isNaN(income) ? income : "Not provided",
+    actual: income !== undefined && income !== null && !isNaN(income) ? income : "Not provided",
     status: incStatus,
     reason: incReason
   });
 
   // ---------------------------------------------------------
-  // Rule 5: Required Bank Information (PM-BANK-01)
+  // Rule 5: Valid Bank Details for DBT (PM-BANK-01)
   // ---------------------------------------------------------
-  const accNo = bank.accountNumber || bank.bankAccountNumber;
-  const ifsc = bank.ifscCode || bank.ifsc;
-  const bankName = bank.bankName;
+  const acct = bank.accountNumber;
+  const ifsc = bank.ifsc;
+  const ifscValid = ifsc && /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(String(ifsc).trim());
 
-  const hasBankDetails = Boolean(accNo && ifsc);
   let bankStatus = "PASS";
   let bankReason = "Valid bank account number and IFSC code provided for Direct Benefit Transfer (DBT).";
 
-  if (!accNo && !ifsc) {
+  if (!acct && !ifsc) {
     bankStatus = "INSUFFICIENT_DATA";
-    bankReason = "Direct Benefit Transfer bank details (Account No and IFSC) are missing.";
-  } else if (!accNo || !ifsc) {
+    bankReason = "Direct Benefit Transfer (DBT) bank details are missing from application.";
+  } else if (!acct || !ifsc) {
     bankStatus = "INSUFFICIENT_DATA";
-    bankReason = `Incomplete bank information: missing ${!accNo ? 'Account Number' : 'IFSC Code'}.`;
-  } else if (ifsc.length !== 11) {
-    bankStatus = "REQUIRES_HUMAN_REVIEW";
-    bankReason = `IFSC Code "${ifsc}" format appears non-standard. Manual verification required.`;
+    bankReason = `Incomplete bank details: ${!acct ? 'Account Number missing' : 'IFSC Code missing'}.`;
+  } else if (!ifscValid) {
+    bankStatus = "FAIL";
+    bankReason = `Invalid IFSC code "${ifsc}". Must follow 11-character RBI standard format.`;
   }
 
   evaluations.push({
     ruleId: "PM-BANK-01",
     criterion: "Valid Bank Details for DBT",
     expected: "Active Bank Account Number & 11-digit IFSC",
-    actual: hasBankDetails ? `Acc: ${String(accNo).slice(-4).padStart(String(accNo).length, 'X')}, IFSC: ${ifsc}` : "Incomplete",
+    actual: acct && ifsc ? `Acc: ${String(acct).slice(-4).padStart(String(acct).length, 'X')}, IFSC: ${ifsc}` : "Missing bank details",
     status: bankStatus,
     reason: bankReason
   });
@@ -168,57 +172,47 @@ function evaluatePreMatricRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 6: No Concurrent Scholarship (PM-NO-DUAL-01)
   // ---------------------------------------------------------
-  const receivingOther = financial.receivingOtherScholarship !== undefined
-    ? financial.receivingOtherScholarship
-    : applicant.receivingOtherScholarship !== undefined
-      ? applicant.receivingOtherScholarship
-      : education.receivingOtherScholarship;
-
+  const hasOther = financial.receivingOtherScholarship === true || applicant.hasOtherScholarship === true || applicant.receivingConcurrentScholarship === true;
   let dualStatus = "PASS";
   let dualReason = "Applicant self-declares not receiving any other Central or State pre-matric scholarship.";
 
-  if (receivingOther === undefined || receivingOther === null) {
-    dualStatus = "INSUFFICIENT_DATA";
-    dualReason = "Concurrent scholarship receipt declaration is missing.";
-  } else if (receivingOther === true || receivingOther === "true" || receivingOther === "YES") {
+  if (hasOther) {
     dualStatus = "FAIL";
-    dualReason = "Applicant is currently availing another scholarship; concurrent benefits are not permissible.";
+    dualReason = `Applicant currently holds another scholarship (${applicant.otherScholarshipName || 'Concurrent Award'}), violating the single-scholarship rule.`;
   }
 
   evaluations.push({
     ruleId: "PM-NO-DUAL-01",
     criterion: "No Concurrent Scholarship",
     expected: "Must not hold another government scholarship",
-    actual: receivingOther === true ? "Receiving another scholarship" : "Not receiving other scholarship",
+    actual: hasOther ? `Receiving other scholarship: ${applicant.otherScholarshipName || 'Yes'}` : "Not receiving other scholarship",
     status: dualStatus,
     reason: dualReason
   });
 
   // ---------------------------------------------------------
-  // Rule 7: Required Supporting Documents Available (PM-DOCS-01)
+  // Rule 7: Mandatory Supporting Documents (PM-DOCS-01)
   // ---------------------------------------------------------
-  const missingDocs = (documentVerificationResults || [])
-    .filter((d) => d.status === "MISSING" || d.status === "INVALID");
-
-  const unverifiedDocs = (documentVerificationResults || [])
-    .filter((d) => d.status === "LOW_CONFIDENCE" || d.status === "REQUIRES_HUMAN_REVIEW");
+  const docResults = documentVerificationResults || [];
+  const missingDocs = docResults.filter((d) => d.status === "MISSING");
+  const reviewDocs = docResults.filter((d) => d.status === "LOW_CONFIDENCE" || d.status === "REQUIRES_HUMAN_REVIEW" || d.status === "INVALID");
 
   let docsStatus = "PASS";
   let docsReason = "All mandatory supporting documents are available and verified.";
 
   if (missingDocs.length > 0) {
     docsStatus = "INSUFFICIENT_DATA";
-    docsReason = `Missing mandatory documents: ${missingDocs.map((d) => d.document).join(", ")}.`;
-  } else if (unverifiedDocs.length > 0) {
+    docsReason = `Missing mandatory document(s): ${missingDocs.map((d) => d.document).join(', ')}.`;
+  } else if (reviewDocs.length > 0) {
     docsStatus = "REQUIRES_HUMAN_REVIEW";
-    docsReason = `Documents requiring human officer review: ${unverifiedDocs.map((d) => d.document).join(", ")}.`;
+    docsReason = `Document scrutiny required for: ${reviewDocs.map((d) => `${d.document} (${d.status})`).join(', ')}.`;
   }
 
   evaluations.push({
     ruleId: "PM-DOCS-01",
     criterion: "Mandatory Supporting Documents",
     expected: "ST Certificate, Income Certificate, School Verification, Bank Proof",
-    actual: missingDocs.length === 0 ? "All verified" : `${missingDocs.length} missing`,
+    actual: missingDocs.length > 0 ? `Missing: ${missingDocs.map((d) => d.document).join(', ')}` : (reviewDocs.length > 0 ? "Scrutiny required" : "All verified"),
     status: docsStatus,
     reason: docsReason
   });

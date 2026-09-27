@@ -5,6 +5,7 @@ const { buildExplanation } = require('./explanationBuilder');
 const { evaluatePreMatricRules } = require('./rules/preMatricRules');
 const { evaluateNosRules } = require('./rules/nosRules');
 const { evaluateNationalFellowshipRules } = require('./rules/nationalFellowshipRules');
+const { adaptApplication } = require('./inputAdapter');
 
 /**
  * Normalizes scheme code or name to canonical key
@@ -21,33 +22,16 @@ function normalizeSchemeKey(schemeInput) {
 /**
  * Main Verification Engine Entrypoint
  *
- * Input format:
- * {
- *   "applicationId": "",
- *   "scheme": "",
- *   "applicant": {},
- *   "education": {},
- *   "financial": {},
- *   "documents": {},
- *   "documentIntelligence": {}
- * }
- *
- * Output format:
- * {
- *   "applicationId": "",
- *   "scheme": "",
- *   "documentVerification": [],
- *   "ruleEvaluation": [],
- *   "deficiencies": [],
- *   "finalStatus": "",
- *   "explanation": "",
- *   "humanReviewRequired": false
- * }
+ * Consumes:
+ * 1. Direct System A document intelligence output:
+ *    { applicationId, scheme, applicantProfile, documents: [], crossDocumentValidation: [], anomalies, reviewFlags }
+ * 2. Legacy / Integration payload format
  */
 function verifyApplication(application) {
-  const schemeKey = normalizeSchemeKey(application.scheme);
+  const adapted = adaptApplication(application);
+  const schemeKey = normalizeSchemeKey(adapted.scheme || application.scheme);
   const schemeDef = SCHEMES[schemeKey] || SCHEMES.PRE_MATRIC;
-  const appId = application.applicationId || `APP-${Date.now().toString().slice(-6)}`;
+  const appId = adapted.applicationId || application.applicationId || `APP-${Date.now().toString().slice(-6)}`;
 
   // 1. Verify Documents (Consuming System A document intelligence without duplicate OCR)
   const { documentVerification, documentDeficiencies } = verifyDocuments(schemeKey, application);
@@ -65,7 +49,7 @@ function verifyApplication(application) {
   // 3. Detect and Aggregate Deficiencies
   const deficiencies = detectDeficiencies(documentVerification, ruleEvaluation, documentDeficiencies);
 
-  // 4. Determine Final Status (Section 9)
+  // 4. Determine Final Status (Section 6 & 9)
   // Allowed: ELIGIBLE, NOT_ELIGIBLE, INCOMPLETE, HUMAN_REVIEW
   const hasFails = ruleEvaluation.some((r) => r.status === "FAIL");
   const hasInsufficientData = ruleEvaluation.some((r) => r.status === "INSUFFICIENT_DATA");
@@ -73,17 +57,19 @@ function verifyApplication(application) {
   const hasInvalidDocs = documentVerification.some((d) => d.status === "INVALID");
   const hasDocumentMismatches = deficiencies.some((d) => d.type === "DOCUMENT_MISMATCH");
   const hasLowConfidenceDocs = documentVerification.some((d) => d.status === "LOW_CONFIDENCE");
+  const hasHumanReviewDocs = documentVerification.some((d) => d.status === "REQUIRES_HUMAN_REVIEW");
   const hasHumanReviewRules = ruleEvaluation.some((r) => r.status === "REQUIRES_HUMAN_REVIEW");
+  const hasHumanReviewDeficiencies = deficiencies.some((d) => d.type === "HUMAN_VERIFICATION_REQUIRED" || d.type === "LOW_CONFIDENCE_DOCUMENT");
 
   let finalStatus = "ELIGIBLE";
   let humanReviewRequired = false;
 
   if (hasFails) {
-    // Explicit mandatory criteria failure
+    // Explicit statutory criteria failure
     finalStatus = "NOT_ELIGIBLE";
-  } else if (hasDocumentMismatches || hasLowConfidenceDocs || hasHumanReviewRules || hasInvalidDocs) {
-    // Document inconsistencies or low scan confidence must NOT be auto-failed;
-    // they require human review per Section 9.
+  } else if (hasDocumentMismatches || hasLowConfidenceDocs || hasHumanReviewDocs || hasHumanReviewRules || hasInvalidDocs || hasHumanReviewDeficiencies) {
+    // Document inconsistencies, DOB mismatch, or low scan confidence must NOT be auto-failed;
+    // they require human review per MoTA guidelines.
     finalStatus = "HUMAN_REVIEW";
     humanReviewRequired = true;
   } else if (hasMissingDocs || hasInsufficientData) {
@@ -94,7 +80,6 @@ function verifyApplication(application) {
     finalStatus = "ELIGIBLE";
   }
 
-  // Ensure humanReviewRequired is true for HUMAN_REVIEW status
   if (finalStatus === "HUMAN_REVIEW") {
     humanReviewRequired = true;
   }

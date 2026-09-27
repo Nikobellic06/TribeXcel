@@ -47,7 +47,7 @@ export function buildSystemBPayload(systemAData, schemeInput, meta = {}) {
   const docsList = systemAData.documents || [];
 
   // Parse age from DOB if available
-  const age = calculateAge(applicant.dateOfBirth) || (scheme === 'PRE_MATRIC' ? 15 : scheme === 'NOS' ? 26 : 28);
+  const age = calculateAge(applicant.dateOfBirth);
   const incomeNumber = parseNumber(financial.annualIncome);
   const percentageNumber = parseNumber(education.percentage);
 
@@ -64,7 +64,7 @@ export function buildSystemBPayload(systemAData, schemeInput, meta = {}) {
       status,
       confidence: doc.confidence || 0.9,
       quality: doc.quality,
-      filename: doc.filename,
+      filename: doc.originalFilename || doc.filename,
       extractedFields: doc.fields || {},
       reason: doc.issues && doc.issues.length > 0 ? doc.issues.join('; ') : undefined
     };
@@ -115,45 +115,52 @@ export function buildSystemBPayload(systemAData, schemeInput, meta = {}) {
     field: item.field,
     match: item.status === 'MATCH',
     status: item.status === 'MISMATCH' ? 'DOCUMENT_MISMATCH' : item.status,
-    details: item.remarks
+    details: item.details || item.remarks
   }));
 
   return {
     applicationId,
     scheme,
+    applicantProfile: systemAData.applicantProfile,
+    documents: docsList,
+    documentsMap,
+    crossDocumentValidation: systemAData.crossDocumentValidation || [],
+    anomalies: systemAData.anomalies,
+    reviewFlags: systemAData.reviewFlags,
     applicant: {
-      fullName: applicant.fullName || meta.fullName || 'Applicant',
-      category: applicant.category || 'Scheduled Tribe',
-      gender: applicant.gender || 'Not Specified',
-      dateOfBirth: applicant.dateOfBirth,
+      fullName: applicant.fullName || meta.fullName || null,
+      category: applicant.category || null,
+      gender: applicant.gender || null,
+      dateOfBirth: applicant.dateOfBirth || null,
       age,
-      state: applicant.domicileState || 'Jharkhand',
-      district: 'Ranchi'
+      state: applicant.domicileState || null,
+      district: applicant.district || null
     },
     education: {
-      currentClass: education.class || (scheme === 'PRE_MATRIC' ? 'Class IX' : null),
-      institutionName: education.institution || 'Recognized Educational Institution',
-      institutionType: 'Government / Recognized School',
+      currentClass: education.class || null,
+      institutionName: education.institution || null,
+      institutionType: education.institution ? 'Government / Recognized School' : null,
       isRecognized: true,
-      qualifyingDegree: education.qualification || education.course || (scheme === 'NOS' ? 'B.Tech' : 'Master Degree'),
-      qualifyingPercentage: percentageNumber !== null ? percentageNumber : (scheme === 'NOS' ? 65.0 : 68.0),
+      qualifyingDegree: education.qualification || education.course || null,
+      qualifyingPercentage: percentageNumber,
+      percentage: percentageNumber,
       targetDegreeLevel: scheme === 'NOS' ? 'MASTERS' : null,
-      foreignInstitutionName: scheme === 'NOS' ? (education.institution || 'University of Melbourne') : null,
-      country: scheme === 'NOS' ? 'Australia' : 'India',
+      foreignInstitutionName: scheme === 'NOS' ? education.institution : null,
+      country: scheme === 'NOS' ? 'Foreign Country' : 'India',
       hasUnconditionalOffer: true,
-      enrolledProgramme: scheme === 'NATIONAL_FELLOWSHIP' ? (education.course || 'Ph.D. in Tribal Studies') : null,
+      enrolledProgramme: scheme === 'NATIONAL_FELLOWSHIP' ? education.course : null,
       isEligibleInstitution: true
     },
     financial: {
+      annualIncome: incomeNumber,
       annualFamilyIncome: incomeNumber,
       receivingOtherScholarship: false,
       bankDetails: {
-        accountNumber: bank.accountNumberMasked || 'XXXXXX1234',
-        ifscCode: bank.ifsc || 'SBIN0000001',
-        bankName: bank.bankName || 'State Bank of India'
+        accountNumber: bank.accountNumberMasked || bank.accountNumber || null,
+        ifscCode: bank.ifsc || null,
+        bankName: bank.bankName || null
       }
     },
-    documents: documentsMap,
     documentIntelligence: {
       crossChecks,
       systemAAnomalies: systemAData.anomalies,
@@ -163,12 +170,13 @@ export function buildSystemBPayload(systemAData, schemeInput, meta = {}) {
 }
 
 /**
- * Merge System A and System B outputs into the required Final Response Contract (Section 5)
+ * Merge System A and System B outputs into the required Final Response Contract (Section 3)
  */
 export function buildFinalResponse(systemAData, systemBData, requestedScheme) {
   const applicationId = systemBData?.applicationId || systemAData?.applicationId || `APP-${Date.now()}`;
   const scheme = systemBData?.scheme || normalizeScheme(requestedScheme);
   const applicantProfile = systemAData?.applicantProfile || {};
+  const rawDocs = systemAData?.documents || [];
 
   // Extract signals list for anomalies
   let anomaliesList = [];
@@ -180,47 +188,95 @@ export function buildFinalResponse(systemAData, systemBData, requestedScheme) {
     anomaliesList = [systemAData.anomalies.signals];
   }
 
+  // Section 3 structured documentIntelligence sub-arrays
+  const classification = rawDocs.map(d => ({
+    document: d.originalFilename || d.filename || 'Document',
+    detectedType: d.documentType,
+    confidence: d.confidence,
+    evidence: d.classificationEvidence || []
+  }));
+
+  const ocr = rawDocs.map(d => ({
+    document: d.originalFilename || d.filename || 'Document',
+    ocrEngine: 'PaddleOCR (PP-OCRv6) + PyMuPDF',
+    status: 'SUCCESS',
+    confidence: d.confidence,
+    lineCount: Array.isArray(d.lines) ? d.lines.length : (d.fields ? Object.keys(d.fields).length : 0)
+  }));
+
+  const extraction = rawDocs.map(d => ({
+    document: d.originalFilename || d.filename || 'Document',
+    documentType: d.documentType,
+    fields: d.fields || {},
+    fieldConfidence: d.fieldConfidence || {}
+  }));
+
+  const quality = rawDocs.map(d => ({
+    document: d.originalFilename || d.filename || 'Document',
+    quality: d.quality || 'GOOD',
+    qualityScore: d.qualityScore || 0.95,
+    issues: d.issues || []
+  }));
+
+  const documentResults = rawDocs.map(d => ({
+    documentName: d.originalFilename || d.filename,
+    detectedType: d.documentType,
+    confidence: d.confidence,
+    quality: d.quality,
+    qualityScore: d.qualityScore,
+    classificationEvidence: d.classificationEvidence || [],
+    fields: d.fields || {},
+    fieldConfidence: d.fieldConfidence || {},
+    missingFields: d.missingFields || [],
+    issues: d.issues || []
+  }));
+
+  const normApplicantProfile = {
+    applicant: applicantProfile.applicant || {},
+    education: applicantProfile.education || {},
+    financial: applicantProfile.financial || {},
+    bank: applicantProfile.bank || {}
+  };
+
   return {
     applicationId,
     scheme,
 
-    applicant: applicantProfile.applicant || {},
+    // Top-level applicant profile (Section 3 requirement)
+    applicantProfile: normApplicantProfile,
+    applicant: normApplicantProfile.applicant,
+    education: normApplicantProfile.education,
+    financial: normApplicantProfile.financial,
 
-    education: applicantProfile.education || {},
+    // Ingested documents list
+    documents: rawDocs,
 
-    financial: applicantProfile.financial || {},
-
-    documents: systemAData?.documents || [],
-
+    // Detailed Document Intelligence block (Section 3 requirement)
     documentIntelligence: {
-      extractedData: {
-        applicant: applicantProfile.applicant || {},
-        education: applicantProfile.education || {},
-        financial: applicantProfile.financial || {},
-        bank: applicantProfile.bank || {}
-      },
-      documentResults: (systemAData?.documents || []).map(d => ({
-        documentName: d.filename,
-        detectedType: d.documentType,
-        confidence: d.confidence,
-        quality: d.quality,
-        qualityScore: d.qualityScore,
-        fields: d.fields,
-        missingFields: d.missingFields || [],
-        issues: d.issues || []
-      })),
+      classification,
+      ocr,
+      extraction,
+      quality,
       crossDocumentValidation: systemAData?.crossDocumentValidation || [],
       anomalies: anomaliesList,
+      // Backward compatibility aliases
+      extractedData: normApplicantProfile,
+      documentResults,
       reviewFlags: systemAData?.reviewFlags || []
     },
 
+    // Verification evaluation block (Section 3 requirement)
     verification: {
-      documentVerification: systemBData?.documentVerification || [],
-      ruleEvaluation: systemBData?.ruleEvaluation || [],
+      scheme,
+      documents: systemBData?.documentVerification || [],
+      rules: systemBData?.ruleEvaluation || [],
       deficiencies: systemBData?.deficiencies || [],
       finalStatus: systemBData?.finalStatus || 'INCOMPLETE',
+      humanReviewRequired: Boolean(systemBData?.humanReviewRequired),
       explanation: systemBData?.explanation || 'Verification completed by System B.',
-      humanReviewRequired: Boolean(systemBData?.humanReviewRequired)
+      // Backward compatibility aliases
+      documentVerification: systemBData?.documentVerification || [],
+      ruleEvaluation: systemBData?.ruleEvaluation || []
     }
   };
 }

@@ -363,6 +363,332 @@ async function runAllTests() {
       assert.strictEqual(postRes.body.verificationResult.finalStatus, 'ELIGIBLE');
     });
 
+    // ===========================================================
+    // REAL SYSTEM A STRUCTURE CONSUMPTION TESTS (Section 10)
+    // ===========================================================
+
+    // -----------------------------------------------------------
+    // Test 15: Real/Structured Eligible Application (from System A)
+    // -----------------------------------------------------------
+    await test('Scenario 1: Real Structured Eligible Application (System A output)', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-001',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: {
+            fullName: 'Sunita Soren',
+            category: 'ST',
+            subTribe: 'Santhal',
+            dateOfBirth: '2008-04-12'
+          },
+          education: {
+            class: 'Class X',
+            institution: 'Govt High School Dumka',
+            institutionType: 'Government / Recognized School'
+          },
+          financial: {
+            annualIncome: 140000
+          },
+          bank: {
+            accountNumber: '987654321012',
+            ifsc: 'SBIN0000214',
+            bankName: 'State Bank of India'
+          }
+        },
+        documents: [
+          {
+            originalFilename: 'sample_st_certificate.pdf',
+            documentType: 'ST_CERTIFICATE',
+            confidence: 0.99,
+            quality: 'GOOD',
+            fields: { fullName: 'Sunita Soren', category: 'ST', tribeName: 'Santhal' }
+          },
+          {
+            originalFilename: 'sample_income_certificate.pdf',
+            documentType: 'INCOME_CERTIFICATE',
+            confidence: 0.98,
+            quality: 'GOOD',
+            fields: { annualIncome: 140000, certificateNumber: 'INC/JH/2023/45120' }
+          },
+          {
+            originalFilename: 'sample_marksheet.pdf',
+            documentType: 'MARKSHEET',
+            confidence: 0.99,
+            quality: 'GOOD',
+            fields: { studentName: 'Sunita Soren', class: 'Class X', institution: 'Govt High School Dumka' }
+          },
+          {
+            originalFilename: 'sample_bank_passbook.pdf',
+            documentType: 'BANK_PASSBOOK',
+            confidence: 0.99,
+            quality: 'GOOD',
+            fields: { accountHolderName: 'Sunita Soren', maskedAccountNumber: 'XXXXXX1012', IFSC: 'SBIN0000214' }
+          }
+        ],
+        crossDocumentValidation: [
+          { field: 'fullName', status: 'MATCH', details: 'Full name matches across all 4 documents.' }
+        ],
+        anomalies: { level: 'LOW', signals: [] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'ELIGIBLE');
+      assert.strictEqual(res.body.humanReviewRequired, false);
+      assert.strictEqual(res.body.documentVerification.filter(d => d.status === 'PRESENT').length, 4);
+      const incRule = res.body.ruleEvaluation.find(r => r.ruleId === 'PM-INCOME-01');
+      assert.strictEqual(incRule.status, 'PASS');
+      assert.strictEqual(incRule.actual, 140000);
+    });
+
+    // -----------------------------------------------------------
+    // Test 16: Real/Structured Ineligible Application (High Income)
+    // -----------------------------------------------------------
+    await test('Scenario 2: Real Structured Ineligible Application (Income > 2.5L)', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-002',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Prakash Munda', category: 'ST' },
+          education: { class: 'Class IX', institution: 'Govt High School' },
+          financial: { annualIncome: 350000 }, // Violates <= 2,50,000
+          bank: { accountNumber: '123456789012', ifsc: 'SBIN0000214' }
+        },
+        documents: [
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'income.pdf', documentType: 'INCOME_CERTIFICATE', confidence: 0.98, quality: 'GOOD', fields: { annualIncome: 350000 } },
+          { originalFilename: 'marksheet.pdf', documentType: 'MARKSHEET', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'bank.pdf', documentType: 'BANK_PASSBOOK', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'LOW', signals: [] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'NOT_ELIGIBLE');
+      const incRule = res.body.ruleEvaluation.find(r => r.ruleId === 'PM-INCOME-01');
+      assert.strictEqual(incRule.status, 'FAIL');
+      assert.strictEqual(incRule.actual, 350000);
+    });
+
+    // -----------------------------------------------------------
+    // Test 17: Missing Required Document
+    // -----------------------------------------------------------
+    await test('Scenario 3: Missing Document (Income Certificate missing)', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-003',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Sunita Soren', category: 'ST' },
+          education: { class: 'Class IX' },
+          financial: { annualIncome: 120000 }
+        },
+        documents: [
+          // ST Certificate and Marksheet only; Income Certificate is MISSING
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'marksheet.pdf', documentType: 'MARKSHEET', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'LOW', signals: [] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'INCOMPLETE');
+      const missingIncomeDoc = res.body.documentVerification.find(d => d.document === 'Income Certificate');
+      assert.ok(missingIncomeDoc);
+      assert.strictEqual(missingIncomeDoc.status, 'MISSING');
+    });
+
+    // -----------------------------------------------------------
+    // Test 18: Missing Income Field (INSUFFICIENT_DATA, NOT FAIL)
+    // -----------------------------------------------------------
+    await test('Scenario 4: Missing Income Field yields INSUFFICIENT_DATA (not FAIL)', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-004',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Sunita Soren', category: 'ST' },
+          education: { class: 'Class X', institution: 'Govt School' },
+          financial: { annualIncome: null }, // Missing income
+          bank: { accountNumber: '123456789012', ifsc: 'SBIN0000214' }
+        },
+        documents: [
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'income.pdf', documentType: 'INCOME_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'marksheet.pdf', documentType: 'MARKSHEET', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'bank.pdf', documentType: 'BANK_PASSBOOK', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'LOW', signals: [] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'INCOMPLETE');
+      const incRule = res.body.ruleEvaluation.find(r => r.ruleId === 'PM-INCOME-01');
+      assert.strictEqual(incRule.status, 'INSUFFICIENT_DATA');
+      assert.notStrictEqual(incRule.status, 'FAIL');
+    });
+
+    // -----------------------------------------------------------
+    // Test 19: Date of Birth Mismatch (Cross-Document Discrepancy)
+    // -----------------------------------------------------------
+    await test('Scenario 5: DOB Mismatch detected yields HUMAN_REVIEW (not auto-reject)', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-005',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Sunita Soren', category: 'ST', dateOfBirth: '2008-04-12' },
+          education: { class: 'Class IX', institution: 'Govt School' },
+          financial: { annualIncome: 140000 },
+          bank: { accountNumber: '123456789012', ifsc: 'SBIN0000214' }
+        },
+        documents: [
+          { originalFilename: 'aadhaar.pdf', documentType: 'AADHAAR', confidence: 0.99, quality: 'GOOD', fields: { dateOfBirth: '12/04/2008' } },
+          { originalFilename: 'marksheet.pdf', documentType: 'MARKSHEET', confidence: 0.99, quality: 'GOOD', fields: { dateOfBirth: '15/09/2007' } },
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'income.pdf', documentType: 'INCOME_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'bank.pdf', documentType: 'BANK_PASSBOOK', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [
+          {
+            field: 'dateOfBirth',
+            status: 'MISMATCH',
+            match: false,
+            details: 'Date of birth discrepancy detected between Aadhaar (12/04/2008) and Marksheet (15/09/2007).'
+          }
+        ],
+        anomalies: { level: 'HIGH', signals: ['Potential inconsistency in DOB across documents'] },
+        reviewFlags: [
+          { severity: 'HIGH', field: 'dateOfBirth', message: 'DOB mismatch requires officer verification' }
+        ]
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'HUMAN_REVIEW');
+      assert.strictEqual(res.body.humanReviewRequired, true);
+      const dobMismatchDef = res.body.deficiencies.find(d => d.type === 'DOCUMENT_MISMATCH' && d.field === 'dateOfBirth');
+      assert.ok(dobMismatchDef);
+    });
+
+    // -----------------------------------------------------------
+    // Test 20: Low-Confidence Document Scan
+    // -----------------------------------------------------------
+    await test('Scenario 6: Low Confidence Document triggers LOW_CONFIDENCE and HUMAN_REVIEW', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-006',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Sunita Soren', category: 'ST' },
+          education: { class: 'Class IX' },
+          financial: { annualIncome: 140000 },
+          bank: { accountNumber: '123456789012', ifsc: 'SBIN0000214' }
+        },
+        documents: [
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          {
+            originalFilename: 'blurry_income.pdf',
+            documentType: 'INCOME_CERTIFICATE',
+            confidence: 0.52, // Below 0.65 threshold
+            quality: 'POOR',
+            qualityScore: 0.48
+          },
+          { originalFilename: 'marksheet.pdf', documentType: 'MARKSHEET', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'bank.pdf', documentType: 'BANK_PASSBOOK', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'MEDIUM', signals: ['Low OCR certainty on income certificate'] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'HUMAN_REVIEW');
+      assert.strictEqual(res.body.humanReviewRequired, true);
+      const lowConfDoc = res.body.documentVerification.find(d => d.document === 'Income Certificate');
+      assert.strictEqual(lowConfDoc.status, 'LOW_CONFIDENCE');
+    });
+
+    // -----------------------------------------------------------
+    // Test 21: Wrong Document Type (Unrelated Receipt)
+    // -----------------------------------------------------------
+    await test('Scenario 7: Wrong Document Type (UNKNOWN) flagged and leaves required docs MISSING', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-007',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {},
+        documents: [
+          {
+            originalFilename: 'cafe_receipt.pdf',
+            documentType: 'UNKNOWN',
+            confidence: 0.15,
+            quality: 'WARNING',
+            fields: {}
+          }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'LOW', signals: [] },
+        reviewFlags: []
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      // Status must not be ELIGIBLE
+      assert.ok(['INCOMPLETE', 'HUMAN_REVIEW', 'NOT_ELIGIBLE'].includes(res.body.finalStatus));
+      // ST Certificate must be MISSING
+      const stDoc = res.body.documentVerification.find(d => d.document === 'ST Certificate');
+      assert.strictEqual(stDoc.status, 'MISSING');
+      // Must contain deficiency for unknown document
+      const unknownDef = res.body.deficiencies.find(d => d.reason.includes('Unrecognized document'));
+      assert.ok(unknownDef);
+    });
+
+    // -----------------------------------------------------------
+    // Test 22: Human-Review Case with Officer Flag
+    // -----------------------------------------------------------
+    await test('Scenario 8: Ambiguity / Officer Flag propagates to HUMAN_REVIEW', async () => {
+      const systemAPayload = {
+        applicationId: 'MOTA-SYS-A-008',
+        scheme: 'PRE_MATRIC',
+        applicantProfile: {
+          applicant: { fullName: 'Sunita Soren', category: 'ST' },
+          education: { class: 'Class IX' },
+          financial: { annualIncome: 140000 },
+          bank: { accountNumber: '123456789012', ifsc: 'SBIN0000214' }
+        },
+        documents: [
+          { originalFilename: 'st.pdf', documentType: 'ST_CERTIFICATE', confidence: 0.99, quality: 'GOOD' },
+          { originalFilename: 'income.pdf', documentType: 'INCOME_CERTIFICATE', confidence: 0.98, quality: 'GOOD' },
+          {
+            originalFilename: 'marksheet.pdf',
+            documentType: 'MARKSHEET',
+            confidence: 0.99,
+            quality: 'GOOD',
+            status: 'REQUIRES_HUMAN_REVIEW',
+            reason: 'Stamp/seal partially cut off by scanner'
+          },
+          { originalFilename: 'bank.pdf', documentType: 'BANK_PASSBOOK', confidence: 0.99, quality: 'GOOD' }
+        ],
+        crossDocumentValidation: [],
+        anomalies: { level: 'MEDIUM', signals: ['Partial seal truncation'] },
+        reviewFlags: [
+          { severity: 'MEDIUM', field: 'schoolVerification', message: 'Stamp partially cropped' }
+        ]
+      };
+
+      const res = await makeRequest('POST', '/api/verify', systemAPayload);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.finalStatus, 'HUMAN_REVIEW');
+      assert.strictEqual(res.body.humanReviewRequired, true);
+    });
+
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

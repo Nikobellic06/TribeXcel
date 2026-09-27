@@ -14,7 +14,7 @@ async function checkHealth() {
     const res = await fetch('/api/health');
     const data = await res.json();
     if (data.status === 'UP') {
-      badge.innerHTML = `<span class="status-dot"></span> Engine Online (${data.geminiConfigured ? 'Gemini AI' : 'Simulation Mode'})`;
+      badge.innerHTML = `<span class="status-dot"></span> OCR Engine Online (${data.ocrEngine || 'PaddleOCR + PyMuPDF'})`;
     }
   } catch (err) {
     badge.innerHTML = `<span class="status-dot" style="background:#ef4444"></span> Engine Disconnected`;
@@ -191,16 +191,34 @@ function renderDocumentsTab(docs) {
   container.innerHTML = docs.map(doc => {
     const qClass = (doc.quality || 'GOOD').toLowerCase();
     const fieldsEntries = Object.entries(doc.fields || {});
+    const fieldConf = doc.fieldConfidence || {};
     
     return `
       <div class="doc-card">
         <div class="doc-card-header">
           <div>
             <div class="doc-card-title">📄 ${escapeHtml(doc.filename || 'Document')}</div>
-            <div class="doc-card-meta">Type: <strong>${escapeHtml(doc.documentType)}</strong> (Confidence: ${(doc.confidence * 100).toFixed(0)}%)</div>
+            <div class="doc-card-meta">
+              Detected: <strong style="color:#1e3a8a;">${escapeHtml(doc.documentType)}</strong> 
+              (Confidence: ${(doc.confidence * 100).toFixed(0)}%)
+            </div>
+            ${doc._ocrDetails ? `
+              <div style="font-size:10px; color:#64748b; margin-top:2px;">
+                ⚙️ ${escapeHtml(doc._ocrDetails.engine || 'PaddleOCR')} | Lines: ${doc._ocrDetails.linesDetected || 0}
+              </div>
+            ` : ''}
           </div>
           <span class="badge ${qClass}">Quality: ${escapeHtml(doc.quality)} (${(doc.qualityScore * 100).toFixed(0)}%)</span>
         </div>
+
+        ${doc.evidence && doc.evidence.length > 0 ? `
+          <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:6px 10px; border-radius:4px; margin-bottom:8px; font-size:11px; color:#0369a1;">
+            <strong>Classification Evidence:</strong>
+            <ul style="padding-left:16px; margin:2px 0 0 0;">
+              ${doc.evidence.map(e => `<li>${escapeHtml(e)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
 
         ${doc.issues && doc.issues.length > 0 ? `
           <div style="background:#fffbeb; padding:6px 10px; border-radius:4px; margin-bottom:8px; font-size:11px; color:#92400e;">
@@ -215,13 +233,27 @@ function renderDocumentsTab(docs) {
         ` : ''}
 
         <table class="doc-fields-table">
+          <thead>
+            <tr style="border-bottom:1px solid #e2e8f0; font-size:10px; color:#64748b; text-transform:uppercase;">
+              <th style="text-align:left; padding:2px 4px;">Field</th>
+              <th style="text-align:left; padding:2px 4px;">Extracted Value</th>
+              <th style="text-align:right; padding:2px 4px;">Confidence</th>
+            </tr>
+          </thead>
           <tbody>
-            ${fieldsEntries.length > 0 ? fieldsEntries.map(([k, v]) => `
-              <tr>
-                <td class="field-key">${formatFieldKey(k)}</td>
-                <td class="field-val ${v === null ? 'val-null' : ''}">${v !== null ? escapeHtml(v) : 'null (not present)'}</td>
-              </tr>
-            `).join('') : '<tr><td colspan="2" class="val-null">No structured fields extracted</td></tr>'}
+            ${fieldsEntries.length > 0 ? fieldsEntries.map(([k, v]) => {
+              const confObj = fieldConf[k];
+              const confPct = confObj && confObj.confidence ? `${(confObj.confidence * 100).toFixed(0)}%` : '-';
+              return `
+                <tr>
+                  <td class="field-key">${formatFieldKey(k)}</td>
+                  <td class="field-val ${v === null ? 'val-null' : ''}">${v !== null ? escapeHtml(v) : 'null'}</td>
+                  <td style="text-align:right; font-size:10px; color:${v !== null ? '#15803d' : '#94a3b8'};">
+                    ${v !== null ? `${confPct} (OCR)` : '0%'}
+                  </td>
+                </tr>
+              `;
+            }).join('') : '<tr><td colspan="3" class="val-null">No structured fields extracted</td></tr>'}
           </tbody>
         </table>
       </div>

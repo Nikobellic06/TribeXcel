@@ -1,5 +1,6 @@
 // Script to check status of all MoTA prototype services
 const services = [
+  { name: 'OCR Microservice (PaddleOCR)', url: 'http://localhost:5003/health' },
   { name: 'System A (Document Intelligence)', url: 'http://localhost:5001/api/health' },
   { name: 'System B (Verification Engine)', url: 'http://localhost:5050/api/health' },
   { name: 'Integration API Server', url: 'http://localhost:5002/api/health' },

@@ -22,14 +22,14 @@ import {
 
 export function performCrossDocumentValidation(documents = []) {
   const fieldsToValidate = [
-    { key: 'fullName', label: 'Full Name', aliases: ['fullName', 'accountHolderName'] },
-    { key: 'dateOfBirth', label: 'Date of Birth', aliases: ['dateOfBirth'] },
+    { key: 'fullName', label: 'Full Name', aliases: ['fullName', 'name', 'studentName', 'applicantName', 'accountHolderName'] },
+    { key: 'dateOfBirth', label: 'Date of Birth', aliases: ['dateOfBirth', 'dob'] },
     { key: 'category', label: 'Category', aliases: ['category'] },
     { key: 'tribeName', label: 'Tribe Name', aliases: ['tribeName'] },
     { key: 'domicileState', label: 'Domicile / State', aliases: ['domicileState', 'state'] },
-    { key: 'institution', label: 'Institution Name', aliases: ['institution'] },
-    { key: 'course', label: 'Course / Discipline', aliases: ['course', 'programme'] },
-    { key: 'qualification', label: 'Qualification', aliases: ['qualification'] },
+    { key: 'institution', label: 'Institution Name', aliases: ['institution', 'university'] },
+    { key: 'course', label: 'Course / Discipline', aliases: ['course', 'degree', 'courseOrClass', 'programme'] },
+    { key: 'qualification', label: 'Qualification', aliases: ['qualification', 'examination', 'degree'] },
     { key: 'annualIncome', label: 'Annual Income', aliases: ['annualIncome'] }
   ];
 
@@ -43,8 +43,12 @@ export function performCrossDocumentValidation(documents = []) {
 
       let val = null;
       for (const alias of fieldDef.aliases) {
-        if (doc.fields[alias] !== null && doc.fields[alias] !== undefined && String(doc.fields[alias]).trim() !== '') {
-          val = String(doc.fields[alias]).trim();
+        let raw = doc.fields[alias];
+        if (typeof raw === 'object' && raw !== null && raw.value !== undefined) {
+          raw = raw.value;
+        }
+        if (raw !== null && raw !== undefined && String(raw).trim() !== '') {
+          val = String(raw).trim();
           break;
         }
       }

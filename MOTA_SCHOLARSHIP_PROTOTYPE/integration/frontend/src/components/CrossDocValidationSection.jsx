@@ -33,7 +33,7 @@ export default function CrossDocValidationSection({
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
             <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-            NOT_AVAILABLE
+            {status || 'NOT_AVAILABLE'}
           </span>
         );
     }
@@ -64,7 +64,7 @@ export default function CrossDocValidationSection({
             {reviewFlags.map((flag, idx) => (
               <div key={idx} className="bg-white/80 border border-amber-200/60 rounded p-2 text-[11px]">
                 <div className="flex justify-between font-semibold text-amber-900 mb-0.5">
-                  <span>{flag.field}</span>
+                  <span className="font-mono">{flag.field}</span>
                   <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-100 px-1 rounded">
                     {flag.severity} PRIORITY
                   </span>
@@ -98,33 +98,36 @@ export default function CrossDocValidationSection({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {validations.map((item, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/70">
-                  <td className="py-2.5 px-3 font-semibold text-slate-800">
-                    {item.label || item.field}
-                  </td>
-                  <td className="py-2.5 px-3 whitespace-nowrap">
-                    {getStatusBadge(item.status)}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    {item.documents && item.documents.length > 0 ? (
-                      <div className="space-y-0.5">
-                        {item.documents.map((d, i) => (
-                          <div key={i} className="text-[11px] text-slate-700">
-                            <span className="text-slate-400">{d.document}:</span>{' '}
-                            <strong className="font-semibold text-slate-900">"{d.value}"</strong>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic">No values present</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 text-slate-600 text-[11px]">
-                    {item.remarks || '-'}
-                  </td>
-                </tr>
-              ))}
+              {validations.map((item, idx) => {
+                const docOccurrences = item.values || item.documents || [];
+                return (
+                  <tr key={idx} className="hover:bg-slate-50/70">
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 capitalize">
+                      {item.label || item.field}
+                    </td>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      {getStatusBadge(item.status)}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {docOccurrences.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {docOccurrences.map((d, i) => (
+                            <div key={i} className="text-[11px] text-slate-700">
+                              <span className="text-slate-400">{d.document}:</span>{' '}
+                              <strong className="font-semibold text-slate-900">"{d.value}"</strong>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">No values present</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                      {item.details || item.remarks || '-'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

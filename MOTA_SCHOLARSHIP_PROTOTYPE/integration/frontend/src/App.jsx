@@ -10,12 +10,14 @@ import FinalResultSection from './components/FinalResultSection';
 import RawJsonModal from './components/RawJsonModal';
 
 const INITIAL_STAGES = [
-  { id: 'upload', name: 'Document Upload', description: 'Multi-document ingestion', status: 'Pending' },
-  { id: 'analysis', name: 'AI Document Analysis', description: 'System A type & quality', status: 'Pending' },
-  { id: 'extraction', name: 'Data Extraction', description: 'Structured attributes', status: 'Pending' },
-  { id: 'validation', name: 'Cross-Doc Validation', description: 'Entity alignment check', status: 'Pending' },
-  { id: 'verification', name: 'Eligibility Verification', description: 'System B statutory rules', status: 'Pending' },
-  { id: 'report', name: 'Final Report', description: 'Explainable decision advice', status: 'Pending' }
+  { id: 'upload', name: 'Document Upload', description: 'Multipart document ingestion', status: 'Pending' },
+  { id: 'preprocessing', name: 'File Processing', description: 'PyMuPDF raster & OpenCV CLAHE', status: 'Pending' },
+  { id: 'ocr', name: 'PaddleOCR', description: 'PP-OCRv6 text recognition', status: 'Pending' },
+  { id: 'classification', name: 'Document Classification', description: 'Deterministic evidence matching', status: 'Pending' },
+  { id: 'extraction', name: 'Field Extraction', description: 'Attribute extraction with confidence', status: 'Pending' },
+  { id: 'validation', name: 'Cross-Doc Validation', description: 'Cross-entity alignment check', status: 'Pending' },
+  { id: 'verification', name: 'Eligibility Verification', description: 'System B statutory rule engine', status: 'Pending' },
+  { id: 'report', name: 'Final Report', description: 'Explainable verdict with officer sign-off', status: 'Pending' }
 ];
 
 export default function App() {
@@ -28,6 +30,7 @@ export default function App() {
   const [resultData, setResultData] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [activeMode, setActiveMode] = useState('LIVE');
 
   // Poll health on mount
   useEffect(() => {
@@ -59,24 +62,36 @@ export default function App() {
 
   // Run Demo
   const handleRunDemo = async (scenario) => {
+    setActiveMode('DEMO');
     setIsProcessing(true);
     resetStages();
 
-    // Stage 1
+    // Stage 1: Upload
     updateStage('upload', 'Processing');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 150));
     updateStage('upload', 'Completed');
 
-    // Stage 2 & 3
-    updateStage('analysis', 'Processing');
-    await new Promise(r => setTimeout(r, 250));
-    updateStage('analysis', 'Completed');
+    // Stage 2: Processing
+    updateStage('preprocessing', 'Processing');
+    await new Promise(r => setTimeout(r, 150));
+    updateStage('preprocessing', 'Completed');
 
+    // Stage 3: OCR
+    updateStage('ocr', 'Processing');
+    await new Promise(r => setTimeout(r, 200));
+    updateStage('ocr', 'Completed');
+
+    // Stage 4: Classification
+    updateStage('classification', 'Processing');
+    await new Promise(r => setTimeout(r, 150));
+    updateStage('classification', 'Completed');
+
+    // Stage 5: Extraction
     updateStage('extraction', 'Processing');
     await new Promise(r => setTimeout(r, 200));
     updateStage('extraction', 'Completed');
 
-    // Stage 4
+    // Stage 6: Validation
     updateStage('validation', 'Processing');
 
     try {
@@ -93,17 +108,17 @@ export default function App() {
       const data = await res.json();
       updateStage('validation', 'Completed');
 
-      // Stage 5
+      // Stage 7: Verification
       updateStage('verification', 'Processing');
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 200));
       updateStage('verification', 'Completed');
 
-      // Stage 6
+      // Stage 8: Report
       updateStage('report', 'Completed');
 
       setResultData(data);
-      setApplicationId(data.applicationId);
-      setScheme(data.scheme);
+      if (data.applicationId) setApplicationId(data.applicationId);
+      if (data.scheme) setScheme(data.scheme);
     } catch (err) {
       updateStage('validation', 'Failed');
       updateStage('verification', 'Failed');
@@ -117,10 +132,10 @@ export default function App() {
   // Process Live Upload
   const handleProcessApplication = async () => {
     if (files.length === 0) return;
+    setActiveMode('LIVE');
     setIsProcessing(true);
     resetStages();
 
-    // Form data
     const formData = new FormData();
     formData.append('applicationId', applicationId);
     formData.append('scheme', scheme);
@@ -129,12 +144,19 @@ export default function App() {
     }
 
     try {
+      // Stage 1: Document Upload
       updateStage('upload', 'Processing');
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       updateStage('upload', 'Completed');
 
-      updateStage('analysis', 'Processing');
-      updateStage('extraction', 'Processing');
+      // Stage 2: File Processing
+      updateStage('preprocessing', 'Processing');
+      await new Promise(r => setTimeout(r, 200));
+      updateStage('preprocessing', 'Completed');
+
+      // Stage 3 & 4: OCR & Classification
+      updateStage('ocr', 'Processing');
+      updateStage('classification', 'Processing');
 
       const res = await fetch('/api/process-application', {
         method: 'POST',
@@ -144,28 +166,45 @@ export default function App() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.message?.includes('Document Intelligence')) {
-          updateStage('analysis', 'Failed');
-          throw new Error('Document Intelligence Engine unavailable.');
+        const errorText = data.message || data.error || 'Application processing failed';
+        if (errorText.toLowerCase().includes('ocr') || errorText.toLowerCase().includes('document intelligence')) {
+          updateStage('ocr', 'Failed');
+          updateStage('classification', 'Failed');
+          throw new Error('OCR processing failed. Human verification required.');
         }
-        if (data.message?.includes('Verification Engine')) {
-          updateStage('analysis', 'Completed');
+        if (errorText.toLowerCase().includes('verification') || errorText.toLowerCase().includes('system b')) {
+          updateStage('ocr', 'Completed');
+          updateStage('classification', 'Completed');
           updateStage('extraction', 'Completed');
           updateStage('verification', 'Failed');
-          throw new Error('Verification Engine unavailable.');
+          throw new Error('Eligibility could not be determined from available information.');
         }
-        throw new Error(data.message || data.error || 'Application processing failed');
+        throw new Error(errorText);
       }
 
-      updateStage('analysis', 'Completed');
-      updateStage('extraction', 'Completed');
-      updateStage('validation', 'Completed');
-      updateStage('verification', 'Completed');
-      updateStage('report', 'Completed');
+      // Check if any document failed classification
+      const unknownDocs = (data.documents || []).filter(d => d.documentType === 'UNKNOWN' || d.confidence < 0.5);
+      if (unknownDocs.length > 0 && data.documents.length === unknownDocs.length) {
+        // All documents were unknown
+        updateStage('ocr', 'Completed');
+        updateStage('classification', 'Completed');
+        updateStage('extraction', 'Completed');
+        updateStage('validation', 'Completed');
+        updateStage('verification', 'Completed');
+        updateStage('report', 'Completed');
+        setErrorMsg('Document could not be reliably classified. Proceeding with officer review.');
+      } else {
+        updateStage('ocr', 'Completed');
+        updateStage('classification', 'Completed');
+        updateStage('extraction', 'Completed');
+        updateStage('validation', 'Completed');
+        updateStage('verification', 'Completed');
+        updateStage('report', 'Completed');
+      }
 
       setResultData(data);
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || 'Processing error occurred.');
     } finally {
       setIsProcessing(false);
     }
@@ -183,7 +222,7 @@ export default function App() {
               <strong className="font-semibold block text-sm mb-0.5">Processing Alert</strong>
               <p>{errorMsg}</p>
               <p className="text-[11px] text-rose-600 mt-1">
-                You can continue testing with the one-click demo buttons above even if live services are offline.
+                The system remains fully operational. You can test live document uploads or benchmark demo scenarios.
               </p>
             </div>
             <button
@@ -206,9 +245,11 @@ export default function App() {
           onProcess={handleProcessApplication}
           onRunDemo={handleRunDemo}
           isProcessing={isProcessing}
+          activeMode={activeMode}
+          setActiveMode={setActiveMode}
         />
 
-        {/* Section 2: Pipeline Execution Status */}
+        {/* Section 2: Pipeline Execution Status (8 Stages) */}
         <PipelineStatus stages={stages} />
 
         {/* Sections 3 to 7: Active Results View */}
@@ -216,14 +257,14 @@ export default function App() {
           <div className="space-y-6 animate-fadeIn">
             {/* Section 3: Document Intelligence */}
             <DocumentIntelligenceSection
-              documentResults={resultData.documentIntelligence?.documentResults}
+              documentResults={resultData.documentIntelligence?.documentResults || resultData.documents}
             />
 
             {/* Section 4: Applicant Profile */}
             <ApplicantProfileSection
-              applicant={resultData.applicant}
-              education={resultData.education}
-              financial={resultData.financial}
+              applicant={resultData.applicantProfile?.applicant || resultData.applicant}
+              education={resultData.applicantProfile?.education || resultData.education}
+              financial={resultData.applicantProfile?.financial || resultData.financial}
             />
 
             {/* Section 5: Cross-Document Validation */}
@@ -235,8 +276,8 @@ export default function App() {
 
             {/* Section 6: Eligibility Verification */}
             <EligibilityVerificationSection
-              ruleEvaluation={resultData.verification?.ruleEvaluation}
-              documentVerification={resultData.verification?.documentVerification}
+              ruleEvaluation={resultData.verification?.rules || resultData.verification?.ruleEvaluation}
+              documentVerification={resultData.verification?.documents || resultData.verification?.documentVerification}
             />
 
             {/* Section 7: Final Result */}
@@ -255,7 +296,7 @@ export default function App() {
             Ministry of Tribal Affairs (MoTA) — AI-Assisted Scholarship & Fellowship Verification Engine
           </div>
           <div className="text-[11px] text-slate-500 font-mono">
-            System A (5001) + System B (5050) + Integration (5000)
+            System A (5001) + System B (5050) + Integration (5002) + RapidOCR (5003)
           </div>
         </div>
       </footer>

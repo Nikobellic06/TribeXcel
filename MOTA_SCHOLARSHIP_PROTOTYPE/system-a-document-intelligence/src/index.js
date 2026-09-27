@@ -51,13 +51,13 @@ app.use((err, req, res, next) => {
 const server = app.listen(config.port, () => {
   console.log('================================================================');
   console.log(' MINISTRY OF TRIBAL AFFAIRS (MoTA) - SCHOLARSHIP PROTOTYPE');
-  console.log(' SYSTEM A: DOCUMENT INTELLIGENCE ENGINE');
+  console.log(' SYSTEM A: DOCUMENT INTELLIGENCE ENGINE (DETERMINISTIC OCR)');
   console.log('================================================================');
   console.log(` Server running on: http://localhost:${config.port}`);
   console.log(` Test Dashboard:    http://localhost:${config.port}/`);
   console.log(` Health Check:      http://localhost:${config.port}/api/health`);
-  console.log(` Gemini API Key:    ${config.geminiApiKey ? 'Configured [Live AI active]' : 'NOT CONFIGURED [Running in intelligent simulation mode]'}`);
-  console.log(` Model Target:      ${config.geminiModel}`);
+  console.log(` OCR Engine:        PaddleOCR (PP-OCRv6) + PyMuPDF + OpenCV`);
+  console.log(` OCR Service:       ${config.ocrServiceUrl}`);
   console.log('----------------------------------------------------------------');
   console.log(' Available REST Endpoints:');
   console.log('   GET  /api/health');

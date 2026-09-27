@@ -91,15 +91,12 @@ async function runTests() {
     assert(nameVal && (nameVal.status === 'MISMATCH' || nameVal.status === 'MINOR_VARIATION'), 'Name difference correctly identified as MISMATCH / MINOR_VARIATION');
     assert(incData.anomalies.signals.some(s => s.toLowerCase().includes('potential inconsistency detected')), 'Uses correct advisory wording (never labels applicant fraudulent)');
 
-    // 6. Test Single Document Upload: POST /api/analyze-document
+    // 6. Test Single Document Upload: POST /api/analyze-document (Real Aadhaar PDF)
     console.log('\n--- 6. Testing Single Document Upload POST /api/analyze-document ---');
-    // Create temporary mock document files for test
-    const testAadhaarPath = path.resolve(__dirname, 'test_aadhaar_card.png');
-    fs.writeFileSync(testAadhaarPath, 'fake-png-binary-data-for-mota-aadhaar');
-
+    const aadhaarSamplePath = path.resolve(__dirname, '../sample-documents/sample_aadhaar_card.pdf');
     const singleFormData = new FormData();
-    const aadhaarBlob = new Blob([fs.readFileSync(testAadhaarPath)], { type: 'image/png' });
-    singleFormData.append('document', aadhaarBlob, 'aadhaar_card.png');
+    const aadhaarBlob = new Blob([fs.readFileSync(aadhaarSamplePath)], { type: 'application/pdf' });
+    singleFormData.append('document', aadhaarBlob, 'sample_aadhaar_card.pdf');
 
     const singleDocRes = await fetch(`${BASE_URL}/api/analyze-document`, {
       method: 'POST',
@@ -107,21 +104,23 @@ async function runTests() {
     });
     const singleDocData = await singleDocRes.json();
     assert(singleDocRes.status === 200, 'Single document upload returns HTTP 200');
-    assert(singleDocData.documentType === 'AADHAAR', 'Document type detected as AADHAAR');
-    assert(singleDocData.confidence >= 0 && singleDocData.confidence <= 1, 'Confidence is between 0 and 1');
+    assert(singleDocData.documentType === 'AADHAAR', `Document type detected as AADHAAR (got: ${singleDocData.documentType})`);
+    assert(singleDocData.confidence >= 0.8, `Confidence is high for authentic document (got: ${singleDocData.confidence})`);
     assert(['GOOD', 'WARNING', 'POOR'].includes(singleDocData.quality), 'Quality is one of GOOD, WARNING, POOR');
     assert(typeof singleDocData.qualityScore === 'number', 'Quality score is a number');
     assert(singleDocData.fields !== undefined, 'Extracted fields object present');
+    assert(singleDocData.fields.aadhaarNumber !== undefined, 'Extracted Aadhaar number present');
 
-    // 7. Test Multiple Documents Upload: POST /api/analyze-documents
+    // 7. Test Multiple Documents Upload: POST /api/analyze-documents (ST Cert + Income Cert)
     console.log('\n--- 7. Testing Multiple Document Upload POST /api/analyze-documents ---');
-    const testStCertPath = path.resolve(__dirname, 'test_st_certificate.pdf');
-    fs.writeFileSync(testStCertPath, 'fake-pdf-binary-data-for-mota-st-cert');
+    const stSamplePath = path.resolve(__dirname, '../sample-documents/sample_st_certificate.pdf');
+    const incomeSamplePath = path.resolve(__dirname, '../sample-documents/sample_income_certificate.pdf');
 
     const multiFormData = new FormData();
-    const stBlob = new Blob([fs.readFileSync(testStCertPath)], { type: 'application/pdf' });
-    multiFormData.append('documents', aadhaarBlob, 'aadhaar_sunita.png');
-    multiFormData.append('documents', stBlob, 'st_certificate_dumka.pdf');
+    const stBlob = new Blob([fs.readFileSync(stSamplePath)], { type: 'application/pdf' });
+    const incBlob = new Blob([fs.readFileSync(incomeSamplePath)], { type: 'application/pdf' });
+    multiFormData.append('documents', stBlob, 'sample_st_certificate.pdf');
+    multiFormData.append('documents', incBlob, 'sample_income_certificate.pdf');
 
     const multiDocRes = await fetch(`${BASE_URL}/api/analyze-documents`, {
       method: 'POST',
@@ -131,14 +130,30 @@ async function runTests() {
     assert(multiDocRes.status === 200, 'Multiple documents upload returns HTTP 200');
     assert(multiDocData.applicationId !== undefined, 'Returns applicationId');
     assert(Array.isArray(multiDocData.documents) && multiDocData.documents.length === 2, 'Processes both uploaded documents');
+    
+    const docTypes = multiDocData.documents.map(d => d.documentType);
+    assert(docTypes.includes('ST_CERTIFICATE'), 'ST Certificate detected accurately by content');
+    assert(docTypes.includes('INCOME_CERTIFICATE'), 'Income Certificate detected accurately by content');
     assert(multiDocData.applicantProfile !== undefined, 'Generates normalized applicant profile');
     assert(Array.isArray(multiDocData.crossDocumentValidation), 'Performs cross-document validation');
     assert(multiDocData.anomalies !== undefined && multiDocData.anomalies.level !== undefined, 'Returns anomaly level');
     assert(Array.isArray(multiDocData.reviewFlags), 'Returns reviewFlags array');
 
-    // Clean up test temp files
-    if (fs.existsSync(testAadhaarPath)) fs.unlinkSync(testAadhaarPath);
-    if (fs.existsSync(testStCertPath)) fs.unlinkSync(testStCertPath);
+    // 8. Test Unrelated Document Upload (Coffee receipt)
+    console.log('\n--- 8. Testing Unrelated Document Upload (Receipt) ---');
+    const unrelatedSamplePath = path.resolve(__dirname, '../sample-documents/sample_unrelated_receipt.pdf');
+    const unrelatedFormData = new FormData();
+    const unrelatedBlob = new Blob([fs.readFileSync(unrelatedSamplePath)], { type: 'application/pdf' });
+    unrelatedFormData.append('document', unrelatedBlob, 'sample_unrelated_receipt.pdf');
+
+    const unrelatedRes = await fetch(`${BASE_URL}/api/analyze-document`, {
+      method: 'POST',
+      body: unrelatedFormData
+    });
+    const unrelatedData = await unrelatedRes.json();
+    assert(unrelatedRes.status === 200, 'Unrelated document returns HTTP 200');
+    assert(unrelatedData.documentType === 'UNKNOWN', `Unrelated document detected as UNKNOWN (got: ${unrelatedData.documentType})`);
+    assert(unrelatedData.confidence < 0.5, `Confidence is low for unrelated document (got: ${unrelatedData.confidence})`);
 
     // Summary
     console.log('\n====================================================');

@@ -1,6 +1,6 @@
 /**
  * National Overseas Scholarship (NOS) for ST Candidates - Rule Evaluator
- * Based on official Ministry of Tribal Affairs (MoTA) guidelines.
+ * Evaluates real extracted document intelligence from System A.
  *
  * Rules:
  * 1. Category: Must belong to Scheduled Tribe (ST) or PVTG
@@ -10,21 +10,25 @@
  *    - Post-Doctoral: Relevant Master's degree (Min 55%), Awarded PhD, Max age 38
  * 3. Annual Family Income <= ₹6,00,000 (6 Lakh/year)
  * 4. Admission Offer: Valid admission offer from recognized foreign higher education institution
- * 5. Female applicant representation flag for reporting/scheme context (30% earmarked)
- * 6. Mandatory supporting documents
+ * 5. Mandatory supporting documents
+ * 6. Female applicant quota flag
  */
+
+const { adaptApplication } = require('../inputAdapter');
 
 function evaluateNosRules(application, documentVerificationResults) {
   const evaluations = [];
-  const applicant = application.applicant || {};
-  const education = application.education || {};
-  const financial = application.financial || {};
+  const adapted = adaptApplication(application);
+  const applicant = adapted.applicant;
+  const education = adapted.education;
+  const financial = adapted.financial;
+  const crossChecks = adapted.crossDocumentValidation || [];
 
   // Normalize program level
-  const targetLevelRaw = education.targetDegreeLevel || education.programmeLevel || education.courseLevel || "MASTERS";
-  const levelNormalized = targetLevelRaw.toUpperCase().includes("POST") || targetLevelRaw.toUpperCase().includes("PDF")
+  const targetLevelRaw = education.targetDegreeLevel || "MASTERS";
+  const levelNormalized = String(targetLevelRaw).toUpperCase().includes("POST") || String(targetLevelRaw).toUpperCase().includes("PDF")
     ? "POST_DOCTORAL"
-    : targetLevelRaw.toUpperCase().includes("PHD") || targetLevelRaw.toUpperCase().includes("DOCTOR")
+    : String(targetLevelRaw).toUpperCase().includes("PHD") || String(targetLevelRaw).toUpperCase().includes("DOCTOR")
       ? "PHD"
       : "MASTERS";
 
@@ -32,16 +36,20 @@ function evaluateNosRules(application, documentVerificationResults) {
   // Rule 1: ST or PVTG Category (NOS-CAT-01)
   // ---------------------------------------------------------
   const categoryRaw = applicant.category || applicant.casteCategory || "";
-  const subCategory = applicant.subCategory || applicant.tribe || "";
-  const isPvtg = applicant.isPvtg === true || /PVTG/i.test(categoryRaw) || /PVTG/i.test(subCategory);
-  const isSt = isPvtg || /^(ST|SCHEDULED\s*TRIBE)$/i.test(categoryRaw.trim());
+  const subCategory = applicant.subCategory || "";
+  const isPvtg = applicant.isPvtg === true || /PVTG/i.test(String(categoryRaw)) || /PVTG/i.test(String(subCategory));
+  const stCommunities = ["SANTHAL", "SANTAL", "MUNDA", "ORAON", "GOND", "BHIL", "BODO", "KHASI", "GARO", "HO", "KOL", "BIRHOR"];
+  const isRecognizedCommunity = stCommunities.some(c => 
+    String(categoryRaw).toUpperCase().includes(c) || String(subCategory).toUpperCase().includes(c)
+  );
+  const isSt = isPvtg || /^(ST|SCHEDULED\s*TRIBE)$/i.test(String(categoryRaw).trim()) || isRecognizedCommunity;
 
   let catStatus = "PASS";
   let catReason = isPvtg
     ? "Applicant verified as Particularly Vulnerable Tribal Group (PVTG), accorded highest priority under NOS."
-    : `Applicant verified as Scheduled Tribe (${categoryRaw}).`;
+    : `Applicant verified as Scheduled Tribe (${categoryRaw || subCategory || 'ST'}).`;
 
-  if (!categoryRaw) {
+  if (!categoryRaw && !subCategory) {
     catStatus = "INSUFFICIENT_DATA";
     catReason = "Social category not specified in application.";
   } else if (!isSt) {
@@ -53,7 +61,7 @@ function evaluateNosRules(application, documentVerificationResults) {
     ruleId: "NOS-CAT-01",
     criterion: "ST or PVTG Category",
     expected: "ST or PVTG (Particularly Vulnerable Tribal Group)",
-    actual: isPvtg ? "PVTG (Scheduled Tribe)" : categoryRaw || "Not provided",
+    actual: isPvtg ? "PVTG (Scheduled Tribe)" : categoryRaw || subCategory || "Not provided",
     status: catStatus,
     reason: catReason
   });
@@ -61,8 +69,8 @@ function evaluateNosRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 2: Relevant Prior Degree Qualification (NOS-DEGREE-01)
   // ---------------------------------------------------------
-  const priorDegree = education.qualifyingDegree || education.highestQualification || "";
-  const hasPhd = education.hasPhdAwarded === true || education.phdCompleted === true;
+  const priorDegree = education.qualifyingDegree || "";
+  const hasPhd = education.hasPhdAwarded === true || education.phdCompleted === true || education.isPhdAwarded === true || /ph\.?d|doctor/i.test(String(priorDegree));
 
   let degreeStatus = "PASS";
   let degreeExpected = "";
@@ -70,7 +78,7 @@ function evaluateNosRules(application, documentVerificationResults) {
 
   if (levelNormalized === "MASTERS") {
     degreeExpected = "Relevant Bachelor's Degree";
-    const isBachelor = /bachelor|b\.?sc|b\.?tech|b\.?e|b\.?a|ll\.?b|bba|mbbs/i.test(priorDegree);
+    const isBachelor = /bachelor|b\.?sc|b\.?tech|b\.?e|b\.?a|ll\.?b|bba|mbbs/i.test(String(priorDegree));
     if (!priorDegree) {
       degreeStatus = "INSUFFICIENT_DATA";
       degreeReason = "Qualifying undergraduate degree details are missing.";
@@ -83,7 +91,7 @@ function evaluateNosRules(application, documentVerificationResults) {
     }
   } else if (levelNormalized === "PHD") {
     degreeExpected = "Relevant Master's Degree";
-    const isMaster = /master|m\.?sc|m\.?tech|m\.?e|m\.?a|ll\.?m|mba|m\.?phil/i.test(priorDegree);
+    const isMaster = /master|m\.?sc|m\.?tech|m\.?e|m\.?a|ll\.?m|mba|m\.?phil/i.test(String(priorDegree));
     if (!priorDegree) {
       degreeStatus = "INSUFFICIENT_DATA";
       degreeReason = "Qualifying postgraduate degree details are missing.";
@@ -96,92 +104,89 @@ function evaluateNosRules(application, documentVerificationResults) {
     }
   } else if (levelNormalized === "POST_DOCTORAL") {
     degreeExpected = "Relevant Master's Degree + Awarded PhD";
-    if (!priorDegree) {
+    if (!priorDegree && !hasPhd) {
       degreeStatus = "INSUFFICIENT_DATA";
-      degreeReason = "Qualifying Master's degree details are missing.";
-    } else if (!hasPhd) {
-      degreeStatus = "FAIL";
-      degreeReason = "Post-Doctoral research requires an officially awarded PhD degree.";
-    } else {
+      degreeReason = "Qualifying degree and PhD completion details are missing.";
+    } else if (hasPhd) {
       degreeStatus = "PASS";
-      degreeReason = `Holds Master's (${priorDegree}) and awarded PhD for Post-Doctoral research.`;
+      degreeReason = `Holds awarded PhD and relevant postgraduate qualification: ${priorDegree || 'PhD Awarded'}.`;
+    } else {
+      degreeStatus = "FAIL";
+      degreeReason = "Post-Doctoral fellowship strictly requires an awarded/conferred PhD degree.";
     }
   }
 
   evaluations.push({
     ruleId: "NOS-DEGREE-01",
-    criterion: `Qualifying Degree for ${levelNormalized}`,
+    criterion: "Relevant Prior Degree Qualification",
     expected: degreeExpected,
-    actual: priorDegree ? `${priorDegree}${hasPhd ? ' (PhD Awarded)' : ''}` : "Not provided",
+    actual: priorDegree || (hasPhd ? "Awarded PhD" : "Not provided"),
     status: degreeStatus,
     reason: degreeReason
   });
 
   // ---------------------------------------------------------
-  // Rule 3: Minimum 55% in Qualifying Degree (NOS-MARKS-01)
+  // Rule 3: Minimum 55% Marks in Qualifying Degree (NOS-MARKS-01)
   // ---------------------------------------------------------
-  const marksRaw = education.qualifyingPercentage !== undefined
-    ? education.qualifyingPercentage
-    : education.marksPercentage !== undefined
-      ? education.marksPercentage
-      : education.cgpa !== undefined
-        ? education.cgpa * 9.5
-        : undefined;
-
-  const marks = typeof marksRaw === 'string' ? parseFloat(marksRaw) : marksRaw;
+  const pct = education.percentage;
   const MIN_MARKS = 55.0;
 
   let marksStatus = "PASS";
-  let marksReason = `Secured ${marks ? marks.toFixed(2) : 0}% in qualifying degree, meeting the >= 55% requirement.`;
+  let marksReason = "";
 
-  if (marks === undefined || isNaN(marks)) {
+  if (pct === undefined || pct === null || isNaN(pct)) {
     marksStatus = "INSUFFICIENT_DATA";
-    marksReason = "Qualifying degree percentage/CGPA not specified.";
-  } else if (marks >= MIN_MARKS) {
-    marksStatus = "PASS";
-  } else {
+    marksReason = "Marks percentage in qualifying examination not specified.";
+  } else if (pct < MIN_MARKS) {
     marksStatus = "FAIL";
-    marksReason = `Qualifying percentage of ${marks.toFixed(2)}% is below the mandatory minimum of 55.00%.`;
+    marksReason = `Aggregate score of ${pct}% is below the mandatory 55.0% cutoff for NOS.`;
+  } else {
+    marksStatus = "PASS";
+    marksReason = `Scored ${pct}%, satisfying the minimum 55% qualifying cutoff.`;
   }
 
   evaluations.push({
     ruleId: "NOS-MARKS-01",
     criterion: "Minimum 55% in Qualifying Degree",
-    expected: ">= 55.00%",
-    actual: marks !== undefined && !isNaN(marks) ? `${marks.toFixed(2)}%` : "Not provided",
+    expected: ">= 55.0%",
+    actual: pct !== undefined && pct !== null && !isNaN(pct) ? pct : "Not provided",
     status: marksStatus,
     reason: marksReason
   });
 
   // ---------------------------------------------------------
-  // Rule 4: Maximum Age Limit per Level (NOS-AGE-01)
+  // Rule 4: Age Limit per Program Level (NOS-AGE-01)
   // ---------------------------------------------------------
   const ageLimits = { MASTERS: 32, PHD: 35, POST_DOCTORAL: 38 };
-  const maxAllowedAge = ageLimits[levelNormalized] || 35;
-  const applicantAge = applicant.age !== undefined
-    ? applicant.age
-    : applicant.dateOfBirth
-      ? Math.floor((new Date("2026-04-01") - new Date(applicant.dateOfBirth)) / (365.25 * 24 * 3600 * 1000))
-      : undefined;
+  const maxAge = ageLimits[levelNormalized] || 35;
+  const age = applicant.age;
+
+  const dobMismatch = crossChecks.find(c => 
+    (c.field === 'dateOfBirth' || c.field === 'dob') && (c.status === 'MISMATCH' || c.match === false)
+  );
 
   let ageStatus = "PASS";
-  let ageReason = `Applicant age of ${applicantAge} years is within the maximum limit of ${maxAllowedAge} years for ${levelNormalized}.`;
+  let ageReason = "";
 
-  if (applicantAge === undefined || isNaN(applicantAge)) {
+  if (dobMismatch) {
+    ageStatus = "REQUIRES_HUMAN_REVIEW";
+    ageReason = `Date of birth mismatch detected across submitted documents (${dobMismatch.details || 'Discrepancy'}). Officer verification required.`;
+  } else if (age === undefined || age === null || isNaN(age)) {
     ageStatus = "INSUFFICIENT_DATA";
-    ageReason = "Applicant age or Date of Birth is missing.";
-  } else if (applicantAge <= maxAllowedAge) {
-    ageStatus = "PASS";
-  } else {
+    ageReason = "Date of birth or age is missing from application.";
+  } else if (age > maxAge) {
     ageStatus = "FAIL";
-    ageReason = `Applicant age of ${applicantAge} years exceeds the maximum limit of ${maxAllowedAge} years for ${levelNormalized}.`;
+    ageReason = `Applicant age (${age} years) exceeds the upper age limit of ${maxAge} years for ${levelNormalized}.`;
+  } else {
+    ageStatus = "PASS";
+    ageReason = `Applicant age (${age} years) is within the allowable limit of ${maxAge} years for ${levelNormalized}.`;
   }
 
   evaluations.push({
     ruleId: "NOS-AGE-01",
     criterion: `Age Limit for ${levelNormalized}`,
-    expected: `<= ${maxAllowedAge} years as of 1st April of selection year`,
-    actual: applicantAge !== undefined && !isNaN(applicantAge) ? `${applicantAge} years` : "Not provided",
+    expected: `<= ${maxAge} years as of 1st April of selection year`,
+    actual: dobMismatch ? "DOB Discrepancy" : (age !== undefined && age !== null && !isNaN(age) ? `${age} years` : "Not provided"),
     status: ageStatus,
     reason: ageReason
   });
@@ -189,60 +194,58 @@ function evaluateNosRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 5: Annual Family Income <= ₹6.0 Lakh (NOS-INCOME-01)
   // ---------------------------------------------------------
-  const incomeRaw = financial.annualFamilyIncome !== undefined
-    ? financial.annualFamilyIncome
-    : financial.annualIncome !== undefined
-      ? financial.annualIncome
-      : applicant.annualFamilyIncome;
-
-  const income = typeof incomeRaw === 'string' ? parseFloat(incomeRaw.replace(/[^0-9.]/g, '')) : incomeRaw;
-  const NOS_CEILING = 600000;
+  const income = financial.annualIncome;
+  const INCOME_CEILING = 600000;
 
   let incStatus = "PASS";
-  let incReason = `Annual family income of ₹${Number(income).toLocaleString('en-IN')} is within the scheme ceiling of ₹6,00,000.`;
+  let incReason = "";
 
   if (income === undefined || income === null || isNaN(income)) {
     incStatus = "INSUFFICIENT_DATA";
-    incReason = "Annual family income figure not provided.";
-  } else if (income <= NOS_CEILING) {
-    incStatus = "PASS";
-  } else {
+    incReason = "Annual family income figure is missing from application.";
+  } else if (income > INCOME_CEILING) {
     incStatus = "FAIL";
     incReason = `Annual family income of ₹${Number(income).toLocaleString('en-IN')} exceeds the NOS ceiling of ₹6,00,000.`;
+  } else {
+    incStatus = "PASS";
+    incReason = `Annual family income of ₹${Number(income).toLocaleString('en-IN')} is within the scheme ceiling of ₹6,00,000.`;
   }
 
   evaluations.push({
     ruleId: "NOS-INCOME-01",
     criterion: "Annual Family Income Limit",
     expected: "<= 600000",
-    actual: income !== undefined && !isNaN(income) ? income : "Not provided",
+    actual: income !== undefined && income !== null && !isNaN(income) ? income : "Not provided",
     status: incStatus,
     reason: incReason
   });
 
   // ---------------------------------------------------------
-  // Rule 6: Offer from Foreign Institution (NOS-OFFER-01)
+  // Rule 6: Admission Offer from Foreign University (NOS-OFFER-01)
   // ---------------------------------------------------------
-  const institutionName = education.foreignInstitutionName || education.institutionName || "";
+  const offer = education.admissionOffer || education.foreignUniversityOffer;
+  const uniName = education.foreignUniversityName || education.targetUniversity || (offer && offer.university) || "";
   const country = education.country || education.destinationCountry || "";
-  const hasOffer = education.hasUnconditionalOffer === true || education.hasAdmissionOffer === true || Boolean(institutionName);
+  const hasOfferDoc = (documentVerificationResults || []).some(
+    d => d.document.includes("Overseas University Offer") && d.status === "PRESENT"
+  );
 
   let offerStatus = "PASS";
-  let offerReason = `Holds admission offer from ${institutionName}${country ? ` (${country})` : ''}.`;
+  let offerReason = `Holds admission offer from ${uniName || 'Foreign University'}${country ? ` (${country})` : ''}.`;
 
-  if (!institutionName) {
+  if (!uniName && !hasOfferDoc && !offer) {
     offerStatus = "INSUFFICIENT_DATA";
     offerReason = "Target foreign institution details not provided.";
-  } else if (education.hasUnconditionalOffer === false && education.isConditionalOffer === true) {
-    offerStatus = "REQUIRES_HUMAN_REVIEW";
-    offerReason = "Admission offer is conditional; screening committee review required for financial clearance.";
+  } else if (offer && offer.isRecognized === false) {
+    offerStatus = "FAIL";
+    offerReason = `Foreign institution "${uniName}" is not on the MoTA approved/QS top university schedule.`;
   }
 
   evaluations.push({
     ruleId: "NOS-OFFER-01",
     criterion: "Foreign University Admission Offer",
     expected: "Unconditional offer from accredited overseas university",
-    actual: institutionName ? `${institutionName} (${country || 'Abroad'})` : "Not provided",
+    actual: uniName ? `${uniName} (${country || 'Abroad'})` : (hasOfferDoc ? "Offer Letter Verified" : "Not provided"),
     status: offerStatus,
     reason: offerReason
   });
@@ -250,11 +253,9 @@ function evaluateNosRules(application, documentVerificationResults) {
   // ---------------------------------------------------------
   // Rule 7: Mandatory Supporting Documents (NOS-DOCS-01)
   // ---------------------------------------------------------
-  const missingDocs = (documentVerificationResults || [])
-    .filter((d) => d.status === "MISSING" || d.status === "INVALID");
-
-  const unverifiedDocs = (documentVerificationResults || [])
-    .filter((d) => d.status === "LOW_CONFIDENCE" || d.status === "REQUIRES_HUMAN_REVIEW");
+  const docResults = documentVerificationResults || [];
+  const missingDocs = docResults.filter((d) => d.status === "MISSING" || d.status === "INVALID");
+  const reviewDocs = docResults.filter((d) => d.status === "LOW_CONFIDENCE" || d.status === "REQUIRES_HUMAN_REVIEW");
 
   let docsStatus = "PASS";
   let docsReason = "All mandatory NOS supporting documents are verified.";
@@ -262,9 +263,9 @@ function evaluateNosRules(application, documentVerificationResults) {
   if (missingDocs.length > 0) {
     docsStatus = "INSUFFICIENT_DATA";
     docsReason = `Missing mandatory documents: ${missingDocs.map((d) => d.document).join(", ")}.`;
-  } else if (unverifiedDocs.length > 0) {
+  } else if (reviewDocs.length > 0) {
     docsStatus = "REQUIRES_HUMAN_REVIEW";
-    docsReason = `Documents requiring officer review: ${unverifiedDocs.map((d) => d.document).join(", ")}.`;
+    docsReason = `Documents requiring officer review: ${reviewDocs.map((d) => d.document).join(", ")}.`;
   }
 
   evaluations.push({

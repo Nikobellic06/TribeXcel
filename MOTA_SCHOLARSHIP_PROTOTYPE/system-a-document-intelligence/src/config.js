@@ -11,8 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 export const config = {
   port: parseInt(process.env.PORT || '5001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  geminiApiKey: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  ocrServiceUrl: (process.env.OCR_SERVICE_URL || 'http://127.0.0.1:5003').replace(/\/$/, ''),
   maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10),
   uploadDir: path.resolve(__dirname, '../uploads'),
   allowedMimeTypes: [
