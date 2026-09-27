@@ -51,6 +51,9 @@ const register = async (req, res) => {
         name: student.name,
         email: student.email,
         rollNumber: student.rollNumber,
+        phone: student.phone,
+        dob: student.dob,
+        state: student.state,
       },
     });
   } catch (err) {
@@ -88,6 +91,9 @@ const login = async (req, res) => {
         name: student.name,
         email: student.email,
         rollNumber: student.rollNumber,
+        phone: student.phone,
+        dob: student.dob,
+        state: student.state,
       },
     });
   } catch (err) {

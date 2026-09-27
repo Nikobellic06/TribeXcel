@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/axios';
 
 const AuthContext = createContext(null);
@@ -8,6 +8,22 @@ export const AuthProvider = ({ children }) => {
     const saved = localStorage.getItem('student');
     return saved ? JSON.parse(saved) : null;
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem('studentToken');
+    if (token) {
+      api.get('/student/me')
+        .then((res) => {
+          if (res.data?.student) {
+            localStorage.setItem('student', JSON.stringify(res.data.student));
+            setStudent(res.data.student);
+          }
+        })
+        .catch(() => {
+          logout();
+        });
+    }
+  }, []);
 
   const login = async (identifier, password) => {
     const { data } = await api.post('/student/login', { identifier, password });

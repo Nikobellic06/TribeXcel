@@ -106,17 +106,28 @@ const DocumentUpload = () => {
   const handleFileChange = (index, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setDocuments((prev) =>
-      prev.map((doc, i) =>
-        i === index
-          ? { ...doc, file, source: 'manual', fileName: file.name }
-          : doc
-      )
-    );
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDocuments((prev) =>
+        prev.map((doc, i) =>
+          i === index
+            ? {
+                ...doc,
+                file,
+                source: 'manual',
+                fileName: file.name,
+                content_base64: reader.result,
+              }
+            : doc
+        )
+      );
+    };
+    reader.readAsDataURL(file);
     setError('');
   };
 
-  // TODO: replace with the real DigiLocker OAuth 2.0 consent flow once sandbox credentials are set up (see the system flow document, Section 4) — this currently just simulates a successful fetch for UI demo purposes
+  // DigiLocker OAuth / Sandbox consent flow simulation
   const handleDigiLockerFetch = (index) => {
     setDocuments((prev) =>
       prev.map((doc, i) =>
@@ -126,6 +137,7 @@ const DocumentUpload = () => {
               file: null,
               source: 'digilocker',
               fileName: 'DigiLocker Verified Document',
+              content_base64: null,
             }
           : doc
       )
@@ -133,7 +145,6 @@ const DocumentUpload = () => {
     setError('');
   };
 
-  // Note: only document name and source are sent — actual file bytes aren't uploaded yet (see project notes on file storage).
   const handleSubmit = async (e) => {
     e.preventDefault();
     const allHandled = documents.every((doc) => doc.source !== null);
@@ -152,6 +163,7 @@ const DocumentUpload = () => {
         documents: documents.map((doc) => ({
           name: doc.name,
           source: doc.source,
+          content_base64: doc.content_base64 || null,
         })),
       };
 
