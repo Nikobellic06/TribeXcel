@@ -1,18 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import SchemeSelection from './pages/SchemeSelection';
-import ApplicationForm from './pages/ApplicationForm';
-import DocumentUpload from './pages/DocumentUpload';
+import ReviewQueue from './pages/ReviewQueue';
+import Merit from './pages/Merit';
+import Analytics from './pages/Analytics';
+import ApplicationDetail from './pages/ApplicationDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route
         path="/dashboard"
@@ -23,30 +20,38 @@ function App() {
         }
       />
       <Route
-        path="/schemes"
+        path="/queue"
         element={
           <ProtectedRoute>
-            <SchemeSelection />
+            <ReviewQueue />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/apply/:schemeId"
+        path="/merit"
         element={
           <ProtectedRoute>
-            <ApplicationForm />
+            <Merit />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/apply/:schemeId/documents"
+        path="/analytics"
         element={
           <ProtectedRoute>
-            <DocumentUpload />
+            <Analytics />
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/application/:id"
+        element={
+          <ProtectedRoute>
+            <ApplicationDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -1,55 +1,34 @@
-# Scholarship and Fellowship Admin Panel — Starter (SIH26239)
+# Student Scholarship Portal — Starter
 
-This is the starting scaffold for the web admin side: a Node/Express backend
-with JWT authentication, and a React (Vite) frontend with a login page and a
-protected dashboard route.
+This is the student-facing website: registration, login, and a protected
+dashboard placeholder. It talks to the **same backend** already built for
+the admin panel — no separate server or database needed.
 
-## Folder structure
+## 1. Backend
 
-```
-scholarship-admin/
-  backend/     Express API, MongoDB models, JWT auth
-  frontend/    React (Vite) app - login + dashboard
-```
+This frontend needs the student-auth routes added to your existing
+`scholarship-admin/backend` project. If you haven't already, copy in the
+files from `backend-update3.zip`:
 
-## 1. Backend setup
+| File in that zip | Goes to |
+|---|---|
+| `Student.js` | `backend/models/Student.js` |
+| `studentAuthController.js` | `backend/controllers/studentAuthController.js` |
+| `studentAuthMiddleware.js` | `backend/middleware/studentAuthMiddleware.js` |
+| `studentAuthRoutes.js` | `backend/routes/studentAuthRoutes.js` |
+| `server.js` | `backend/server.js` (overwrite — adds the new route mount) |
 
-```bash
-cd backend
-npm install
-cp .env.example .env
-```
+Restart the backend (`npm run dev`) after copying these in. No new
+environment variables are needed — it reuses the same `MONGO_URI` and
+`JWT_SECRET` already in your `.env`.
 
-Open `.env` and set:
-- `MONGO_URI` — your MongoDB connection string (local MongoDB or a free MongoDB
-  Atlas cluster)
-- `JWT_SECRET` — any long random string
+New endpoints this adds:
+- `POST /api/student/register`
+- `POST /api/student/login` (body: `{ identifier, password }` — identifier
+  can be email or roll number)
+- `GET /api/student/me` (protected)
 
-Create the first admin account (run once):
-
-```bash
-npm run seed:admin -- admin@mota.gov.in yourpassword "Admin Name"
-```
-
-Start the server:
-
-```bash
-npm run dev
-```
-
-The API runs at `http://localhost:5000`. Test it:
-
-```bash
-curl http://localhost:5000
-curl -X POST http://localhost:5000/api/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@mota.gov.in","password":"yourpassword"}'
-```
-
-The login response returns a `token` — that token is what the frontend stores
-and sends on every request afterwards.
-
-## 2. Frontend setup
+## 2. This frontend
 
 ```bash
 cd frontend
@@ -58,26 +37,27 @@ cp .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:5173`. It redirects to `/login`. Sign in with the admin
-account you seeded above — you'll land on `/dashboard`.
+Runs on `http://localhost:5174` (different port from the admin panel's
+5173, so you can run both at once). Visit it, click **Sign Up**, fill in
+the form, and you'll land on the dashboard — fully working registration
+and login.
 
-## What's included right now
+## What's included
 
-- Admin model with hashed passwords (bcrypt)
-- POST `/api/admin/login` — returns a JWT
-- GET `/api/admin/me` — protected route, returns the logged-in admin's profile
-- `protect` middleware — reusable on any future route that needs auth
-- React `AuthContext` — holds the logged-in admin, exposes `login()`/`logout()`
-- `ProtectedRoute` — redirects to `/login` if no admin is logged in
-- Login page with validation and error handling
-- Placeholder dashboard page
+- Landing page with Sign Up / Login buttons
+- Signup form: name, email, phone, roll number, date of birth, state,
+  password, confirm password
+- Login with either email or roll number + password
+- `AuthContext` storing the logged-in student, `ProtectedRoute` guarding
+  `/dashboard`
+- Placeholder dashboard
 
 ## Next pieces to build (in order)
 
-1. Review queue page + `GET /api/applications` endpoint with filters
-2. Application detail page + `GET /api/applications/:id`
-3. Merit list generation + selection approval
-4. Analytics dashboard
+1. Scheme selection page
+2. Application form (dynamic per scheme)
+3. Document upload (manual + DigiLocker)
+4. Status tracking page
 
-No homepage was built on purpose — this is an internal tool, so the root path
-goes straight to the login screen.
+These follow the same pattern as the admin panel — build the UI (e.g. via
+Antigravity), then wire it to real backend endpoints once those exist.
