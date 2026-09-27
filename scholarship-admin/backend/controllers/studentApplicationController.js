@@ -112,23 +112,49 @@ const submitApplication = async (req, res) => {
 
     const verification = await runAiVerification(req.body, formattedDocs);
 
-    const application = await Application.create({
-      applicationCode: generateApplicationCode(),
+    const existingApp = await Application.findOne({
       student: req.student._id,
-      name, email, phone, dob, gender, state, district,
-      scheme, course, institution,
-      category: 'Scheduled Tribe',
-      status: verification.status || 'Eligible',
-      documents: formattedDocs,
-      aiVerification: { checks: verification.checks, score: verification.score },
-      meritScores: verification.meritScores || {
-        academic: 75,
-        exam: 70,
-        socioEconomic: 80,
-        interview: 70,
-      },
-      submittedAt: new Date(),
+      scheme,
+      status: { $in: ['Deficient', 'Pending', 'Flagged'] },
     });
+
+    let application;
+    if (existingApp) {
+      existingApp.name = name;
+      existingApp.email = email;
+      existingApp.phone = phone;
+      existingApp.dob = dob;
+      existingApp.gender = gender;
+      existingApp.state = state;
+      existingApp.district = district;
+      existingApp.course = course;
+      existingApp.institution = institution;
+      existingApp.documents = formattedDocs;
+      existingApp.aiVerification = { checks: verification.checks, score: verification.score };
+      existingApp.status = verification.status || 'Eligible';
+      existingApp.meritScores = verification.meritScores || existingApp.meritScores;
+      existingApp.submittedAt = new Date();
+      await existingApp.save();
+      application = existingApp;
+    } else {
+      application = await Application.create({
+        applicationCode: generateApplicationCode(),
+        student: req.student._id,
+        name, email, phone, dob, gender, state, district,
+        scheme, course, institution,
+        category: 'Scheduled Tribe',
+        status: verification.status || 'Eligible',
+        documents: formattedDocs,
+        aiVerification: { checks: verification.checks, score: verification.score },
+        meritScores: verification.meritScores || {
+          academic: 75,
+          exam: 70,
+          socioEconomic: 80,
+          interview: 70,
+        },
+        submittedAt: new Date(),
+      });
+    }
 
     res.status(201).json({ application });
   } catch (err) {

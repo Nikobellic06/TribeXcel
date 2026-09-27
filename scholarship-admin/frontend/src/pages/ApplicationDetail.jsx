@@ -411,6 +411,36 @@ export default function ApplicationDetail() {
               </div>
             </div>
           </Card>
+
+          {/* f) Fellowship & Disbursement (Shown when Selected) */}
+          {app.status === 'Selected' && (
+            <Card title="Fellowship &amp; Disbursement Management">
+              <div className="px-5 py-4 space-y-3 text-[12px]">
+                <div className="flex justify-between items-center pb-2 border-b border-[#f0f2f5]">
+                  <span className="text-[#6b7a8d]">Grant Award No.</span>
+                  <span className="font-semibold text-[#1c2b3a]">
+                    {app.fellowship?.awardNumber || `MOTA/${app.scheme}/2026/${app.applicationCode?.slice(-4)}`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-[#f0f2f5]">
+                  <span className="text-[#6b7a8d]">Monthly Stipend Rate</span>
+                  <span className="font-semibold text-emerald-700">
+                    Rs. {Number(app.fellowship?.monthlyStipend || 31000).toLocaleString('en-IN')} / mo
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-[#f0f2f5]">
+                  <span className="text-[#6b7a8d]">Disbursement Status</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    ● {app.fellowship?.disbursementStatus || 'Active (PFMS DBT)'}
+                  </span>
+                </div>
+                <div className="pt-1 flex justify-between items-center text-[11px] text-[#6b7a8d]">
+                  <span>PFMS Gateway: {app.fellowship?.pfmsReference || `PFMS-DBT-ST-${app.applicationCode?.slice(-6)}`}</span>
+                  <span className="text-emerald-700 font-medium">Auto-renew annual</span>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </AppShell>

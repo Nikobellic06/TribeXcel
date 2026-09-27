@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoTA System B — Scholarship Verification Engine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="tricolour-bar">
+    <div class="saffron"></div>
+    <div class="white"></div>
+    <div class="green"></div>
+  </div>
+
+  <header class="header">
+    <div class="container header-content">
+      <div class="logo-group">
+        <div class="emblem-tag">MoTA • Prototype</div>
+        <h1>System B: AI-Assisted Scholarship Verification Engine</h1>
+        <p class="subtitle">Ministry of Tribal Affairs — Deterministic &amp; Explainable Verification Prototype</p>
+      </div>
+      <div class="system-badge">
+        <span class="pulse-dot"></span> API Online (:5050)
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-layout">
+    <!-- Notice Bar / Decision Boundary Banner -->
+    <div class="disclaimer-banner">
+      <span class="disclaimer-icon">ℹ</span>
+      <div>
+        <strong>Official Decision Boundary Notice:</strong>
+        This engine performs deterministic, explainable AI-assisted pre-verification. It does <em>not</em> autonomously grant or reject scholarships. Final determinations remain subject to authorized Ministry officer review.
+      </div>
+    </div>
+
+    <!-- Top Controls: Scheme Selector & Demo Scenarios -->
+    <section class="card controls-card">
+      <div class="card-header">
+        <h2>1. Load Application Data</h2>
+        <span class="card-tag">Interactive Test Bed</span>
+      </div>
+      <div class="controls-grid">
+        <div class="control-field">
+          <label for="schemeSelect">Select Scheme</label>
+          <select id="schemeSelect">
+            <option value="PRE_MATRIC">Pre-Matric Scholarship for ST Students</option>
+            <option value="NOS">National Overseas Scholarship (NOS)</option>
+            <option value="NATIONAL_FELLOWSHIP">National Fellowship for Higher Education of ST</option>
+          </select>
+        </div>
+        <div class="control-field">
+          <label>Load Pre-Configured Demo Scenarios</label>
+          <div class="demo-buttons">
+            <button type="button" class="btn btn-secondary" onclick="loadDemo('DEMO_1_ELIGIBLE')">
+              ✓ Demo 1: Eligible
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="loadDemo('DEMO_2_INELIGIBLE')">
+              ✗ Demo 2: Ineligible
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="loadDemo('DEMO_3_HUMAN_REVIEW')">
+              ⚠ Demo 3: Human Review
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="loadDemo('DEMO_4_INCOMPLETE')">
+              ? Demo 4: Incomplete
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-column workspace: JSON Editor & Verification Results -->
+    <div class="workspace-grid">
+      <!-- Left Column: JSON Editor -->
+      <section class="card editor-card">
+        <div class="card-header">
+          <h2>Application Payload (JSON)</h2>
+          <div class="card-actions">
+            <button type="button" class="btn btn-small" onclick="formatJson()">Format</button>
+            <button type="button" class="btn btn-small" onclick="resetJson()">Clear</button>
+          </div>
+        </div>
+        <textarea id="jsonEditor" spellcheck="false" placeholder="Paste or edit application JSON here..."></textarea>
+        <div class="editor-footer">
+          <button id="runBtn" class="btn btn-primary" onclick="runVerification()">
+            ⚡ Run AI-Assisted Verification (POST /api/verify)
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Verification Results -->
+      <section class="card results-card" id="resultsCard">
+        <div class="card-header">
+          <h2>Verification Output</h2>
+          <span id="timestampBadge" class="timestamp">Awaiting execution</span>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No Verification Run Yet</h3>
+          <p>Select a demo scenario or edit the JSON payload, then click <strong>Run AI-Assisted Verification</strong>.</p>
+        </div>
+
+        <div id="resultsContent" class="results-content hidden">
+          <!-- Final Status Banner -->
+          <div id="statusBanner" class="status-banner">
+            <div class="status-top">
+              <span class="status-label">Overall Verification Status</span>
+              <span id="statusTag" class="status-tag">ELIGIBLE</span>
+            </div>
+            <div id="statusSubtext" class="status-subtext"></div>
+          </div>
+
+          <!-- Tabs for Structured View vs Raw JSON -->
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tabRules')">Rule Evaluations</button>
+            <button class="tab-btn" onclick="switchTab('tabDocs')">Document Status</button>
+            <button class="tab-btn" onclick="switchTab('tabDeficiencies')">Deficiencies</button>
+            <button class="tab-btn" onclick="switchTab('tabExplanation')">Explainability Summary</button>
+            <button class="tab-btn" onclick="switchTab('tabRaw')">Raw Response JSON</button>
+          </div>
+
+          <!-- Tab 1: Rules -->
+          <div id="tabRules" class="tab-pane active">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rule ID</th>
+                    <th>Criterion</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="rulesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 2: Documents -->
+          <div id="tabDocs" class="tab-pane hidden">
+            <div id="docsList" class="cards-list"></div>
+          </div>
+
+          <!-- Tab 3: Deficiencies -->
+          <div id="tabDeficiencies" class="tab-pane hidden">
+            <div id="deficienciesList" class="cards-list"></div>
+          </div>
+
+          <!-- Tab 4: Explanation -->
+          <div id="tabExplanation" class="tab-pane hidden">
+            <div class="explanation-box" id="explanationText"></div>
+          </div>
+
+          <!-- Tab 5: Raw JSON -->
+          <div id="tabRaw" class="tab-pane hidden">
+            <pre class="raw-code" id="rawJsonResponse"></pre>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-content">
+      <span>Ministry of Tribal Affairs (MoTA) · System B Verification Prototype</span>
+      <span>API: <code>POST /api/verify</code> · <code>GET /api/schemes</code> · <code>GET /api/health</code></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

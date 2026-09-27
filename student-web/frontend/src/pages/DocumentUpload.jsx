@@ -49,12 +49,39 @@ const DocumentUpload = () => {
     if (saved) {
       try {
         setDraft(JSON.parse(saved));
+        setDraftChecked(true);
+        return;
       } catch (e) {
         setDraft(null);
       }
     }
-    setDraftChecked(true);
-  }, []);
+
+    // Check if student has an existing application to recover from (e.g. resubmission loop)
+    api.get('/student/applications')
+      .then((res) => {
+        const apps = res.data?.applications || [];
+        const matching = apps.find((a) => a.scheme?.toLowerCase() === normalizedSchemeId);
+        if (matching) {
+          setDraft({
+            name: matching.name,
+            email: matching.email,
+            phone: matching.phone,
+            dob: matching.dob ? matching.dob.slice(0, 10) : '',
+            gender: matching.gender,
+            state: matching.state,
+            district: matching.district,
+            course: matching.course,
+            institution: matching.institution,
+            scheme: matching.scheme,
+            schemeId: normalizedSchemeId,
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setDraftChecked(true);
+      });
+  }, [normalizedSchemeId]);
 
   if (!isValidScheme) {
     return (

@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   AlertCircle,
   Award,
+  Download,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SiteHeader from '../components/SiteHeader';
@@ -292,9 +294,58 @@ const Dashboard = () => {
                   )}
 
                   {application.status === 'Selected' && (
-                    <div className="bg-green-50/60 border border-green-200/80 rounded-lg p-4 flex items-center gap-2.5 text-[13px] text-green-700 font-medium">
-                      <Award className="w-5 h-5 shrink-0 text-green-600" />
-                      <span>Congratulations! You have been selected for this scheme.</span>
+                    <div className="space-y-4">
+                      <div className="bg-green-50/70 border border-green-200/90 rounded-lg p-4 flex items-center gap-2.5 text-[14px] text-green-800 font-medium">
+                        <Award className="w-5 h-5 shrink-0 text-green-600" />
+                        <span>Congratulations! You have been selected for the {application.scheme} Fellowship.</span>
+                      </div>
+
+                      {/* Post-Selection Fellowship & Disbursement Tracking */}
+                      <div className="border border-[#dde1e7] rounded-xl p-5 bg-[#fafbfc]">
+                        <h4 className="text-[13px] font-semibold text-[#1c2b3a] uppercase tracking-wide mb-3 flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-[#1a3557]" />
+                          Post-Selection Fellowship &amp; Disbursement Tracking
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-[12px] mb-4">
+                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
+                            <span className="text-[#6b7a8d] block mb-1">Award Number</span>
+                            <span className="font-semibold text-[#1c2b3a]">
+                              {application.fellowship?.awardNumber || `MOTA/${application.scheme}/2026/${application.applicationCode?.slice(-4)}`}
+                            </span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
+                            <span className="text-[#6b7a8d] block mb-1">Monthly Fellowship Stipend</span>
+                            <span className="font-semibold text-emerald-700">
+                              Rs. {Number(application.fellowship?.monthlyStipend || 31000).toLocaleString('en-IN')} / mo
+                            </span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
+                            <span className="text-[#6b7a8d] block mb-1">Disbursement Status</span>
+                            <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              ● {application.fellowship?.disbursementStatus || 'Active (PFMS DBT)'}
+                            </span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
+                            <span className="text-[#6b7a8d] block mb-1">PFMS Payment Gateway</span>
+                            <span className="font-semibold text-[#1c2b3a]">
+                              {application.fellowship?.pfmsReference || `PFMS-DBT-ST-${application.applicationCode?.slice(-6)}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dde1e7]">
+                          <span className="text-[12px] text-[#6b7a8d]">
+                            Next Annual Progress Report (APR) renewal due in 11 months.
+                          </span>
+                          <button
+                            onClick={() => window.print()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3557] hover:bg-[#102540] text-white rounded text-[12px] font-medium transition-colors cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download Formal Grant Award Letter
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 

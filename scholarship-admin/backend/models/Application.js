@@ -67,6 +67,21 @@ const applicationSchema = new mongoose.Schema(
 
     adminRemarks: { type: String, default: '' },
 
+    // Post-Selection Fellowship Management (Section B of SIH Problem Statement)
+    fellowship: {
+      grantLetterIssued: { type: Boolean, default: false },
+      awardNumber: { type: String, default: '' },
+      monthlyStipend: { type: Number, default: 31000 },
+      contingencyAnnual: { type: Number, default: 12000 },
+      disbursementStatus: {
+        type: String,
+        enum: ['Pending Setup', 'Active', 'Disbursed', 'Under Renewal'],
+        default: 'Pending Setup',
+      },
+      pfmsReference: { type: String, default: '' },
+      lastDisbursementDate: { type: Date },
+    },
+
     submittedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
