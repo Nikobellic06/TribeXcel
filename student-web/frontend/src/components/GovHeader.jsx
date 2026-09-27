@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, ChevronDown, Menu, X, Globe } from 'lucide-react';
 
-const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
+const GovHeader = ({ activeLang = 'en', onToggleLang }) => {
   const [fontScale, setFontScale] = useState(1);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSchemesDropdownOpen, setIsSchemesDropdownOpen] = useState(false);
@@ -21,17 +21,6 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
 
   const handleResetFont = () => {
     setFontScale(1);
-  };
-
-  const handleSchemeClick = (schemeId) => {
-    setIsSchemesDropdownOpen(false);
-    setIsMobileMenuOpen(false);
-    if (onSelectScheme) {
-      onSelectScheme(schemeId);
-    } else {
-      const el = document.getElementById('available-schemes');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
   };
 
   const isHindi = activeLang === 'hi';
@@ -111,8 +100,8 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
       {/* 2. ROW 1 - Ministry Branding */}
       <div className="py-4 px-4 sm:px-6 flex flex-row justify-between items-center bg-white border-b border-gray-200">
         {/* Left side circular badge + text */}
-        <div className="flex flex-row gap-3 sm:gap-4 items-center">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#1a3557] flex items-center justify-center shrink-0 shadow-sm">
+        <Link to="/" className="flex flex-row gap-3 sm:gap-4 items-center group">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#1a3557] flex items-center justify-center shrink-0 shadow-sm group-hover:bg-[#102540] transition-colors">
             <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
           </div>
           <div className="flex flex-col">
@@ -126,7 +115,7 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
               Ministry of Tribal Affairs
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Right side large portal title */}
         <div className="text-right">
@@ -143,14 +132,14 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
       <div className="bg-[#1a3557] px-4 sm:px-6 flex flex-row justify-between items-center h-12 relative z-30 shadow-md">
         {/* Desktop Nav Items */}
         <nav className="hidden md:flex items-center gap-1 h-full">
-          <a
-            href="#main-content"
-            className="bg-[#2563eb] text-white text-[14px] font-medium px-4 h-full flex items-center transition-colors"
+          <Link
+            to="/"
+            className="text-white hover:bg-[#25456e] text-[14px] font-medium px-4 h-full flex items-center transition-colors"
           >
             {isHindi ? 'मुख्य पृष्ठ' : 'Home'}
-          </a>
+          </Link>
           <a
-            href="#about-scheme"
+            href="/#about-scheme"
             className="text-white hover:bg-[#25456e] text-[14px] px-4 h-full flex items-center transition-colors"
           >
             {isHindi ? 'योजना के बारे में' : 'About the Scheme'}
@@ -168,47 +157,44 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
               className="text-white hover:bg-[#25456e] text-[14px] px-4 h-full flex items-center gap-1.5 transition-colors focus:outline-none"
             >
               {isHindi ? 'उपलब्ध योजनाएं' : 'Available Schemes'}
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSchemesDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSchemesDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isSchemesDropdownOpen && (
-              <div className="absolute top-full left-0 w-80 bg-white rounded-b-md shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn">
-                <button
-                  type="button"
-                  onClick={() => handleSchemeClick('NFST')}
-                  className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-b border-gray-100 flex flex-col group"
+              <div className="absolute top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px] z-50 animate-fadeIn">
+                <Link
+                  to="/schemes/nfst"
+                  onClick={() => setIsSchemesDropdownOpen(false)}
+                  className="px-4 py-2.5 text-[13px] text-[#1a3557] hover:bg-[#f0f4f9] block transition-colors font-medium"
                 >
-                  <span className="text-[13px] font-bold text-[#1a3557] group-hover:text-[#2563eb]">
-                    🎓 {isHindi ? 'NFST योजना' : 'NFST Scheme'}
-                  </span>
-                  <span className="text-[11px] text-gray-500">
-                    {isHindi ? 'ST छात्रों के लिए राष्ट्रीय फेलोशिप (M.Phil / Ph.D)' : 'National Fellowship for ST Students (M.Phil / Ph.D)'}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSchemeClick('NOS')}
-                  className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors flex flex-col group"
+                  {isHindi ? 'NFST योजना' : 'NFST Scheme'}
+                </Link>
+                <Link
+                  to="/schemes/nos"
+                  onClick={() => setIsSchemesDropdownOpen(false)}
+                  className="px-4 py-2.5 text-[13px] text-[#1a3557] hover:bg-[#f0f4f9] block transition-colors font-medium"
                 >
-                  <span className="text-[13px] font-bold text-[#1a3557] group-hover:text-[#2563eb]">
-                    🌐 {isHindi ? 'NOS योजना' : 'NOS Scheme'}
-                  </span>
-                  <span className="text-[11px] text-gray-500">
-                    {isHindi ? 'राष्ट्रीय विदेशी छात्रवृत्ति (विदेश में स्नातकोत्तर / Ph.D)' : 'National Overseas Scholarship (Post Graduate / Ph.D Abroad)'}
-                  </span>
-                </button>
+                  {isHindi ? 'NOS योजना' : 'NOS Scheme'}
+                </Link>
+                <Link
+                  to="/schemes/pre-matric"
+                  onClick={() => setIsSchemesDropdownOpen(false)}
+                  className="px-4 py-2.5 text-[13px] text-[#1a3557] hover:bg-[#f0f4f9] block transition-colors font-medium"
+                >
+                  {isHindi ? 'मैट्रिक-पूर्व छात्रवृत्ति' : 'Pre-Matric Scholarship'}
+                </Link>
               </div>
             )}
           </div>
 
           <a
-            href="#resources"
+            href="/#resources"
             className="text-white hover:bg-[#25456e] text-[14px] px-4 h-full flex items-center transition-colors"
           >
             {isHindi ? 'संसाधन' : 'Resources'}
           </a>
           <a
-            href="#contact"
+            href="/#contact"
             className="text-white hover:bg-[#25456e] text-[14px] px-4 h-full flex items-center transition-colors"
           >
             {isHindi ? 'संपर्क करें' : 'Contact Us'}
@@ -250,15 +236,15 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
       {/* Mobile Dropdown Nav Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-[#152a45] text-white px-4 py-3 border-t border-[#25456e] space-y-1 animate-fadeIn">
-          <a
-            href="#main-content"
+          <Link
+            to="/"
             onClick={() => setIsMobileMenuOpen(false)}
             className="block py-2 px-3 rounded hover:bg-[#25456e] text-[14px] font-medium"
           >
             {isHindi ? 'मुख्य पृष्ठ' : 'Home'}
-          </a>
+          </Link>
           <a
-            href="#about-scheme"
+            href="/#about-scheme"
             onClick={() => setIsMobileMenuOpen(false)}
             className="block py-2 px-3 rounded hover:bg-[#25456e] text-[14px]"
           >
@@ -266,35 +252,42 @@ const GovHeader = ({ onSelectScheme, activeLang = 'en', onToggleLang }) => {
           </a>
 
           {/* Mobile Schemes sub-menu */}
-          <div className="py-1 px-3 border-l-2 border-blue-400 my-1 bg-[#102035] rounded-r">
+          <div className="py-1 px-3 border-l-2 border-blue-400 my-1 bg-[#102035] rounded-r space-y-1">
             <span className="text-[12px] font-semibold text-blue-300 block mb-1">
               {isHindi ? 'उपलब्ध योजनाएं:' : 'Available Schemes:'}
             </span>
-            <button
-              type="button"
-              onClick={() => handleSchemeClick('NFST')}
-              className="block w-full text-left py-1.5 text-[13px] text-gray-200 hover:text-white"
+            <Link
+              to="/schemes/nfst"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-left py-1 text-[13px] text-gray-200 hover:text-white pl-2"
             >
-              • {isHindi ? 'NFST योजना (राष्ट्रीय फेलोशिप)' : 'NFST Scheme (National Fellowship)'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSchemeClick('NOS')}
-              className="block w-full text-left py-1.5 text-[13px] text-gray-200 hover:text-white"
+              • {isHindi ? 'NFST योजना' : 'NFST Scheme'}
+            </Link>
+            <Link
+              to="/schemes/nos"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-left py-1 text-[13px] text-gray-200 hover:text-white pl-2"
             >
-              • {isHindi ? 'NOS योजना (राष्ट्रीय विदेशी)' : 'NOS Scheme (National Overseas)'}
-            </button>
+              • {isHindi ? 'NOS योजना' : 'NOS Scheme'}
+            </Link>
+            <Link
+              to="/schemes/pre-matric"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-left py-1 text-[13px] text-gray-200 hover:text-white pl-2"
+            >
+              • {isHindi ? 'मैट्रिक-पूर्व छात्रवृत्ति' : 'Pre-Matric Scholarship'}
+            </Link>
           </div>
 
           <a
-            href="#resources"
+            href="/#resources"
             onClick={() => setIsMobileMenuOpen(false)}
             className="block py-2 px-3 rounded hover:bg-[#25456e] text-[14px]"
           >
             {isHindi ? 'संसाधन' : 'Resources'}
           </a>
           <a
-            href="#contact"
+            href="/#contact"
             onClick={() => setIsMobileMenuOpen(false)}
             className="block py-2 px-3 rounded hover:bg-[#25456e] text-[14px]"
           >

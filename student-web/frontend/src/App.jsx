@@ -6,12 +6,14 @@ import Dashboard from './pages/Dashboard';
 import SchemeSelection from './pages/SchemeSelection';
 import ApplicationForm from './pages/ApplicationForm';
 import DocumentUpload from './pages/DocumentUpload';
+import SchemeDetail from './pages/SchemeDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/schemes/:schemeId" element={<SchemeDetail />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route

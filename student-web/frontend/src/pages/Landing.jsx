@@ -461,7 +461,7 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Scheme 1: NFST */}
             <div className="bg-white border border-[#dde1e7] rounded-xl p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
               <div>
@@ -484,15 +484,14 @@ const Landing = () => {
                     : 'National Fellowship for Higher Education of ST Students pursuing M.Phil. and Ph.D. degrees in Indian Universities and Institutions.'}
                 </p>
               </div>
-              <div className="pt-3 border-t border-[#dde1e7] flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSchemeModal('NFST')}
-                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1a3557] hover:underline focus:outline-none"
+              <div className="pt-3 border-t border-[#dde1e7]">
+                <Link
+                  to="/schemes/nfst"
+                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1a3557] hover:underline"
                 >
-                  {isHindi ? 'योजना विवरण एवं पात्रता देखें' : 'View Scheme Details & Eligibility'}
+                  {isHindi ? 'अधिक जानें' : 'Learn More'}
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -518,15 +517,47 @@ const Landing = () => {
                     : 'National Overseas Scholarship providing financial assistance to selected ST students for pursuing Post Graduate and Ph.D. courses abroad.'}
                 </p>
               </div>
-              <div className="pt-3 border-t border-[#dde1e7] flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSchemeModal('NOS')}
-                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1a3557] hover:underline focus:outline-none"
+              <div className="pt-3 border-t border-[#dde1e7]">
+                <Link
+                  to="/schemes/nos"
+                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1a3557] hover:underline"
                 >
-                  {isHindi ? 'योजना विवरण एवं पात्रता देखें' : 'View Scheme Details & Eligibility'}
+                  {isHindi ? 'अधिक जानें' : 'Learn More'}
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Scheme 3: Pre-Matric */}
+            <div className="bg-white border border-[#dde1e7] rounded-xl p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] text-[#1a3557]">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-[17px] font-semibold text-[#1c2b3a]">
+                      {isHindi ? 'मैट्रिक-पूर्व छात्रवृत्ति' : 'Pre-Matric Scholarship'}
+                    </h3>
+                    <span className="inline-block text-[12px] font-medium text-[#16a34a] bg-green-50 border border-green-200 px-2 py-0.5 rounded mt-0.5">
+                      {isHindi ? 'अनुसूचित जनजाति के छात्र' : 'Scheduled Tribe Students'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[14px] text-[#6b7a8d] leading-relaxed mb-4">
+                  {isHindi
+                    ? 'कक्षा IX और X में अध्ययनरत अनुसूचित जनजाति के छात्रों के लिए वित्तीय सहायता, जिसका उद्देश्य मैट्रिकुलेशन से पहले पढ़ाई छोड़ने की दर को कम करना है।'
+                    : 'Financial assistance for Scheduled Tribe students studying in Classes IX and X, aimed at reducing dropout before matriculation.'}
+                </p>
+              </div>
+              <div className="pt-3 border-t border-[#dde1e7]">
+                <Link
+                  to="/schemes/pre-matric"
+                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1a3557] hover:underline"
+                >
+                  {isHindi ? 'अधिक जानें' : 'Learn More'}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
           </div>
