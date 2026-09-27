@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoTA Document Intelligence Engine - Prototype Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo-area">
+        <span class="emblem-tag">GOVERNMENT OF INDIA</span>
+        <h1>Ministry of Tribal Affairs (MoTA)</h1>
+        <h2>System A: Document Intelligence Engine <span class="badge prototype">API Prototype</span></h2>
+      </div>
+      <div class="health-badge" id="healthBadge">
+        <span class="status-dot"></span> Checking engine...
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Notice Banner -->
+    <div class="prototype-banner">
+      <strong>Developer & Evaluation Dashboard:</strong> This interface is an API testing harness for System A (Document Intelligence). It does NOT make scholarship eligibility decisions and does NOT represent the final citizen portal.
+    </div>
+
+    <!-- Quick Action Bar: Demo Scenarios & Upload -->
+    <div class="grid-2">
+      <!-- Section 1: Pre-loaded Demo Scenarios -->
+      <section class="card demo-card">
+        <h3>1. Test with Pre-configured Scenarios</h3>
+        <p class="section-desc">Instantly test the AI engine against standard MoTA verification scenarios without manual uploads.</p>
+        <div class="demo-buttons">
+          <button type="button" class="btn btn-clean" onclick="loadDemoScenario('clean')">
+            <span class="btn-icon">✓</span>
+            <div>
+              <strong>1. Clean & Consistent</strong>
+              <small>All ST docs valid & matching</small>
+            </div>
+          </button>
+          <button type="button" class="btn btn-warning" onclick="loadDemoScenario('missing')">
+            <span class="btn-icon">⚠️</span>
+            <div>
+              <strong>2. Missing / Incomplete</strong>
+              <small>PVTG, missing income & IFSC</small>
+            </div>
+          </button>
+          <button type="button" class="btn btn-danger" onclick="loadDemoScenario('inconsistent')">
+            <span class="btn-icon">⚡</span>
+            <div>
+              <strong>3. Cross-Doc Inconsistencies</strong>
+              <small>DOB & name mismatches</small>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Section 2: Upload Real Documents -->
+      <section class="card upload-card">
+        <h3>2. Upload Document Files</h3>
+        <p class="section-desc">Supports PDF, JPG, JPEG, PNG. Upload single or multiple documents together.</p>
+        <form id="uploadForm" onsubmit="handleUpload(event)">
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" name="documents" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="updateFileList(this.files)">
+            <div class="drop-zone-content">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p><strong>Click to browse</strong> or drag & drop files here</p>
+              <small>ST/PVTG Cert, Aadhaar, Marksheet, Passbook, Income Cert, Admission Letter</small>
+            </div>
+          </div>
+          <div id="selectedFiles" class="selected-files"></div>
+          <button type="submit" id="analyzeBtn" class="btn btn-primary" disabled>
+            Run Document Intelligence Pipeline
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingIndicator" class="loading-state" style="display:none;">
+      <div class="spinner"></div>
+      <h4>Processing Documents Through AI Intelligence Pipeline...</h4>
+      <p>Executing Document Type Detection → Quality Analysis → Field Extraction → Cross-Doc Verification → Light Anomaly Detection</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsContainer" style="display:none;">
+      
+      <!-- Top Overview Bar -->
+      <div class="overview-bar card">
+        <div class="overview-item">
+          <label>Application ID</label>
+          <strong id="resAppId">-</strong>
+        </div>
+        <div class="overview-item">
+          <label>Documents Processed</label>
+          <strong id="resDocCount">0</strong>
+        </div>
+        <div class="overview-item">
+          <label>Anomaly Level</label>
+          <span id="resAnomalyLevel" class="badge">-</span>
+        </div>
+        <div class="overview-item">
+          <label>Review Recommendation</label>
+          <span id="resReviewSummary" class="status-text">-</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-docs')">1. Analyzed Documents (<span id="tabDocCount">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('tab-profile')">2. Normalized Applicant Profile</button>
+        <button class="tab-btn" onclick="switchTab('tab-validation')">3. Cross-Document Validation (<span id="tabValCount">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('tab-anomalies')">4. Anomalies & Review Flags (<span id="tabFlagCount">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('tab-json')">5. Raw API JSON Response</button>
+      </div>
+
+      <!-- Tab 1: Documents Grid -->
+      <div id="tab-docs" class="tab-content active">
+        <div id="documentsList" class="doc-cards-grid"></div>
+      </div>
+
+      <!-- Tab 2: Normalized Profile -->
+      <div id="tab-profile" class="tab-content">
+        <div class="card">
+          <h3>Normalized Applicant Profile (MoTA Standard)</h3>
+          <p class="section-desc">Unified profile assembled from authentic documents. Unverified fields are strictly null.</p>
+          <div class="profile-grid" id="profileGrid"></div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Cross-Document Validation -->
+      <div id="tab-validation" class="tab-content">
+        <div class="card">
+          <h3>Cross-Document Comparison Matrix</h3>
+          <p class="section-desc">Automated consistency check across 9 key MoTA identity, category, and eligibility fields.</p>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Status</th>
+                  <th>Extracted Values Across Documents</th>
+                  <th>Engine Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="validationTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Anomalies & Review Flags -->
+      <div id="tab-anomalies" class="tab-content">
+        <div class="card">
+          <h3>Light Anomaly Detection & Verifier Advisory</h3>
+          <div id="anomalyLevelBanner" class="anomaly-banner"></div>
+          
+          <h4 style="margin-top: 1.5rem;">Detected Signals</h4>
+          <ul id="anomalySignalsList" class="signals-list"></ul>
+
+          <h4 style="margin-top: 1.5rem;">Actionable Review Flags for Desk Verification Officers</h4>
+          <div id="reviewFlagsList" class="flags-list"></div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Raw JSON Response -->
+      <div id="tab-json" class="tab-content">
+        <div class="card">
+          <div class="json-header">
+            <h3>Raw REST JSON Output</h3>
+            <button class="btn btn-secondary btn-sm" onclick="copyJson()">Copy JSON</button>
+          </div>
+          <pre id="rawJsonResponse" class="code-block"></pre>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Ministry of Tribal Affairs (MoTA) - Document Intelligence Prototype Engine (System A)</p>
+    <p>API Endpoint: <code>POST /api/analyze-documents</code> | Compatible with future MoTA Web Portal & Mobile Apps</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
