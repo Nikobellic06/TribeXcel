@@ -18,7 +18,7 @@ export async function extractTextAndQuality(filePath, mimeType, filename) {
   formData.append('file', blob, filename || 'document');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const res = await fetch(`${ocrUrl}/ocr`, {

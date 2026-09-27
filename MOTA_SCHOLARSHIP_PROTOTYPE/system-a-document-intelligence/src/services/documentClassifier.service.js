@@ -72,10 +72,11 @@ const CLASSIFICATION_RULES = [
     type: 'AADHAAR',
     indicators: [
       { regex: /\b(unique\s+identification\s+authority|uidai|aadhaar|aadhar)\b/i, weight: 45, evidence: 'UIDAI / Aadhaar official header detected' },
+      { regex: /\b(enrolment\s+no|नामांकन)\b/i, weight: 30, evidence: 'Aadhaar Enrolment Number detected' },
       { regex: /\b(mera\s+aadhaar|meri\s+pehchan)\b/i, weight: 35, evidence: 'Aadhaar national motto detected' },
       { regex: /\b\d{4}\s+\d{4}\s+\d{4}\b|\b[X\d]{4}\s+[X\d]{4}\s+\d{4}\b/i, weight: 30, evidence: '12-digit Aadhaar / masked UID pattern detected' },
-      { regex: /\b(dob|date\s+of\s+birth|year\s+of\s+birth)\s*:\s*\d{1,4}/i, weight: 15, evidence: 'Aadhaar DOB format detected' },
-      { regex: /\b(male|female|transgender|purush|mahila)\b/i, weight: 15, evidence: 'UIDAI gender demographic field detected' }
+      { regex: /(?:dob|date\s+of\s+birth|year\s+of\s+birth|it;?th\/DOB|जन्म\s*तिथि)\s*[:\/\-]?\s*\d{1,4}/i, weight: 20, evidence: 'Aadhaar DOB format detected' },
+      { regex: /\b(male|female|transgender|purush|mahila|पु=ष|महिला)\b/i, weight: 15, evidence: 'UIDAI gender demographic field detected' }
     ]
   },
   {

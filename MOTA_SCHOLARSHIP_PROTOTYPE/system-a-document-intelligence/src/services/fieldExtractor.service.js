@@ -9,17 +9,22 @@
  */
 
 // Helper to clean extracted text
-function clean(str) {
+function clean(str, allowMultiLine = false) {
   if (!str) return null;
-  const firstLine = String(str).split(/\r?\n/)[0];
-  const s = firstLine.trim().replace(/^[:\-–=.\s]+/, '').replace(/[:\-–=.\s]+$/, '').trim();
+  let s = String(str).trim();
+  if (!allowMultiLine) {
+    s = s.split(/\r?\n/)[0];
+  } else {
+    s = s.replace(/\r?\n/g, ', ').replace(/,\s*,/g, ',');
+  }
+  s = s.replace(/^[:\-–=.,\s]+/, '').replace(/[:\-–=.,\s]+$/, '').trim();
   return s.length > 0 ? s : null;
 }
 
 // Regex helpers
-function extractFirstMatch(text, regex, group = 1) {
+function extractFirstMatch(text, regex, group = 1, allowMultiLine = false) {
   const m = text.match(regex);
-  return m && m[group] ? clean(m[group]) : null;
+  return m && m[group] ? clean(m[group], allowMultiLine) : null;
 }
 
 export function extractDocumentFields(docType, fullText = '', lines = [], avgOcrConf = 0.90) {
@@ -27,9 +32,9 @@ export function extractDocumentFields(docType, fullText = '', lines = [], avgOcr
   const fields = {};
   const fieldConfidence = {};
 
-  const makeField = (key, val, baseConf = 0.92) => {
+  const makeField = (key, val, baseConf = 0.92, isMultiLine = false) => {
     if (val !== null && val !== undefined && String(val).trim() !== '') {
-      const cleaned = clean(val);
+      const cleaned = clean(val, isMultiLine);
       const conf = Number(Math.min(0.99, Math.max(0.60, avgOcrConf * baseConf)).toFixed(2));
       fields[key] = cleaned;
       fieldConfidence[key] = {
@@ -162,24 +167,79 @@ export function extractDocumentFields(docType, fullText = '', lines = [], avgOcr
     }
 
     case 'AADHAAR': {
-      // Keys: name, dateOfBirth, gender, aadhaarNumber, maskedAadhaarNumber, address
-      const name = extractFirstMatch(text, /(?:name\s*[:\-]\s*)([A-Z][a-zA-Z\s]{2,30})/i)
-        || extractFirstMatch(text, /(?:to\s*\n|government\s+of\s+india\s*\n)([A-Z][a-zA-Z\s]{2,30})(?:\n|dob|father)/i)
-        || extractFirstMatch(text, /([A-Z][a-zA-Z\s]{2,25})\n(?:dob|date\s+of\s+birth)/i);
+      // Keys: name, dateOfBirth, gender, aadhaarNumber, maskedAadhaarNumber, address, fatherName, pincode
+      // 1. Aadhaar Number
+      const uidMatch = text.match(/\b(\d{4}\s+\d{4}\s+\d{4})\b/)
+        || text.match(/\b([X\d]{4}\s+[X\d]{4}\s+\d{4})\b/);
+      const uid = uidMatch ? uidMatch[1] : null;
 
-      const dob = extractFirstMatch(text, /(?:dob|date\s+of\s+birth|year\s+of\s+birth)\s*[:\-]?\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4})/i);
-      const gender = extractFirstMatch(text, /\b(male|female|transgender)\b/i);
-      const uid = extractFirstMatch(text, /(?:aadhaar\s*(?:number|no\.?)?\s*[:\-]?\s*)?(\d{4}\s+\d{4}\s+\d{4})/i)
-        || extractFirstMatch(text, /\b(\d{4}\s+\d{4}\s+\d{4})\b/)
-        || extractFirstMatch(text, /\b([X\d]{4}\s+[X\d]{4}\s+\d{4})\b/);
-      const addr = extractFirstMatch(text, /(?:address\s*[:\-]?\s*)([A-Za-z0-9\s,.\-_]{10,80})/i);
+      // 2. Date of Birth
+      const dobMatch = text.match(/(?:dob|date\s+of\s+birth|year\s+of\s+birth|ित;?थ\/DOB|जन्म\s*तिथि)\s*[:\/\-]?\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4})/i)
+        || text.match(/\b(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})\b/);
+      const dob = dobMatch ? dobMatch[1] : null;
+
+      // 3. Gender
+      const genderMatch = text.match(/\b(male|female|transgender|purush|mahila|पु=ष|महिला)\b/i);
+      let gender = genderMatch ? genderMatch[1].toUpperCase() : null;
+      if (gender === 'पु=ष' || gender === 'PURUSH') gender = 'MALE';
+      if (gender === 'महिला' || gender === 'MAHILA') gender = 'FEMALE';
+
+      // 4. Name
+      let name = null;
+      const nameLabelMatch = text.match(/(?:name\s*[:\-]\s*)([A-Z][a-zA-Z\s]{2,30})/i);
+      if (nameLabelMatch) {
+        name = nameLabelMatch[1].trim();
+      } else {
+        // Look for English line directly above DOB line
+        const linesList = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        for (let i = 0; i < linesList.length; i++) {
+          if (/dob|date\s+of\s+birth|ित;?थ/i.test(linesList[i])) {
+            for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+              const cand = linesList[j].replace(/^[\W_]+/, '').replace(/[\W_]+$/, '').trim();
+              if (/^[A-Za-z\s]{2,30}$/.test(cand) && !/^(government|india|unique|authority|enrolment|to)$/i.test(cand)) {
+                name = cand;
+                break;
+              }
+            }
+            if (name) break;
+          }
+        }
+      }
+      if (!name) {
+        const toMatch = text.match(/\bTo\b[\s\S]*?\n(?:[^\nA-Za-z]+\n)?([A-Za-z\s]{2,30})\n(?:S\/O|D\/O|W\/O|C\/O|h\s*no)/i);
+        if (toMatch) name = toMatch[1].trim();
+      }
+
+      // 5. Address (Multi-line) - Prefer clean English 'Address:' block if present, else fallback
+      let addr = null;
+      const engAddrMatch = text.match(/\bAddress\s*[:\-]?\s*([\s\S]+?)(?=(?:\r?\n\s*(?:Digitally|Signature|Unique|help@|www|\b\d{4}\s+\d{4}\s+\d{4}\b|$))|$)/i);
+      const hindiAddrMatch = text.match(/पता\s*[:\-]?\s*([\s\S]+?)(?=(?:\r?\n\s*(?:Address|Digitally|Signature|Unique|help@|www|\b\d{4}\s+\d{4}\s+\d{4}\b|$))|$)/i);
+      const rawAddr = engAddrMatch ? engAddrMatch[1] : (hindiAddrMatch ? hindiAddrMatch[1] : null);
+      if (rawAddr) {
+        addr = rawAddr
+          .replace(/\r?\n/g, ', ')
+          .replace(/,\s*,/g, ',')
+          .replace(/^[, \s]+/, '')
+          .replace(/[, \s]+$/, '')
+          .trim();
+      }
+
+      // 6. Care of / Guardian / Father Name
+      const coMatch = (addr || text).match(/(?:S\/O|D\/O|W\/O|C\/O|आ>मज|आत्मज)\s*[:\-]?\s*([A-Za-z\s]{2,30})(?:,|$)/i);
+      const guardian = coMatch ? coMatch[1].trim() : null;
+
+      // 7. Pincode
+      const pinMatch = (addr || text).match(/\b([1-9][0-9]{5})\b/);
+      const pincode = pinMatch ? pinMatch[1] : null;
 
       makeField('name', name);
       makeField('dateOfBirth', dob);
       makeField('gender', gender);
       makeField('aadhaarNumber', uid ? uid.replace(/^\d{4}\s+\d{4}/, 'XXXX XXXX') : null);
       makeField('maskedAadhaarNumber', uid ? uid.replace(/^\d{4}\s+\d{4}/, 'XXXX XXXX') : null);
-      makeField('address', addr);
+      makeField('address', addr, 0.90, true);
+      makeField('fatherName', guardian);
+      makeField('pincode', pincode);
       break;
     }
 
