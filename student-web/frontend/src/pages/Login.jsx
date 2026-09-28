@@ -23,14 +23,21 @@ const Login = () => {
   const redirectTo = location.state?.from || '/dashboard';
   if (student) return <Navigate to={redirectTo} replace />;
 
-  const handleDemoLogin = () => {
-    loginDemo();
-    navigate(redirectTo, { replace: true });
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    try {
+      await loginDemo();
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(apiErrorMessage(err) || t('err.network'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fillDemoCredentials = () => {
-    setIdentifier('sunita.soren@scholarship.gov.in');
-    setPassword('Demo@1234');
+    setIdentifier('applicant1@demo.tribexcel.in');
+    setPassword('Demo@12345');
     setError('');
   };
 
@@ -99,8 +106,8 @@ const Login = () => {
           </div>
           <p className="mt-1 text-[12px] text-muted">
             {tx({
-              en: 'Applicant: Sunita Soren (ST Santhal, Jharkhand • Aadhaar e-KYC Verified)',
-              hi: 'आवेदक: सुनीता सोरेन (एसटी संथाल, झारखंड • आधार ई-केवाईसी सत्यापित)',
+              en: 'Applicant: Sunita Murmu (ST Santhal, Jharkhand • Aadhaar e-KYC Verified)',
+              hi: 'आवेदक: सुनीता मुर्मू (एसटी संथाल, झारखंड • आधार ई-केवाईसी सत्यापित)',
             })}
           </p>
         </div>

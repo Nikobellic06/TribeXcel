@@ -9,8 +9,8 @@ const GovFooter = () => {
       <div className="bg-navy px-6 py-6 text-center text-white">
         <p className="text-[12px] font-medium leading-relaxed">
           {tx({
-            en: 'Content managed by Ministry of Tribal Affairs, Government of India (Hackathon prototype)',
-            hi: 'सामग्री प्रबंधन: जनजातीय कार्य मंत्रालय, भारत सरकार (हैकाथॉन प्रोटोटाइप)',
+            en: 'Content managed by Ministry of Tribal Affairs, Government of India',
+            hi: 'सामग्री प्रबंधन: जनजातीय कार्य मंत्रालय, भारत सरकार',
           })}
         </p>
         <p className="mt-1.5 text-[11px] leading-relaxed text-slate-300">

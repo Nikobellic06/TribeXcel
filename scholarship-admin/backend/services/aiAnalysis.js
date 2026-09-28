@@ -110,8 +110,8 @@ function normalize(data, sentDocs) {
 async function analyse(app, options = {}) {
   if (!AI_SCHEMES().includes(app.scheme)) return notApplicable(app.scheme);
 
-  const includeFiles = options.includeFiles ?? process.env.AI_SEND_FILE_CONTENT === 'true';
-  const timeout = Number(process.env.AI_ENGINE_TIMEOUT_MS) || (includeFiles ? 20000 : 4000);
+  const includeFiles = options.includeFiles ?? (process.env.AI_SEND_FILE_CONTENT !== 'false');
+  const timeout = Number(process.env.AI_ENGINE_TIMEOUT_MS) || (includeFiles ? 30000 : 4000);
   const url = process.env.AI_ENGINE_URL || 'http://localhost:8000';
 
   const sentDocs = (app.documents || []).map((d) => {

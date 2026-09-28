@@ -99,12 +99,11 @@ def run_eligibility_verification(
             income_pass = False
             income_detail = f"Income of Rs. {eval_income:,.0f} exceeds scheme ceiling of Rs. {income_limit:,.0f}."
     else:
-        # If income cert is present but amount could not be parsed, mark as deficient for clarity
+        # No fake PASS: missing or unparseable amount requires manual officer review
+        income_pass = False
         if "Income Certificate" in submitted_names:
-            income_pass = True  # Benefit of doubt if document present, admin to review
-            income_detail = "Income certificate provided; amount requires manual verification."
+            income_detail = "INSUFFICIENT_DATA: Income certificate uploaded but annual income unconfirmed. Manual officer review required."
         else:
-            income_pass = False
             income_detail = "No income certificate or declared income found."
 
     # 4. Check 3: Category matches ST records
@@ -144,11 +143,11 @@ def run_eligibility_verification(
             marks_pass = False
             marks_detail = f"Obtained {eval_marks:.1f}% is below minimum cutoff of {min_academic_pct:.0f}%."
     else:
+        # No fake PASS: missing marks require manual officer review
+        marks_pass = False
         if "Latest Marksheet" in submitted_names:
-            marks_pass = True
-            marks_detail = "Marksheet uploaded; percentage pending confirmation."
+            marks_detail = "INSUFFICIENT_DATA: Marksheet uploaded but percentage unverified. Manual officer review required."
         else:
-            marks_pass = False
             marks_detail = "Marksheet missing."
 
     # 6. Cross-check applicant name against certificates (Fraud / Flag check)
@@ -203,7 +202,7 @@ def run_eligibility_verification(
         status = "Flagged"
         reasons.append("Category does not match ST requirements.")
     elif not marks_pass:
-        status = "Deficient"
+        status = "Flagged" if eval_marks is None else "Deficient"
         reasons.append(marks_detail)
     else:
         status = "Eligible"

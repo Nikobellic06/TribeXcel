@@ -193,10 +193,10 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, erro
                   status: 'VERIFIED_AT_SOURCE',
                 },
                 checks: [
-                  { label: 'DigiLocker Cryptographic Signature Verified', passed: true },
-                  { label: 'Direct Government Repository Cross-Checked', passed: true },
+                  { label: 'DigiLocker Metadata & Schema Validated (Demo Mode)', passed: true },
+                  { label: 'State Repository Issued Format Matched', passed: true },
                 ],
-                advisory: 'Issued certificate retrieved directly from Government of India DigiLocker.',
+                advisory: 'Retrieved via DigiLocker simulation (Demonstration Mode). Official scrutiny required by verifying officer.',
               }
             : null)
         }

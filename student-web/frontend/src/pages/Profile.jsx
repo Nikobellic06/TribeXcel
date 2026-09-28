@@ -13,7 +13,7 @@ import { fetchProfile, updateProfile, verifyAadhaarKyc } from '../api/student';
 import { apiErrorMessage } from '../api/axios';
 import { formatDate, toInputDate } from '../utils/format';
 import * as v from '../utils/validation';
-import { DEMO_OTP } from '../config/demo';
+import { DEMO_AADHAAR, DEMO_OTP } from '../config/demo';
 
 function toForm(s = {}) {
   return {
@@ -119,7 +119,7 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
             hi: 'आधार में पंजीकृत मोबाइल नंबर पर ओटीपी भेजा जाता है। सत्यापन के बाद आपका नाम, जन्मतिथि और लिंग लॉक हो जाते हैं। आधार के केवल अंतिम 4 अंक सहेजे जाते हैं।',
           })}
         </p>
-        <Field label={tx({ en: 'Aadhaar number', hi: 'आधार नंबर' })} htmlFor="aadhaar" required>
+        <Field label={tx({ en: 'Aadhaar number', hi: 'आधार नंबर' })} htmlFor="aadhaar" required hint={tx({ en: `Demo mode: use ${DEMO_AADHAAR}`, hi: `डेमो मोड: ${DEMO_AADHAAR} उपयोग करें` })}>
           <TextInput id="aadhaar" value={aadhaar} onChange={setAadhaar} transform={pretty} inputMode="numeric" autoComplete="off" readOnly={otpSent} placeholder="XXXX XXXX XXXX" />
         </Field>
         {!otpSent && (

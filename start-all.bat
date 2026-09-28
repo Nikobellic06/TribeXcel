@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 echo =====================================================================
 echo  Ministry of Tribal Affairs (MoTA) Scholarship & Fellowship Platform
 echo  SIH26239 - End-to-End Integrated Prototype Startup

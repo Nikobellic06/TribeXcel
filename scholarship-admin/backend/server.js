@@ -35,14 +35,7 @@ const mongoose = require('mongoose');
 const { SCHEME_RULES } = require('./config/schemeRules');
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000';
 
-app.use('/api/admin', authRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/student', studentAuthRoutes);
-app.use('/api/student', studentPortalRoutes);
-app.use('/api/student', studentApplicationRoutes);
-app.use('/api', applicationRoutes);
-
-/* Service Health Check (Part 50) */
+/* Service Health Check — must be before protected route registration */
 app.get(['/api/health', '/health'], async (req, res) => {
   let aiStatus = 'DOWN';
   try {
@@ -58,12 +51,12 @@ app.get(['/api/health', '/health'], async (req, res) => {
   });
 });
 
-/* Schemes API (Part 33) */
+/* Schemes API — public, no auth required */
 app.get('/api/schemes', (req, res) => {
   res.json(SCHEME_RULES);
 });
 
-/* AI Document Analysis Proxy Endpoint (Part 9 & Part 33) */
+/* AI Document Analysis Proxy — public so student portal can call it directly */
 app.post(['/api/ai/analyze-document', '/api/analyze-document'], async (req, res) => {
   try {
     const { data, fileName, docType, documentType, applicationId, documentId } = req.body || {};
@@ -107,6 +100,15 @@ app.post(['/api/ai/analyze-document', '/api/analyze-document'], async (req, res)
     });
   }
 });
+
+app.use('/api/admin', authRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/student', studentAuthRoutes);
+app.use('/api/student', studentPortalRoutes);
+app.use('/api/student', studentApplicationRoutes);
+app.use('/api', applicationRoutes);
+
+
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Scholarship admin API running' });
