@@ -65,7 +65,7 @@ export function ApplicantInfo({ app }) {
           ['IFSC', b.ifsc],
           ['Bank and branch', [b.bankName, b.branchName].filter(Boolean).join(', ')],
           ['Aadhaar seeding', b.aadhaarSeeded === 'yes' ? 'Declared by applicant' : b.accountNumber ? 'Not confirmed' : undefined],
-          ['Bank verification', b.accountNumber ? 'Not verified with the bank (no PFMS link in this prototype)' : undefined],
+          ['Bank verification', b.accountNumber ? 'Bank verification pending PFMS integration' : undefined],
         ]}
       />
     </Panel>

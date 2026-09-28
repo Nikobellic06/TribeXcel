@@ -62,47 +62,9 @@ export const AuthProvider = ({ children }) => {
     [updateStudent]
   );
 
-  const loginDemo = useCallback(
-    async (customStudent) => {
-      if (customStudent) {
-        // If a custom student object is provided, use it directly (legacy path)
-        localStorage.setItem('studentToken', 'demo-sih-prototype-token');
-        updateStudent(customStudent);
-        return customStudent;
-      }
-      // Use a real seeded demo account so API calls work
-      try {
-        const { data } = await api.post('/student/login', {
-          identifier: 'applicant1@demo.tribexcel.in',
-          password: 'Demo@12345',
-        });
-        localStorage.setItem('studentToken', data.token);
-        updateStudent(data.student);
-        return data.student;
-      } catch {
-        // Fallback: local-only demo state (no API calls will work)
-        const demoStudent = {
-          _id: 'demo-student-sunita-soren',
-          name: 'Sunita Soren',
-          email: 'applicant1@demo.tribexcel.in',
-          phone: '9876543210',
-          state: 'Jharkhand',
-          gender: 'Female',
-          dob: '2004-05-15',
-          aadhaarVerified: true,
-          rollNumber: 'DEMO-001',
-        };
-        localStorage.setItem('studentToken', 'demo-sih-prototype-token');
-        updateStudent(demoStudent);
-        return demoStudent;
-      }
-    },
-    [updateStudent]
-  );
-
   const value = useMemo(
-    () => ({ student, login, loginDemo, signup, logout, updateStudent }),
-    [student, login, loginDemo, signup, logout, updateStudent]
+    () => ({ student, login, signup, logout, updateStudent }),
+    [student, login, signup, logout, updateStudent]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

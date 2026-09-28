@@ -1,7 +1,7 @@
-# Ministry of Tribal Affairs (MoTA) — Integrated Scholarship & Fellowship Platform
-## Smart India Hackathon (SIH26239) — Complete Production-Grade Prototype
+# Ministry of Tribal Affairs (MoTA) — National Scholarship & Fellowship Portal
+## Integrated Digital Platform for Scheduled Tribe Students
 
-An end-to-end, integrated Government of India scholarship verification and lifecycle platform. It unifies the **Student Scholarship Portal**, the **Central Node.js/Express Backend & Database**, the **Assistive AI Document & Verification Engine (Python/PaddleOCR/PyMuPDF/OpenCV)**, and the **Scholarship Admin Portal**.
+An end-to-end, integrated Government of India scholarship verification and lifecycle platform. It unifies the **Student Scholarship Portal**, the **Central Node.js/Express Backend & Database**, the **AI Document & Verification Engine (Python/PaddleOCR/PyMuPDF/OpenCV)**, and the **Scholarship Administration Portal**.
 
 ---
 

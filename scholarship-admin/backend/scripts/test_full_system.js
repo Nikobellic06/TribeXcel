@@ -14,7 +14,7 @@ const Admin = require('../models/Admin');
 
 async function runProofOfWorking() {
   console.log('====================================================');
-  console.log('       TRIBEXCEL END-TO-END SYSTEM VERIFICATION     ');
+  console.log('    MOTA SCHOLARSHIP PORTAL - SYSTEM VERIFICATION   ');
   console.log('====================================================\n');
 
   // 1. Database Connection Check

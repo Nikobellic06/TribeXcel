@@ -10,7 +10,7 @@ const review = require('../services/review');
 const numberOrNull = (v) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 
 function generateApplicationCode() {
-  return `SIH26239-${Date.now().toString().slice(-8)}`;
+  return `MOTA-ST-${Date.now().toString().slice(-8)}`;
 }
 
 /* Keep only plain objects; never store the re-typed account number. */

@@ -79,20 +79,6 @@ export default function Login() {
             <p className="mt-0.5 text-[12.5px] text-muted">Sign in with your official credentials.</p>
             {params.get('expired') && <Notice tone="warn" className="mt-4">Your session has ended. Please sign in again.</Notice>}
 
-            <div className="mt-4 rounded border border-line bg-paper p-3 text-[12px]">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-ink">Demo Officer Access</span>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('admin@mota.gov.in'); setPassword('Admin@123'); setError(''); }}
-                  className="font-semibold text-navy hover:underline"
-                >
-                  Fill Credentials &rarr;
-                </button>
-              </div>
-              <p className="mt-0.5 text-muted">admin@mota.gov.in • Admin@123 (Scholarship Verification Officer)</p>
-            </div>
-
             <form onSubmit={submit} className="mt-4 space-y-4" noValidate>
               {error && <Notice tone="bad">{error}</Notice>}
               <div>
@@ -124,7 +110,7 @@ export default function Login() {
         </div>
       </main>
       <footer className="border-t border-line bg-white py-3 text-center text-[11.5px] text-muted">
-        Ministry of Tribal Affairs, Government of India • National Scholarship &amp; Fellowship Portal (SIH26239)
+        Content owned and managed by Ministry of Tribal Affairs, Government of India. Designed, developed and hosted by National Informatics Centre (NIC), Ministry of Electronics & Information Technology.
       </footer>
     </div>
   );

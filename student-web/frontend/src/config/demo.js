@@ -1,9 +1,7 @@
 /*
- * Demo-mode settings for integrations that need government partner access
- * (UIDAI Aadhaar e-KYC and DigiLocker). Replace with real API calls when the
- * partner credentials are available.
+ * Simulation settings for Aadhaar e-KYC and DigiLocker integration testing.
+ * In production, these will be replaced with live UIDAI and DigiLocker API credentials.
  */
-export const DEMO_OTP = '123456';
+export const SIMULATION_OTP = '123456';
 /** A valid-format (Verhoeff checksum) Aadhaar number for demo/testing. */
-export const DEMO_AADHAAR = '2341 2341 2346';
-
+export const SIMULATION_AADHAAR = '2341 2341 2346';

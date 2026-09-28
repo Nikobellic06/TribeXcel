@@ -13,7 +13,7 @@ import { fetchProfile, updateProfile, verifyAadhaarKyc } from '../api/student';
 import { apiErrorMessage } from '../api/axios';
 import { formatDate, toInputDate } from '../utils/format';
 import * as v from '../utils/validation';
-import { DEMO_AADHAAR, DEMO_OTP } from '../config/demo';
+import { SIMULATION_AADHAAR, SIMULATION_OTP } from '../config/demo';
 
 function toForm(s = {}) {
   return {
@@ -80,8 +80,8 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
   };
 
   const verify = async () => {
-    if (otp !== DEMO_OTP) {
-      setError(tx({ en: `Incorrect OTP. In demo mode the OTP is ${DEMO_OTP}.`, hi: `गलत ओटीपी। डेमो मोड में ओटीपी ${DEMO_OTP} है।` }));
+    if (otp !== SIMULATION_OTP) {
+      setError(tx({ en: `Incorrect OTP. For testing, use OTP ${SIMULATION_OTP}.`, hi: `गलत ओटीपी। परीक्षण के लिए, ओटीपी ${SIMULATION_OTP} उपयोग करें।` }));
       return;
     }
     setBusy(true);
@@ -103,7 +103,7 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
       onClose={onClose}
       dismissable={!busy}
       title={tx({ en: 'Aadhaar e-KYC', hi: 'आधार ई-केवाईसी' })}
-      badge={<span className="rounded bg-ochre-soft px-1.5 py-0.5 text-[11px] font-semibold text-[#8a5a12]">{tx({ en: 'Demo', hi: 'डेमो' })}</span>}
+      badge={<span className="rounded bg-ochre-soft px-1.5 py-0.5 text-[11px] font-semibold text-[#8a5a12]">{tx({ en: 'Simulation', hi: 'सिमुलेशन' })}</span>}
       footer={
         otpSent ? (
           <Button icon={ShieldCheck} onClick={verify} loading={busy}>{tx({ en: 'Verify', hi: 'सत्यापित करें' })}</Button>
@@ -119,7 +119,7 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
             hi: 'आधार में पंजीकृत मोबाइल नंबर पर ओटीपी भेजा जाता है। सत्यापन के बाद आपका नाम, जन्मतिथि और लिंग लॉक हो जाते हैं। आधार के केवल अंतिम 4 अंक सहेजे जाते हैं।',
           })}
         </p>
-        <Field label={tx({ en: 'Aadhaar number', hi: 'आधार नंबर' })} htmlFor="aadhaar" required hint={tx({ en: `Demo mode: use ${DEMO_AADHAAR}`, hi: `डेमो मोड: ${DEMO_AADHAAR} उपयोग करें` })}>
+        <Field label={tx({ en: 'Aadhaar number', hi: 'आधार नंबर' })} htmlFor="aadhaar" required hint={tx({ en: `For testing: use ${SIMULATION_AADHAAR}`, hi: `परीक्षण के लिए: ${SIMULATION_AADHAAR} उपयोग करें` })}>
           <TextInput id="aadhaar" value={aadhaar} onChange={setAadhaar} transform={pretty} inputMode="numeric" autoComplete="off" readOnly={otpSent} placeholder="XXXX XXXX XXXX" />
         </Field>
         {!otpSent && (
@@ -131,7 +131,7 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
           </Checkbox>
         )}
         {otpSent && (
-          <Field label={tx({ en: 'OTP', hi: 'ओटीपी' })} htmlFor="aadhaar-otp" required hint={tx({ en: `Demo mode: use ${DEMO_OTP}`, hi: `डेमो मोड: ${DEMO_OTP} उपयोग करें` })}>
+          <Field label={tx({ en: 'OTP', hi: 'ओटीपी' })} htmlFor="aadhaar-otp" required hint={tx({ en: `For testing: use ${SIMULATION_OTP}`, hi: `परीक्षण के लिए: ${SIMULATION_OTP} उपयोग करें` })}>
             <TextInput id="aadhaar-otp" value={otp} onChange={setOtp} transform={(x) => x.replace(/\D/g, '').slice(0, 6)} inputMode="numeric" autoComplete="one-time-code" />
           </Field>
         )}

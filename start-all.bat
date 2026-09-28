@@ -1,12 +1,11 @@
 @echo off
-cd /d "%~dp0"
 echo =====================================================================
-echo  Ministry of Tribal Affairs (MoTA) Scholarship & Fellowship Platform
-echo  SIH26239 - End-to-End Integrated Prototype Startup
+echo  Ministry of Tribal Affairs - National Scholarship ^& Fellowship Portal
+echo  Integrated Platform Startup
 echo =====================================================================
 echo.
 
-echo [1/4] Starting AI Document & Verification Engine (Python FastAPI on port 8000)...
+echo [1/4] Starting AI Document ^& Verification Engine (Python FastAPI on port 8000)...
 start "MoTA AI Engine (Port 8000)" cmd /k "cd ai-engine && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 timeout /t 3 /nobreak >nul

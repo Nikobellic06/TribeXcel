@@ -9,14 +9,14 @@ const GovFooter = () => {
       <div className="bg-navy px-6 py-6 text-center text-white">
         <p className="text-[12px] font-medium leading-relaxed">
           {tx({
-            en: 'Content managed by Ministry of Tribal Affairs, Government of India',
-            hi: 'सामग्री प्रबंधन: जनजातीय कार्य मंत्रालय, भारत सरकार',
+            en: 'Content owned and managed by Ministry of Tribal Affairs, Government of India',
+            hi: 'सामग्री का स्वामित्व एवं प्रबंधन जनजातीय कार्य मंत्रालय, भारत सरकार द्वारा',
           })}
         </p>
         <p className="mt-1.5 text-[11px] leading-relaxed text-slate-300">
           {tx({
-            en: 'Developed by Team TribeXcel for Smart India Hackathon 2026, problem statement SIH26239',
-            hi: 'स्मार्ट इंडिया हैकाथॉन 2026, समस्या विवरण SIH26239 हेतु टीम TribeXcel द्वारा विकसित',
+            en: 'Designed, developed and hosted by National Informatics Centre (NIC), Ministry of Electronics & Information Technology, Government of India',
+            hi: 'राष्ट्रीय सूचना विज्ञान केंद्र (एनआईसी), इलेक्ट्रॉनिकी और सूचना प्रौद्योगिकी मंत्रालय, भारत सरकार द्वारा अभिकल्पित, विकसित और होस्ट किया गया',
           })}
         </p>
       </div>

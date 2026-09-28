@@ -88,7 +88,7 @@ const strings = {
   'step.print': { en: 'Print application', hi: 'आवेदन प्रिंट करें' },
 
   // Document sources
-  'doc.digilocker': { en: 'DigiLocker (Demo Mode)', hi: 'डिजिलॉकर (डेमो मोड)' },
+  'doc.digilocker': { en: 'DigiLocker', hi: 'डिजिलॉकर' },
   'doc.manual': { en: 'Uploaded by you', hi: 'आपके द्वारा अपलोड' },
   'doc.pending': { en: 'Not added yet', hi: 'अभी नहीं जोड़ा गया' },
 };
