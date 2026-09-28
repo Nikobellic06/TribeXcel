@@ -5,7 +5,7 @@
  * and correlation with the student's application profile.
  */
 
-const SYSTEM_A_URL = import.meta.env.VITE_DOC_AI_URL || 'http://localhost:5001/api';
+const SYSTEM_A_URL = import.meta.env.VITE_DOC_AI_URL || 'http://localhost:8000/api';
 
 /**
  * Runs the complete visible AI document processing pipeline.
@@ -27,24 +27,26 @@ export async function analyzeUploadedDocument(file, docType, applicationData = {
     stageLabel: { en: 'Uploading file securely...', hi: 'फ़ाइल सुरक्षित रूप से अपलोड हो रही है...' },
     progress: 20,
   });
-  await sleep(350);
+  await sleep(300);
 
   // 2. Stage 2: Reading Document & OCR Ingestion
   onProgress({
     stage: 'reading',
-    stageLabel: { en: 'Reading document with OCR engine...', hi: 'ओसीआर इंजन द्वारा दस्तावेज़ पढ़ा जा रहा है...' },
+    stageLabel: { en: 'Running PaddleOCR & OpenCV engine...', hi: 'ओसीआर इंजन द्वारा दस्तावेज़ पढ़ा जा रहा है...' },
     progress: 40,
   });
 
-  // Attempt real System A backend call if reachable
+  // Attempt real Python AI Engine endpoint call
   let liveResult = null;
   try {
     const formData = new FormData();
+    formData.append('file', file);
     formData.append('document', file);
     formData.append('documentType', docType);
+    formData.append('document_hint', docType);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const response = await fetch(`${SYSTEM_A_URL}/analyze-document`, {
       method: 'POST',
@@ -57,7 +59,7 @@ export async function analyzeUploadedDocument(file, docType, applicationData = {
       liveResult = await response.json();
     }
   } catch (err) {
-    // Falls back gracefully to deterministic intelligence engine
+    // Falls back gracefully if AI engine is temporarily unreachable
   }
 
   // 3. Stage 3: Classifying Document Type

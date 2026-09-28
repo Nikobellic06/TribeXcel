@@ -72,7 +72,7 @@ def run_eligibility_verification(
         extractions[doc.name] = DocumentExtractionSummary(
             name=doc.name,
             source=doc.source or "manual",
-            verified=ocr_res["verified"],
+            verified=ocr_res.get("verified", doc.source == "digilocker"),
             ocr_confidence=ocr_res["confidence"],
             detected_fields=detected_fields,
             quality_issues=ocr_res.get("quality", {}).get("issues", [])
@@ -113,7 +113,7 @@ def run_eligibility_verification(
     is_declared_st = request.category in scheme_config["allowed_categories"]
 
     caste_doc_verified = False
-    if "Caste Certificate" in doc_map and doc_map["Caste Certificate"]["verified"]:
+    if "Caste Certificate" in doc_map and doc_map["Caste Certificate"].get("verified", False):
         caste_doc_verified = True  # DigiLocker verified
 
     if detected_caste_data and (detected_caste_data.get("is_st") or caste_doc_verified):

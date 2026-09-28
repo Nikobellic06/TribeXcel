@@ -1,54 +1,16 @@
 import api from './axios';
 
-const SAMPLE_APPLICATIONS = [
-  {
-    _id: 'app-sample-nfst-01',
-    applicationCode: 'NFST/2026/JH/84920',
-    scheme: 'NFST',
-    session: '2026-27',
-    status: 'Deficient',
-    course: 'Ph.D in Tribal Studies & Linguistics',
-    institution: 'Ranchi University, Ranchi',
-    name: 'Sunita Soren',
-    dob: '2004-05-15',
-    gender: 'Female',
-    phone: '9876543210',
-    email: 'sunita.soren@scholarship.gov.in',
-    state: 'Jharkhand',
-    district: 'Ranchi',
-    submittedAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    adminRemarks:
-      'Income Certificate is older than valid financial year. Please upload the latest Income Certificate (FY 2025-26) issued by Tehsildar or Sub-Divisional Magistrate.',
-    documents: [
-      { name: 'ST Certificate - Santhal.pdf', docType: 'caste', source: 'digilocker', fileSize: 324000 },
-      { name: 'Income_Certificate_2024.pdf', docType: 'income', source: 'upload', fileSize: 412000 },
-      { name: 'Admission_Letter_RU.pdf', docType: 'bonafide', source: 'upload', fileSize: 520000 },
-      { name: 'Bank_Passbook_AadhaarSeeded.pdf', docType: 'passbook', source: 'upload', fileSize: 288000 },
-    ],
-    schemeData: {
-      sections: {
-        personal: { fatherName: 'Shri Somra Soren', motherName: 'Smt. Muni Soren', addressLine: 'Quarter No. 4B, Morabadi', pincode: '834008' },
-        category: { tribeName: 'Santhal', familyIncome: 180000 },
-        bank: { accountNumber: '382910482910', ifsc: 'SBIN0000167', bankName: 'State Bank of India' },
-      },
-    },
-  },
-];
-
 function getStoredApps() {
   try {
     const raw = localStorage.getItem('my_applications');
-    if (!raw) {
-      localStorage.setItem('my_applications', JSON.stringify(SAMPLE_APPLICATIONS));
-      return SAMPLE_APPLICATIONS;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return SAMPLE_APPLICATIONS;
+    return [];
   }
 }
 
 function storeApp(app) {
+  if (!app) return;
   try {
     const apps = getStoredApps();
     const updated = [app, ...apps.filter((a) => a._id !== app._id)];
@@ -108,8 +70,12 @@ export const fetchDraft = (schemeCode) =>
 export const saveDraft = (schemeCode, payload) =>
   api
     .put(`/student/drafts/${schemeCode}`, payload)
-    .then((r) => r.data.draft)
-    .catch(() => {
+    .then((r) => {
+      if (r.data?.locked) return null;
+      return r.data.draft;
+    })
+    .catch((err) => {
+      if (err?.response?.status === 409) return null;
       try {
         localStorage.setItem(`draft:${schemeCode}`, JSON.stringify(payload));
       } catch {
@@ -150,13 +116,25 @@ export const uploadFile = (payload) =>
 export const fetchMyApplications = () =>
   api
     .get('/student/applications')
-    .then((r) => r.data.applications || [])
+    .then((r) => {
+      const apps = r.data.applications || [];
+      try {
+        localStorage.setItem('my_applications', JSON.stringify(apps));
+      } catch {}
+      return apps;
+    })
     .catch(() => getStoredApps());
 
 export const fetchMyApplication = (id) =>
   api
     .get(`/student/applications/${id}`)
-    .then((r) => r.data.application)
+    .then((r) => {
+      if (r.data.application) {
+        storeApp(r.data.application);
+        return r.data.application;
+      }
+      throw new Error('Application not found');
+    })
     .catch(() => {
       const apps = getStoredApps();
       const found = apps.find((a) => a._id === id || a.applicationCode === id);
@@ -164,36 +142,11 @@ export const fetchMyApplication = (id) =>
       throw new Error('Application not found');
     });
 
-export const submitApplication = (payload) =>
-  api
-    .post('/student/applications', payload)
-    .then((r) => {
-      storeApp(r.data.application);
-      return r.data.application;
-    })
-    .catch(() => {
-      const student = JSON.parse(localStorage.getItem('student') || '{}');
-      const randomCode = Math.floor(10000 + Math.random() * 90000);
-      const app = {
-        _id: `app-${Date.now()}`,
-        applicationCode: `${payload.scheme || 'MOTA'}/2026/JH/${randomCode}`,
-        scheme: payload.scheme,
-        session: '2026-27',
-        status: 'Pending',
-        name: student.name || 'Applicant',
-        course: payload.course || payload.schemeData?.sections?.academic?.course || 'Higher Education Course',
-        institution: payload.institution || payload.schemeData?.sections?.academic?.institutionName || 'Recognised University / Institute',
-        submittedAt: new Date().toISOString(),
-        documents: payload.documents || [],
-        schemeData: payload.schemeData || {},
-        dob: student.dob,
-        gender: student.gender,
-        phone: student.phone,
-        email: student.email,
-        category: student.category || 'ST',
-        state: student.state || 'Jharkhand',
-        district: student.district || 'Ranchi',
-      };
-      storeApp(app);
-      return app;
-    });
+export const submitApplication = async (payload) => {
+  const res = await api.post('/student/applications', payload);
+  if (res.data?.application) {
+    storeApp(res.data.application);
+    return res.data.application;
+  }
+  throw new Error(res.data?.message || 'Failed to submit application');
+};

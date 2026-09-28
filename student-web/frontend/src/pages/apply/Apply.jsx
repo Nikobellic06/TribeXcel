@@ -271,6 +271,7 @@ export default function Apply() {
   /* ---------------- Persistence ---------------- */
   const persist = useCallback(
     async (nextSteps, currentStep) => {
+      if (lockedApp) return false;
       setSaveState('saving');
       try {
         localStorage.setItem(localKey, JSON.stringify({ data, completedSteps: nextSteps, at: Date.now() }));
@@ -279,6 +280,10 @@ export default function Apply() {
       }
       try {
         const draft = await saveDraft(code, { data, currentStep, completedSteps: nextSteps });
+        if (draft === null) {
+          setSaveState('idle');
+          return false;
+        }
         setSaveState('saved');
         setLastSaved(draft?.updatedAt ? new Date(draft.updatedAt) : new Date());
         return true;
@@ -287,15 +292,15 @@ export default function Apply() {
         return false;
       }
     },
-    [code, data, localKey]
+    [code, data, localKey, lockedApp]
   );
 
   /* Autosave to the server a few seconds after the student stops typing. */
   useEffect(() => {
-    if (saveState !== 'dirty' || !current || lockedApp || submitting || confirmOpen) return undefined;
+    if (loading || saveState !== 'dirty' || !current || lockedApp || submitting || confirmOpen) return undefined;
     const timer = setTimeout(() => persist(savedSteps, current), 5000);
     return () => clearTimeout(timer);
-  }, [saveState, data, savedSteps, current, lockedApp, submitting, confirmOpen, persist]);
+  }, [loading, saveState, data, savedSteps, current, lockedApp, submitting, confirmOpen, persist]);
 
   const scrollToFirstError = () => {
     setTimeout(() => {

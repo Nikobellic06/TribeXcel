@@ -10,19 +10,22 @@ const path = require('path');
  * analysis says so ("unavailable", "not applicable", "OCR not performed").
  */
 
-const AI_SCHEMES = () => (process.env.AI_ENGINE_SCHEMES || 'NFST,NOS').split(',').map((s) => s.trim().toUpperCase());
+const AI_SCHEMES = () => (process.env.AI_ENGINE_SCHEMES || 'NFST,NOS,PRE_MATRIC').split(',').map((s) => s.trim().toUpperCase());
 const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 
 /* Portal document ids -> document names the ai-engine understands. */
 const AI_DOC_ALIAS = {
   st_certificate: 'Caste Certificate',
   income_certificate: 'Income Certificate',
+  domicile_certificate: 'Domicile Certificate',
   previous_marksheet: 'Latest Marksheet',
   ug_marksheet: 'Latest Marksheet',
   pg_marksheet: 'Latest Marksheet',
   school_bonafide: 'Admission Letter',
   admission_letter: 'Admission Letter',
   offer_letter: 'Admission Letter',
+  bank_passbook: 'Bank Passbook',
+  aadhaar_card: 'Aadhaar',
 };
 
 const PRELIMINARY = { Eligible: 'NO_ISSUES_DETECTED', Flagged: 'REQUIRES_HUMAN_REVIEW', Deficient: 'INCOMPLETE' };

@@ -55,7 +55,7 @@ const saveDraft = async (req, res) => {
       status: { $in: ['Pending', 'Eligible', 'Flagged', 'Selected', 'Rejected'] },
     });
     if (locked) {
-      return res.status(409).json({ message: 'An application for this scheme is already submitted' });
+      return res.status(200).json({ draft: null, locked: true, message: 'An application for this scheme is already submitted' });
     }
 
     const draft = await ApplicationDraft.findOneAndUpdate(

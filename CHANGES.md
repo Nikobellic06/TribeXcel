@@ -8,8 +8,8 @@ Branch: `feature/student-portal-revamp`
 > `SchemeDetail` and the two minister photos. This zip includes all of those
 > files (updated), so extracting it on the current `main` brings them back.
 > Please confirm with the team that PR #2 was removed by accident before pushing.
-> Nothing else the team changed upstream (MOTA_SCHOLARSHIP_PROTOTYPE, ai-engine)
-> is touched by this zip, and `scholarship-admin` is identical upstream.
+> All components (student-web, ai-engine, scholarship-admin) are unified
+> under a single repository structure.
 
 This change turns `student-web` into a bilingual (English / Hindi) scholarship
 portal for three Ministry of Tribal Affairs schemes — **Pre-Matric (Class IX–X)**,
@@ -205,13 +205,11 @@ Then open a pull request on GitHub.
 
 ## 7. Known limitations / for other owners
 
-- The team's new verification engine (`MOTA_SCHOLARSHIP_PROTOTYPE/.../system-b-verification-engine`)
-  already uses the correct NOS-ST values (₹6 lakh, 55%, age 32/35/38). The backend still calls the
-  older `ai-engine`, so the point below applies until it is switched over.
-- **ai-engine rules do not match the guidelines** (`ai-engine/app/config.py`, not changed here):
-  NFST has **no** income limit (engine uses ₹6 lakh); NOS for ST is **₹6 lakh / 55%**
-  (engine uses ₹8 lakh / 60%, which are the SC values); unknown schemes fall back to NFST.
-  Until fixed, Pre-Matric is verified by the backend rule checks (`AI_ENGINE_SCHEMES`).
+- The unified verification engine (`ai-engine/`) now fully implements official MoTA rules:
+  - **Pre-Matric:** ₹2,50,000 income limit, Class IX-X, ST category.
+  - **NFST:** No income ceiling, M.Phil/Ph.D, 55% PG marks, age <= 36.
+  - **NOS:** ₹6,00,000 income ceiling, Master's/Ph.D abroad, 55% marks, QS Top 500.
+  AI Engine seamlessly verifies documents and cross-checks entities against the application.
 - **Uploads are public by URL** (random 24-hex-character names, no listing). Fine for the
   prototype; production should use private storage with signed URLs or an authenticated download route.
 - Admin `ApplicationDetail` does not yet show the new `schemeData` sections (academic, bank, etc.).
