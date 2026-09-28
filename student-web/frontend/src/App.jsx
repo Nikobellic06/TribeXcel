@@ -1,53 +1,45 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import SchemeSelection from './pages/SchemeSelection';
-import ApplicationForm from './pages/ApplicationForm';
-import DocumentUpload from './pages/DocumentUpload';
 import ProtectedRoute from './components/ProtectedRoute';
+import PageLoader from './components/ui/PageLoader';
+
+/*
+ * Every page is loaded on demand, so the landing page does not download the
+ * application-form code (and vice versa). Keeps the first load light.
+ */
+const Landing = lazy(() => import('./pages/Landing'));
+const SchemeDetail = lazy(() => import('./pages/SchemeDetail'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const SchemeSelection = lazy(() => import('./pages/SchemeSelection'));
+const MyApplications = lazy(() => import('./pages/MyApplications'));
+const Apply = lazy(() => import('./pages/apply/Apply'));
+const Acknowledgement = lazy(() => import('./pages/Acknowledgement'));
+
+const protect = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/schemes"
-        element={
-          <ProtectedRoute>
-            <SchemeSelection />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/apply/:schemeId"
-        element={
-          <ProtectedRoute>
-            <ApplicationForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/apply/:schemeId/documents"
-        element={
-          <ProtectedRoute>
-            <DocumentUpload />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<PageLoader full />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/schemes/:schemeId" element={<SchemeDetail />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        <Route path="/dashboard" element={protect(<Dashboard />)} />
+        <Route path="/profile" element={protect(<Profile />)} />
+        <Route path="/schemes" element={protect(<SchemeSelection />)} />
+        <Route path="/applications" element={protect(<MyApplications />)} />
+        <Route path="/applications/:id/acknowledgement" element={protect(<Acknowledgement />)} />
+        <Route path="/apply/:schemeId" element={protect(<Apply />)} />
+        <Route path="/apply/:schemeId/:step" element={protect(<Apply />)} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

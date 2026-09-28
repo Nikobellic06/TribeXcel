@@ -1,1 +1,109 @@
 @import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Design tokens — used across the student portal.
+   Tailwind v4 turns these into utilities: bg-navy, text-muted,
+   border-line, bg-leaf-soft, etc.
+------------------------------------------------------------------- */
+@theme {
+  --color-navy: #1a3557;
+  --color-navy-deep: #10233c;
+  --color-navy-soft: #e8eef6;
+  --color-ochre: #b7791f;
+  --color-ochre-soft: #fdf3e1;
+  --color-leaf: #1f7a45;
+  --color-leaf-soft: #e7f4ec;
+  --color-ink: #1c2b3a;
+  --color-muted: #5b6b7e;
+  --color-line: #d8dee6;
+  --color-paper: #f4f6f9;
+  --color-alert: #b42318;
+  --color-alert-soft: #fdecea;
+
+  --font-sans: "Noto Sans", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: Georgia, "Noto Sans Devanagari", "Times New Roman", serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+/* Visible keyboard focus everywhere, never on mouse click */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-ochre);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+   Warli-style motif band — tiny tribal figures, used as a brand edge
+   on the auth screens and the application workspace banner.
+------------------------------------------------------------------- */
+.motif-band {
+  height: 14px;
+  background-color: var(--color-navy-deep);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14' viewBox='0 0 28 14'%3E%3Cg fill='%23d9a441'%3E%3Ccircle cx='7' cy='2.4' r='1.6'/%3E%3Cpath d='M4.4 4.6h5.2L7 8.2z'/%3E%3Cpath d='M7 8.2l2.8 3.9H4.2z'/%3E%3Cpath d='M21 5l1.3 2.2h-2.6zM21 9l1.3 2.2h-2.6z' opacity='.55'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+.tricolour {
+  height: 3px;
+  background: linear-gradient(to right, #ff9933 0 33.33%, #ffffff 33.33% 66.66%, #138808 66.66% 100%);
+}
+
+/* Landing page notice ticker */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print — acknowledgement / application copy
+------------------------------------------------------------------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+  }
+  .portal-grid {
+    display: block !important;
+    padding: 0 !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    border: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+}

@@ -122,6 +122,7 @@ export default function ReviewQueue() {
           <option value="All">Scheme: All</option>
           <option value="NFST">NFST</option>
           <option value="NOS">NOS</option>
+          <option value="PRE_MATRIC">Pre-Matric</option>
         </SelectField>
         <SelectField value={status} onChange={setStatus}>
           <option value="All">Status: All</option>

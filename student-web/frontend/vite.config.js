@@ -10,4 +10,15 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep all icons in one small cached file instead of dozens of tiny requests.
+        manualChunks(id) {
+          if (id.includes('node_modules/lucide-react')) return 'icons';
+          return undefined;
+        },
+      },
+    },
+  },
 });

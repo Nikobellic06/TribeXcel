@@ -1,434 +1,240 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  FileText,
-  HelpCircle,
-  PlusCircle,
-  ChevronRight,
-  Check,
-  FileCheck,
-  AlertTriangle,
-  AlertCircle,
-  Award,
-  Download,
-  CreditCard,
-} from 'lucide-react';
+import { ArrowRight, ChevronDown, CircleAlert, FileText, Fingerprint, PencilLine, Send } from 'lucide-react';
+import { useLang } from '../i18n/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import SiteHeader from '../components/SiteHeader';
-import SiteFooter from '../components/SiteFooter';
-import api from '../api/axios';
+import PortalLayout from '../components/layout/PortalLayout';
+import ApplicationTracker from '../components/ApplicationTracker';
+import StatusBadge from '../components/ui/StatusBadge';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import PageLoader from '../components/ui/PageLoader';
+import { SCHEME_LIST, getSchemeByCode, SELECTION_YEAR } from '../config/schemes';
+import { STEPS } from '../config/steps';
+import { fetchDrafts, fetchMyApplications } from '../api/student';
+import { formatDate } from '../utils/format';
 
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-};
+const FAQ = [
+  {
+    q: { en: 'Which documents should I keep ready?', hi: 'मुझे कौन-से दस्तावेज़ तैयार रखने चाहिए?' },
+    a: {
+      en: 'ST certificate, income certificate (Pre-Matric and NOS), Class 10 certificate, marksheets, admission or offer letter, a passport photo and your signature. Certificates available in DigiLocker can be fetched directly while applying.',
+      hi: 'एसटी प्रमाण पत्र, आय प्रमाण पत्र (मैट्रिक-पूर्व एवं एनओएस), कक्षा 10 प्रमाण पत्र, अंकतालिकाएँ, प्रवेश या प्रस्ताव पत्र, पासपोर्ट फ़ोटो और हस्ताक्षर। डिजिलॉकर में उपलब्ध प्रमाण पत्र आवेदन के समय सीधे प्राप्त किए जा सकते हैं।',
+    },
+  },
+  {
+    q: { en: 'Can I save the form and finish it later?', hi: 'क्या मैं फ़ॉर्म सहेजकर बाद में पूरा कर सकता/सकती हूँ?' },
+    a: {
+      en: 'Yes. Every step is saved as a draft. Open the scheme again from this dashboard to continue where you stopped.',
+      hi: 'हाँ। हर चरण ड्राफ्ट के रूप में सहेजा जाता है। जहाँ छोड़ा था वहीं से जारी रखने हेतु इस डैशबोर्ड से योजना पुनः खोलें।',
+    },
+  },
+  {
+    q: { en: 'What happens if my application is returned?', hi: 'यदि मेरा आवेदन लौटाया जाए तो क्या होगा?' },
+    a: {
+      en: 'The status changes to "Action needed" with the officer\'s remarks. Open the application, correct the details or documents and submit again.',
+      hi: 'स्थिति "कार्रवाई आवश्यक" हो जाती है और अधिकारी की टिप्पणी दिखती है। आवेदन खोलें, विवरण या दस्तावेज़ सुधारें और पुनः जमा करें।',
+    },
+  },
+];
 
-const Dashboard = () => {
-  const { student } = useAuth();
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const response = await api.get('/student/applications');
-        setApplications(response.data?.applications || []);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load application details. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplications();
-  }, []);
-
-  const hasApplication = applications.length > 0;
-  const application = hasApplication ? applications[0] : null;
-
-  // Step states for Progress Tracker:
-  // Step 1 "Account Created" — always complete (student logged in)
-  // Step 2 "Application Submitted" — complete if application exists
-  // Step 3 "Verification" — complete if status is anything other than "Pending"
-  // Step 4 "Selection" — complete only if status is exactly "Selected"
-  const step1State = 'complete';
-  const step2State = hasApplication ? 'complete' : 'current';
-  const step3State = hasApplication
-    ? application.status !== 'Pending'
-      ? 'complete'
-      : 'current'
-    : 'locked';
-  const step4State = hasApplication
-    ? application.status === 'Selected'
-      ? 'complete'
-      : application.status !== 'Pending'
-      ? 'current'
-      : 'locked'
-    : 'locked';
-
-  const renderStepCircle = (state) => {
-    if (state === 'complete') {
-      return (
-        <div className="w-7 h-7 rounded-full bg-[#1a3557] text-white flex items-center justify-center shadow-xs shrink-0">
-          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-        </div>
-      );
-    }
-    if (state === 'current') {
-      return (
-        <div className="w-7 h-7 rounded-full border-2 border-[#1a3557] bg-white flex items-center justify-center shadow-xs shrink-0" />
-      );
-    }
-    return (
-      <div className="w-7 h-7 rounded-full border-2 border-[#dde1e7] bg-white flex items-center justify-center shrink-0" />
-    );
-  };
-
-  const getStepLabelClass = (state) => {
-    return state === 'locked'
-      ? 'text-[13px] font-medium text-[#9aa3af]'
-      : 'text-[13px] font-medium text-[#1c2b3a]';
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Eligible':
-        return 'bg-blue-50 text-blue-700';
-      case 'Deficient':
-        return 'bg-amber-50 text-amber-700';
-      case 'Flagged':
-        return 'bg-red-50 text-red-700';
-      case 'Selected':
-        return 'bg-green-50 text-green-700';
-      case 'Rejected':
-      case 'Pending':
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  };
-
+function Stat({ label, value, tone = 'navy' }) {
+  const color = { navy: 'text-navy', leaf: 'text-leaf', ochre: 'text-[#8a5a12]' }[tone];
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f7fa]">
-      <SiteHeader />
-
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
-        {/* Welcome Banner */}
-        <div className="mb-8">
-          <h1 className="text-[20px] sm:text-[24px] font-semibold text-[#1c2b3a] tracking-tight">
-            Welcome, {student?.name || 'Student'}
-          </h1>
-          <p className="text-[13px] text-[#6b7a8d] mt-1">
-            Roll No: <span className="font-medium text-[#1c2b3a]">{student?.rollNumber || 'N/A'}</span>
-          </p>
-        </div>
-
-        {/* Loading State */}
-        {loading ? (
-          <div className="bg-white border border-[#dde1e7] rounded-xl p-8 shadow-sm mb-6 text-center text-[14px] text-[#6b7a8d]">
-            Loading...
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-lg px-4 py-3 mb-6 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-            <span>{error}</span>
-          </div>
-        ) : (
-          <>
-            {/* Progress Tracker Card */}
-            <div className="bg-white border border-[#dde1e7] rounded-xl p-6 shadow-sm mb-6">
-              <h2 className="text-[16px] font-semibold text-[#1c2b3a] mb-6 border-b border-[#dde1e7] pb-3">
-                Application Progress
-              </h2>
-
-              {/* Desktop Tracker (sm breakpoint and above) */}
-              <div className="hidden sm:block relative px-4 py-2">
-                {/* Horizontal Connecting Line */}
-                <div className="absolute top-[20px] left-[12.5%] right-[12.5%] h-[2px] -translate-y-1/2 z-0 flex">
-                  <div className={`w-1/3 h-full ${step2State !== 'locked' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                  <div className={`w-1/3 h-full ${step3State === 'complete' || step3State === 'current' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                  <div className={`w-1/3 h-full ${step4State === 'complete' || step4State === 'current' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                </div>
-
-                <div className="grid grid-cols-4 relative z-10 text-center">
-                  {/* Step 1 */}
-                  <div className="flex flex-col items-center">
-                    <div className="mb-2">{renderStepCircle(step1State)}</div>
-                    <span className={getStepLabelClass(step1State)}>Account Created</span>
-                  </div>
-
-                  {/* Step 2 */}
-                  <div className="flex flex-col items-center">
-                    <div className="mb-2">{renderStepCircle(step2State)}</div>
-                    <span className={getStepLabelClass(step2State)}>Application Submitted</span>
-                  </div>
-
-                  {/* Step 3 */}
-                  <div className="flex flex-col items-center">
-                    <div className="mb-2">{renderStepCircle(step3State)}</div>
-                    <span className={getStepLabelClass(step3State)}>Verification</span>
-                  </div>
-
-                  {/* Step 4 */}
-                  <div className="flex flex-col items-center">
-                    <div className="mb-2">{renderStepCircle(step4State)}</div>
-                    <span className={getStepLabelClass(step4State)}>Selection</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mobile Tracker (below sm breakpoint) */}
-              <div className="sm:hidden relative pl-3 py-2 space-y-6">
-                {/* Vertical Connecting Line */}
-                <div className="absolute top-[26px] bottom-[26px] left-[26px] w-[2px] z-0 flex flex-col">
-                  <div className={`h-1/3 w-full ${step2State !== 'locked' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                  <div className={`h-1/3 w-full ${step3State === 'complete' || step3State === 'current' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                  <div className={`h-1/3 w-full ${step4State === 'complete' || step4State === 'current' ? 'bg-[#1a3557]' : 'bg-[#dde1e7]'}`} />
-                </div>
-
-                {/* Step 1 */}
-                <div className="flex items-center gap-4 relative z-10">
-                  {renderStepCircle(step1State)}
-                  <span className={getStepLabelClass(step1State)}>Account Created</span>
-                </div>
-
-                {/* Step 2 */}
-                <div className="flex items-center gap-4 relative z-10">
-                  {renderStepCircle(step2State)}
-                  <span className={getStepLabelClass(step2State)}>Application Submitted</span>
-                </div>
-
-                {/* Step 3 */}
-                <div className="flex items-center gap-4 relative z-10">
-                  {renderStepCircle(step3State)}
-                  <span className={getStepLabelClass(step3State)}>Verification</span>
-                </div>
-
-                {/* Step 4 */}
-                <div className="flex items-center gap-4 relative z-10">
-                  {renderStepCircle(step4State)}
-                  <span className={getStepLabelClass(step4State)}>Selection</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Application Status Card */}
-            <div className="bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm mb-6">
-              <h2 className="text-[16px] font-semibold text-[#1c2b3a] mb-6 border-b border-[#dde1e7] pb-3">
-                Application Status
-              </h2>
-
-              {!hasApplication ? (
-                /* CASE A — Empty State */
-                <div className="flex flex-col items-center justify-center text-center py-8 px-4">
-                  <div className="p-4 rounded-full bg-[#f5f7fa] border border-[#dde1e7] mb-4">
-                    <FileText className="w-[40px] h-[40px] text-[#c0c8d2]" />
-                  </div>
-                  <h3 className="text-[16px] font-semibold text-[#1c2b3a] mb-1">
-                    You haven't started an application yet
-                  </h3>
-                  <p className="text-[13px] text-[#6b7a8d] max-w-sm mb-6 leading-relaxed">
-                    Select a scholarship or fellowship scheme below to begin your online application process.
-                  </p>
-                  <Link
-                    to="/schemes"
-                    className="inline-flex items-center gap-2 bg-[#1a3557] hover:bg-[#102540] text-white text-[14px] font-medium px-5 py-2.5 rounded-lg min-h-[44px] transition-colors shadow-sm cursor-pointer"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Start Application
-                  </Link>
-                </div>
-              ) : (
-                /* CASE B — Real Application Details */
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#f0f2f5]">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="text-[16px] font-semibold text-[#1c2b3a]">
-                          {application.scheme ? `${application.scheme} Scheme` : 'Scholarship Scheme'}
-                        </h3>
-                        <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${getStatusBadgeClass(application.status)}`}>
-                          {application.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[13px] text-[#6b7a8d] flex-wrap">
-                        <span>Application ID: <span className="font-medium text-[#1c2b3a]">{application.applicationCode}</span></span>
-                        {(application.submittedAt || application.createdAt) && (
-                          <>
-                            <span>•</span>
-                            <span>Submitted on {formatDate(application.submittedAt || application.createdAt)}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contextual Message & Actions */}
-                  {application.status === 'Deficient' && (
-                    <div className="bg-amber-50/60 border border-amber-200/80 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 text-[13px] text-amber-700">
-                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                        <span>Some documents need attention. Please review and resubmit.</span>
-                      </div>
-                      <Link
-                        to={`/apply/${application.scheme?.toLowerCase()}/documents`}
-                        className="bg-white border border-[#dde1e7] text-[#4b5563] hover:bg-gray-50 rounded-lg px-4 py-2 text-[13px] font-medium min-h-[38px] inline-flex items-center justify-center gap-1.5 transition-colors shrink-0 text-center shadow-xs"
-                      >
-                        Update Documents
-                      </Link>
-                    </div>
-                  )}
-
-                  {application.status === 'Eligible' && (
-                    <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-4 text-[13px] text-[#6b7a8d]">
-                      Your application has passed initial verification and is awaiting admin review.
-                    </div>
-                  )}
-
-                  {application.status === 'Selected' && (
-                    <div className="space-y-4">
-                      <div className="bg-green-50/70 border border-green-200/90 rounded-lg p-4 flex items-center gap-2.5 text-[14px] text-green-800 font-medium">
-                        <Award className="w-5 h-5 shrink-0 text-green-600" />
-                        <span>Congratulations! You have been selected for the {application.scheme} Fellowship.</span>
-                      </div>
-
-                      {/* Post-Selection Fellowship & Disbursement Tracking */}
-                      <div className="border border-[#dde1e7] rounded-xl p-5 bg-[#fafbfc]">
-                        <h4 className="text-[13px] font-semibold text-[#1c2b3a] uppercase tracking-wide mb-3 flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-[#1a3557]" />
-                          Post-Selection Fellowship &amp; Disbursement Tracking
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-[12px] mb-4">
-                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
-                            <span className="text-[#6b7a8d] block mb-1">Award Number</span>
-                            <span className="font-semibold text-[#1c2b3a]">
-                              {application.fellowship?.awardNumber || `MOTA/${application.scheme}/2026/${application.applicationCode?.slice(-4)}`}
-                            </span>
-                          </div>
-                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
-                            <span className="text-[#6b7a8d] block mb-1">Monthly Fellowship Stipend</span>
-                            <span className="font-semibold text-emerald-700">
-                              Rs. {Number(application.fellowship?.monthlyStipend || 31000).toLocaleString('en-IN')} / mo
-                            </span>
-                          </div>
-                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
-                            <span className="text-[#6b7a8d] block mb-1">Disbursement Status</span>
-                            <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              ● {application.fellowship?.disbursementStatus || 'Active (PFMS DBT)'}
-                            </span>
-                          </div>
-                          <div className="bg-white p-3 rounded-lg border border-[#dde1e7]">
-                            <span className="text-[#6b7a8d] block mb-1">PFMS Payment Gateway</span>
-                            <span className="font-semibold text-[#1c2b3a]">
-                              {application.fellowship?.pfmsReference || `PFMS-DBT-ST-${application.applicationCode?.slice(-6)}`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dde1e7]">
-                          <span className="text-[12px] text-[#6b7a8d]">
-                            Next Annual Progress Report (APR) renewal due in 11 months.
-                          </span>
-                          <button
-                            onClick={() => window.print()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3557] hover:bg-[#102540] text-white rounded text-[12px] font-medium transition-colors cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            Download Formal Grant Award Letter
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {application.status === 'Flagged' && (
-                    <div className="bg-red-50/60 border border-red-200/80 rounded-lg p-4 flex items-center gap-2.5 text-[13px] text-red-700">
-                      <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                      <span>Your application has been flagged for manual review by an administrator.</span>
-                    </div>
-                  )}
-
-                  {application.status === 'Rejected' && (
-                    <div className="bg-gray-50 border border-[#dde1e7] rounded-lg p-4 text-[13px] text-[#6b7a8d]">
-                      Your application was not selected for this scheme.
-                    </div>
-                  )}
-
-                  {application.status === 'Pending' && (
-                    <div className="bg-gray-50 border border-[#dde1e7] rounded-lg p-4 text-[13px] text-[#6b7a8d]">
-                      Your application is being processed.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Two Side-by-Side Cards (Grid on Desktop, Stack on Mobile) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Documents You'll Need Card (First/Left Column) */}
-          <div className="bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm">
-            <div className="flex items-center gap-2 mb-4 border-b border-[#dde1e7] pb-3 text-[#1c2b3a]">
-              <FileCheck className="w-[18px] h-[18px] text-[#1a3557]" />
-              <h2 className="text-[16px] font-semibold">Documents You'll Need</h2>
-            </div>
-            <ul className="space-y-3 pt-1">
-              <li className="flex items-center gap-2.5 text-[13px] text-[#4b5563]">
-                <FileCheck className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-                <span>Caste Certificate</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-[13px] text-[#4b5563]">
-                <FileCheck className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-                <span>Income Certificate</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-[13px] text-[#4b5563]">
-                <FileCheck className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-                <span>Latest Marksheet</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-[13px] text-[#4b5563]">
-                <FileCheck className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-                <span>Admission Letter</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Need Help Card (Second/Right Column) */}
-          <div className="bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm">
-            <div className="flex items-center gap-2 mb-4 border-b border-[#dde1e7] pb-3 text-[#1c2b3a]">
-              <HelpCircle className="w-5 h-5 text-[#1a3557]" />
-              <h2 className="text-[16px] font-semibold">Need Help?</h2>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] flex items-center justify-between text-[13px] sm:text-[14px] text-[#1c2b3a] hover:border-[#1a3557]/30 transition-colors">
-                <span className="font-medium">Which documents do I need to prepare before applying?</span>
-                <ChevronRight className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-              </div>
-              <div className="p-3.5 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] flex items-center justify-between text-[13px] sm:text-[14px] text-[#1c2b3a] hover:border-[#1a3557]/30 transition-colors">
-                <span className="font-medium">How long does verification take after submission?</span>
-                <ChevronRight className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-              </div>
-              <div className="p-3.5 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] flex items-center justify-between text-[13px] sm:text-[14px] text-[#1c2b3a] hover:border-[#1a3557]/30 transition-colors">
-                <span className="font-medium">Who can I contact for scholarship application support?</span>
-                <ChevronRight className="w-4 h-4 text-[#6b7a8d] shrink-0" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <SiteFooter />
+    <div className="rounded-md border border-line bg-white px-4 py-3.5">
+      <p className="text-[12px] text-muted">{label}</p>
+      <p className={`mt-0.5 font-serif text-[26px] font-bold leading-tight ${color}`}>{value}</p>
     </div>
   );
-};
+}
 
-export default Dashboard;
+export default function Dashboard() {
+  const { t, tx, lang } = useLang();
+  const { student } = useAuth();
+  const [apps, setApps] = useState([]);
+  const [drafts, setDrafts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    Promise.allSettled([fetchMyApplications(), fetchDrafts()]).then(([a, d]) => {
+      if (a.status === 'fulfilled') setApps(a.value);
+      else setLoadError(true);
+      if (d.status === 'fulfilled') setDrafts(d.value);
+      setLoading(false);
+    });
+  }, []);
+
+  const firstName = (student?.name || '').split(' ')[0];
+  const actionNeeded = apps.filter((a) => a.status === 'Deficient');
+  const appliedCodes = new Set(apps.map((a) => a.scheme));
+  const openDrafts = drafts.filter((d) => !appliedCodes.has(d.scheme) || actionNeeded.some((a) => a.scheme === d.scheme));
+
+  return (
+    <PortalLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-ochre">{t('portal.session')}</p>
+            <h1 className="font-serif text-[26px] font-bold text-navy">
+              {tx({ en: `Namaste, ${firstName}`, hi: `नमस्ते, ${firstName}` })}
+            </h1>
+            <p className="mt-0.5 text-[14px] text-muted">
+              {tx({ en: 'Apply for a scheme, continue a saved form or track your applications.', hi: 'योजना हेतु आवेदन करें, सहेजा गया फ़ॉर्म जारी रखें या अपने आवेदनों की स्थिति देखें।' })}
+            </p>
+          </div>
+          <Button to="/schemes" icon={Send}>{t('nav.apply')}</Button>
+        </div>
+
+        {!student?.aadhaarVerified && (
+          <Alert
+            tone="warn"
+            title={tx({ en: 'Aadhaar e-KYC pending', hi: 'आधार ई-केवाईसी लंबित' })}
+            action={<Button size="sm" variant="secondary" to="/profile" icon={Fingerprint}>{tx({ en: 'Complete', hi: 'पूरा करें' })}</Button>}
+          >
+            {tx({ en: 'Complete it once in your profile. It is needed to submit any application.', hi: 'इसे प्रोफ़ाइल में एक बार पूरा करें। किसी भी आवेदन को जमा करने हेतु यह आवश्यक है।' })}
+          </Alert>
+        )}
+
+        {loadError && <Alert tone="error">{t('err.network')}</Alert>}
+
+        {loading ? (
+          <PageLoader label={t('common.loading')} />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label={tx({ en: 'Submitted', hi: 'जमा किए' })} value={apps.length} />
+              <Stat label={tx({ en: 'Drafts', hi: 'ड्राफ्ट' })} value={openDrafts.length} tone="leaf" />
+              <Stat label={tx({ en: 'Action needed', hi: 'कार्रवाई आवश्यक' })} value={actionNeeded.length} tone="ochre" />
+            </div>
+
+            {actionNeeded.map((app) => {
+              const scheme = getSchemeByCode(app.scheme);
+              return (
+                <Alert
+                  key={app._id}
+                  tone="warn"
+                  title={tx({ en: `${tx(scheme?.short) || app.scheme}: correction requested`, hi: `${tx(scheme?.short) || app.scheme}: सुधार का अनुरोध` })}
+                  action={scheme && <Button size="sm" to={`/apply/${scheme.id}/documents`} icon={PencilLine}>{tx({ en: 'Correct', hi: 'सुधारें' })}</Button>}
+                >
+                  {app.adminRemarks || tx({ en: 'The verifying officer has asked you to correct your application.', hi: 'सत्यापन अधिकारी ने आवेदन सुधारने को कहा है।' })}
+                </Alert>
+              );
+            })}
+
+            {openDrafts.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-[15px] font-bold text-ink">{tx({ en: 'Continue where you left off', hi: 'जहाँ छोड़ा था वहीं से जारी रखें' })}</h2>
+                <ul className="grid gap-3 md:grid-cols-2">
+                  {openDrafts.map((d) => {
+                    const scheme = getSchemeByCode(d.scheme);
+                    if (!scheme) return null;
+                    const done = (d.completedSteps || []).length;
+                    const pct = Math.round((done / (STEPS.length - 1)) * 100);
+                    return (
+                      <li key={d.scheme} className="rounded-md border border-line bg-white p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-semibold text-ink">{tx(scheme.name)}</p>
+                            <p className="mt-0.5 text-[12px] text-muted">
+                              {tx({ en: `Last saved ${formatDate(d.updatedAt, 'en')}`, hi: `अंतिम बार सहेजा ${formatDate(d.updatedAt, 'hi')}` })}
+                            </p>
+                          </div>
+                          <StatusBadge status="Draft" />
+                        </div>
+                        <div className="mt-3 flex items-center gap-3">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+                            <div className="h-full rounded-full bg-navy" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[12px] text-muted">{tx({ en: `${done} of 5 steps`, hi: `5 में से ${done} चरण` })}</span>
+                        </div>
+                        <Button size="sm" className="mt-3" to={`/apply/${scheme.id}`} iconRight={ArrowRight}>{t('common.continue')}</Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-[15px] font-bold text-ink">{t('nav.applications')}</h2>
+                {apps.length > 0 && (
+                  <Link to="/applications" className="text-[13px] font-semibold text-navy hover:underline">
+                    {tx({ en: 'View all', hi: 'सभी देखें' })}
+                  </Link>
+                )}
+              </div>
+              {apps.length === 0 ? (
+                <div className="rounded-md border border-dashed border-line bg-white px-5 py-8 text-center">
+                  <FileText className="mx-auto h-8 w-8 text-[#9aa6b4]" aria-hidden="true" />
+                  <p className="mt-2 text-[14px] font-semibold text-ink">{tx({ en: 'No application submitted yet', hi: 'अभी तक कोई आवेदन जमा नहीं किया' })}</p>
+                  <p className="mt-1 text-[13px] text-muted">{tx({ en: 'Pick a scheme below to start.', hi: 'शुरू करने हेतु नीचे से योजना चुनें।' })}</p>
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {apps.slice(0, 3).map((app) => {
+                    const scheme = getSchemeByCode(app.scheme);
+                    return (
+                      <li key={app._id} className="rounded-md border border-line bg-white p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-semibold text-ink">{scheme ? tx(scheme.name) : app.scheme}</p>
+                            <p className="mt-0.5 text-[12px] text-muted">
+                              {app.applicationCode}, {tx({ en: 'submitted', hi: 'जमा' })} {formatDate(app.submittedAt || app.createdAt, lang)}
+                            </p>
+                          </div>
+                          <StatusBadge status={app.status} />
+                        </div>
+                        <div className="mt-4">
+                          <ApplicationTracker status={app.status} schemeCode={app.scheme} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section>
+              <h2 className="mb-3 text-[15px] font-bold text-ink">
+                {tx({ en: `Schemes open for ${SELECTION_YEAR}`, hi: `${SELECTION_YEAR} हेतु खुली योजनाएं` })}
+              </h2>
+              <ul className="grid gap-3 md:grid-cols-3">
+                {SCHEME_LIST.map((s) => (
+                  <li key={s.id} className="flex flex-col rounded-md border border-line bg-white p-4">
+                    <p className="text-[12px] font-semibold uppercase tracking-wide text-ochre">{tx(s.short)}</p>
+                    <p className="mt-1 text-[14px] font-semibold leading-snug text-ink">{tx(s.level)}</p>
+                    <p className="mt-1 text-[12px] text-muted">{tx({ en: 'Window', hi: 'आवेदन अवधि' })}: {tx(s.window)}</p>
+                    <div className="mt-auto flex gap-3 pt-3 text-[13px] font-semibold">
+                      <Link to={`/apply/${s.id}`} className="text-navy hover:underline">{tx({ en: 'Apply', hi: 'आवेदन करें' })}</Link>
+                      <Link to={`/schemes/${s.id}`} className="text-muted hover:text-navy hover:underline">{tx({ en: 'Details', hi: 'विवरण' })}</Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-md border border-line bg-white">
+              <h2 className="flex items-center gap-2 border-b border-line px-4 py-3 text-[15px] font-bold text-ink">
+                <CircleAlert className="h-4 w-4 text-navy" aria-hidden="true" />
+                {tx({ en: 'Frequently asked questions', hi: 'अक्सर पूछे जाने वाले प्रश्न' })}
+              </h2>
+              <div className="divide-y divide-line">
+                {FAQ.map((item) => (
+                  <details key={item.q.en} className="group px-4 py-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] font-medium text-ink">
+                      {tx(item.q)}
+                      <ChevronDown className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <p className="mt-2 text-[13px] leading-relaxed text-muted">{tx(item.a)}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </PortalLayout>
+  );
+}
