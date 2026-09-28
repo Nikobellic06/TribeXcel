@@ -61,6 +61,45 @@ npm run dev
 Open `http://localhost:5173`. It redirects to `/login`. Sign in with the admin
 account you seeded above — you'll land on `/dashboard`.
 
+## Demo data
+
+```bash
+cd backend
+npm run seed:admin -- officer@tribal.gov.in Officer@123 "Meera Lakra"
+npm run seed:applications     # 20 demo applications across Pre-Matric, NFST and NOS
+npm run backfill:review       # only for applications created before this version
+```
+
+The seed replaces only its own records (`@demo.tribexcel.in` students). It does not
+invent AI results: every demo application shows "AI analysis not run" until an officer
+clicks **Run AI analysis** with the ai-engine running.
+
+## Admin portal
+
+| Route | Screen |
+|---|---|
+| `/login` | Officer login (rate limited: 5 failed attempts per 15 minutes) |
+| `/dashboard` | Summary cards, processing overview, scheme-wise, status distribution, AI summary, priority queue, recent applications |
+| `/queue` | Review queue: highest priority first, with the reason for each flag |
+| `/applications`, `/applications/:view` | All / pending / flagged / defective / verified / rejected with search and filters |
+| `/application/:id` | Review workspace: applicant, scheme, eligibility, documents, AI analysis, cross-checks, rule evaluation, officer decision, history |
+| `/merit` | Merit / selection by scheme guidelines (no generated scores) |
+| `/analytics` | KPIs and simple charts |
+
+Status values are shared with the student portal: `Pending` = Pending review,
+`Flagged` = Human review, `Deficient` = Correction required, `Eligible` = Verified,
+`Selected`, `Rejected`. Submissions are never approved automatically; AI and rule
+results only route an application to the officer, who records the final decision.
+
+### Environment keys (backend/.env)
+
+| Key | Purpose |
+|---|---|
+| `AI_ENGINE_URL` | ai-engine base URL (default `http://localhost:8000`) |
+| `AI_ENGINE_SCHEMES` | Schemes the engine covers (default `NFST,NOS`) |
+| `AI_SEND_FILE_CONTENT` | `true` sends uploaded files for OCR at submission |
+| `AI_ENGINE_TIMEOUT_MS` | Engine timeout (default 4000, or 20000 with files) |
+
 ## What's included right now
 
 - Admin model with hashed passwords (bcrypt)

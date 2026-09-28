@@ -1,58 +1,35 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import ReviewQueue from './pages/ReviewQueue';
-import Merit from './pages/Merit';
-import Analytics from './pages/Analytics';
-import ApplicationDetail from './pages/ApplicationDetail';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Loading } from './components/ui/States';
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Applications = lazy(() => import('./pages/Applications'));
+const ReviewQueue = lazy(() => import('./pages/ReviewQueue'));
+const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
+const Merit = lazy(() => import('./pages/Merit'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+const guard = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/queue"
-        element={
-          <ProtectedRoute>
-            <ReviewQueue />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/merit"
-        element={
-          <ProtectedRoute>
-            <Merit />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/analytics"
-        element={
-          <ProtectedRoute>
-            <Analytics />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/application/:id"
-        element={
-          <ProtectedRoute>
-            <ApplicationDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <Suspense fallback={<Loading className="min-h-screen" />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={guard(<Dashboard />)} />
+        <Route path="/queue" element={guard(<ReviewQueue />)} />
+        <Route path="/applications" element={guard(<Applications />)} />
+        <Route path="/applications/:view" element={guard(<Applications />)} />
+        <Route path="/application/:id" element={guard(<ApplicationDetail />)} />
+        <Route path="/merit" element={guard(<Merit />)} />
+        <Route path="/analytics" element={guard(<Analytics />)} />
+        <Route path="*" element={guard(<NotFound />)} />
+      </Routes>
+    </Suspense>
   );
 }
 

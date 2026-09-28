@@ -7,6 +7,15 @@ const generateToken = (id) => {
   });
 };
 
+/* Safe public shape of an admin (never includes the password). */
+const toAdmin = (admin) => ({
+  id: admin._id,
+  name: admin.name,
+  email: admin.email,
+  role: admin.role,
+  designation: admin.designation || 'Scholarship Verification Officer',
+});
+
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -27,12 +36,7 @@ const login = async (req, res) => {
 
     res.json({
       token: generateToken(admin._id),
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-      },
+      admin: toAdmin(admin),
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error during login' });
@@ -40,7 +44,7 @@ const login = async (req, res) => {
 };
 
 const getProfile = async (req, res) => {
-  res.json({ admin: req.admin });
+  res.json({ admin: toAdmin(req.admin) });
 };
 
 module.exports = { login, getProfile };

@@ -23,6 +23,37 @@ const aiCheckSchema = new mongoose.Schema(
   {
     label: { type: String, required: true },
     passed: { type: Boolean, required: true },
+    details: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
+/* One reason an application needs an officer's attention (see services/review.js). */
+const reviewFlagSchema = new mongoose.Schema(
+  {
+    code: { type: String, required: true },
+    severity: { type: String, enum: ['high', 'medium', 'low'], default: 'medium' },
+    source: { type: String, enum: ['rules', 'ai', 'data'], default: 'rules' },
+    title: { type: String, required: true },
+    detail: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
+/* Audit trail of every status change and officer decision. */
+const reviewEventSchema = new mongoose.Schema(
+  {
+    action: { type: String, required: true },
+    fromStatus: { type: String, default: '' },
+    toStatus: { type: String, default: '' },
+    byId: { type: mongoose.Schema.Types.ObjectId },
+    byName: { type: String, default: '' },
+    byRole: { type: String, default: '' },
+    category: { type: String, default: '' },
+    reason: { type: String, default: '' },
+    requiredCorrection: { type: String, default: '' },
+    remarks: { type: String, default: '' },
+    at: { type: Date, default: Date.now },
   },
   { _id: false }
 );
@@ -84,6 +115,19 @@ const applicationSchema = new mongoose.Schema(
 
     adminRemarks: { type: String, default: '' },
 
+    // AI-assisted analysis exactly as reported by the ai-engine (normalised),
+    // or a record that it was unavailable / not applicable.
+    aiAnalysis: { type: mongoose.Schema.Types.Mixed },
+    // Summary fields for lists, filters and the review queue.
+    reviewFlags: [reviewFlagSchema],
+    reviewPriority: { type: String, enum: ['high', 'medium', 'normal'], default: 'normal' },
+    rulePreliminary: { type: String, default: '' },
+    aiPreliminary: { type: String, default: '' },
+    reviewHistory: [reviewEventSchema],
+    resubmissionCount: { type: Number, default: 0 },
+    lastResubmittedAt: { type: Date },
+    lastActionAt: { type: Date },
+
     // Post-Selection Fellowship Management (Section B of SIH Problem Statement)
     fellowship: {
       grantLetterIssued: { type: Boolean, default: false },
@@ -106,6 +150,7 @@ const applicationSchema = new mongoose.Schema(
 
 applicationSchema.index({ status: 1, scheme: 1, state: 1 });
 applicationSchema.index({ student: 1, scheme: 1, session: 1 });
+applicationSchema.index({ reviewPriority: 1, status: 1, submittedAt: -1 });
 applicationSchema.index({ name: 'text', applicationCode: 'text' });
 
 module.exports = mongoose.model('Application', applicationSchema);
