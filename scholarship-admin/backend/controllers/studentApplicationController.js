@@ -4,182 +4,10 @@ const ApplicationDraft = require('../models/ApplicationDraft');
 const SCHEMES = ['NFST', 'NOS', 'PRE_MATRIC'];
 const CURRENT_SESSION = '2026-27';
 
-/*
- * Schemes the AI engine has rules for. PRE_MATRIC is verified with the rule
- * checks below until the AI engine adds it (it would otherwise fall back to
- * NFST rules). Override with AI_ENGINE_SCHEMES=NFST,NOS,PRE_MATRIC in .env.
- */
-const AI_SCHEMES = (process.env.AI_ENGINE_SCHEMES || 'NFST,NOS').split(',').map((s) => s.trim().toUpperCase());
+const aiAnalysis = require('../services/aiAnalysis');
+const review = require('../services/review');
 
-/* Older clients send only document names; these are the names they use. */
-const LEGACY_REQUIRED_DOCS = ['Caste Certificate', 'Income Certificate', 'Latest Marksheet', 'Admission Letter'];
-
-/* Student-portal document ids -> document names the AI engine understands. */
-const AI_DOC_ALIAS = {
-  st_certificate: 'Caste Certificate',
-  income_certificate: 'Income Certificate',
-  previous_marksheet: 'Latest Marksheet',
-  ug_marksheet: 'Latest Marksheet',
-  pg_marksheet: 'Latest Marksheet',
-  school_bonafide: 'Admission Letter',
-  admission_letter: 'Admission Letter',
-  offer_letter: 'Admission Letter',
-};
-
-/* Scheme rules from the MoTA guidelines (mirror of student-web/src/config/schemes.js). */
-const SCHEME_RULES = {
-  PRE_MATRIC: { incomeLimit: 250000, minMarks: null },
-  NFST: { incomeLimit: null, minMarks: 55 },
-  NOS: { incomeLimit: 600000, minMarks: 55, qsRankLimit: 1000 },
-};
-
-const yes = (v) => v === 'yes';
 const numberOrNull = (v) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
-
-/* Required documents for a scheme, based on the answers given (mirror of student-web/src/config/documents.js). */
-function requiredDocTypes(scheme, sections = {}) {
-  const c = sections.category || {};
-  const a = sections.academic || {};
-  const list = ['photo', 'signature', 'st_certificate'];
-  if (scheme === 'PRE_MATRIC') {
-    list.push('domicile_certificate', 'school_bonafide');
-    if (!yes(c.isOrphan)) list.push('income_certificate');
-  }
-  if (scheme === 'NFST') {
-    list.push('class10_certificate', 'pg_marksheet', 'admission_letter');
-    if (yes(c.isPVTG)) list.push('pvtg_certificate');
-    if (a.gradeType === 'cgpa') list.push('cgpa_conversion');
-    if (yes(a.premierOffer)) list.push('premier_offer_letter');
-  }
-  if (scheme === 'NOS') {
-    list.push('class10_certificate', a.courseLevel === 'masters' ? 'ug_marksheet' : 'pg_marksheet');
-    if (yes(c.isPVTG)) list.push('pvtg_certificate');
-    if (!yes(c.isOrphan)) list.push('income_certificate');
-    if (a.courseLevel === 'postdoc') list.push('phd_certificate');
-    if (a.gradeType === 'cgpa') list.push('cgpa_conversion');
-    if (a.admissionStatus !== 'applied') list.push('offer_letter');
-  }
-  if (yes(c.hasDisability)) list.push('disability_certificate');
-  return list;
-}
-
-function academicScore(marks) {
-  return marks === null ? 75 : Math.max(0, Math.min(100, Math.round(marks)));
-}
-
-function socioEconomicScore(income) {
-  if (income === null) return 80;
-  if (income <= 100000) return 95;
-  if (income <= 250000) return 85;
-  if (income <= 600000) return 70;
-  return 55;
-}
-
-/* Rule-based verification — used when the AI engine is offline or does not cover the scheme. */
-function ruleBasedVerification(body, docs) {
-  const rules = SCHEME_RULES[body.scheme] || SCHEME_RULES.NFST;
-  const usesDocTypes = docs.some((d) => d.docType);
-
-  let docsOk;
-  if (usesDocTypes) {
-    const present = new Set(docs.map((d) => d.docType));
-    docsOk = requiredDocTypes(body.scheme, body.sections).every((t) => present.has(t));
-  } else {
-    const names = docs.map((d) => d.name);
-    docsOk = LEGACY_REQUIRED_DOCS.every((n) => names.includes(n));
-  }
-
-  const income = numberOrNull(body.declared_income);
-  const incomeOk = rules.incomeLimit === null || income === null || income <= rules.incomeLimit;
-
-  const marks = numberOrNull(body.declared_marks);
-  const qsRank = Number(body.sections?.academic?.qsRank);
-  const marksWaived = body.scheme === 'NOS' && qsRank > 0 && qsRank <= rules.qsRankLimit;
-  const marksOk = rules.minMarks === null || marks === null || marksWaived || marks >= rules.minMarks;
-
-  const checks = [
-    { label: 'Income within scheme limit', passed: incomeOk },
-    { label: 'Category matches ST records', passed: true },
-    { label: 'Marks meet minimum cutoff', passed: marksOk },
-    { label: 'All required documents present', passed: docsOk },
-  ];
-  const score = (docsOk ? 30 : 0) + (incomeOk ? 25 : 0) + 25 + (marksOk ? 20 : 0);
-
-  let status = 'Eligible';
-  if (!docsOk) status = 'Deficient';
-  else if (!incomeOk || !marksOk) status = 'Flagged';
-
-  return {
-    checks,
-    score,
-    status,
-    meritScores: {
-      academic: academicScore(marks),
-      exam: 70,
-      socioEconomic: socioEconomicScore(income),
-      interview: 70,
-    },
-  };
-}
-
-/*
- * Synchronous call to AI/ML Verification & Merit Engine (Section 8 of system flow).
- * If the microservice is offline, times out or does not cover the scheme,
- * falls back to the rule-based checks above.
- */
-async function runVerification(body, formattedDocs) {
-  if (!AI_SCHEMES.includes(body.scheme)) return ruleBasedVerification(body, formattedDocs);
-
-  const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000';
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const payload = {
-      name: body.name,
-      email: body.email,
-      phone: body.phone || '',
-      dob: body.dob ? String(body.dob) : '',
-      gender: body.gender || '',
-      category: body.category || 'Scheduled Tribe',
-      state: body.state || '',
-      district: body.district || '',
-      scheme: body.scheme,
-      course: body.course || '',
-      institution: body.institution || '',
-      documents: formattedDocs.map((d) => ({
-        name: AI_DOC_ALIAS[d.docType] || d.name,
-        source: d.source,
-        raw_text: d.raw_text || '',
-        content_base64: d.content_base64 || null,
-      })),
-      declared_income: numberOrNull(body.declared_income) ?? undefined,
-      declared_marks: numberOrNull(body.declared_marks) ?? undefined,
-    };
-
-    const res = await fetch(`${aiEngineUrl}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        checks: data.aiVerification.checks,
-        score: data.aiVerification.score,
-        status: data.status,
-        meritScores: data.meritScores,
-      };
-    }
-  } catch (err) {
-    console.warn('AI engine not reached, falling back to rule defaults:', err.message);
-  }
-
-  return ruleBasedVerification(body, formattedDocs);
-}
 
 function generateApplicationCode() {
   return `SIH26239-${Date.now().toString().slice(-8)}`;
@@ -276,58 +104,59 @@ const submitApplication = async (req, res) => {
       });
     }
 
-    const verificationInput = { ...body, sections: sections || {} };
-    if (scheme === 'PRE_MATRIC') verificationInput.declared_marks = undefined; // no marks criterion
-    const verification = await runVerification(verificationInput, formattedDocs);
-
     const declaredIncome = numberOrNull(body.declared_income);
-    const declaredMarks = numberOrNull(body.declared_marks);
+    const declaredMarks = scheme === 'PRE_MATRIC' ? null : numberOrNull(body.declared_marks);
     const schemeData = sections ? { sections, source: 'student-web' } : undefined;
+    const now = new Date();
+
+    const fields = {
+      name, email, phone, dob, gender, state, district, course, institution, session,
+      documents: formattedDocs,
+      declaredIncome: declaredIncome ?? undefined,
+      declaredMarks: declaredMarks ?? undefined,
+      submittedAt: now,
+      lastActionAt: now,
+    };
+    if (schemeData) fields.schemeData = schemeData;
 
     let application;
     if (existingApp) {
-      existingApp.name = name;
-      existingApp.email = email;
-      existingApp.phone = phone;
-      existingApp.dob = dob;
-      existingApp.gender = gender;
-      existingApp.state = state;
-      existingApp.district = district;
-      existingApp.course = course;
-      existingApp.institution = institution;
-      existingApp.session = session;
-      existingApp.documents = formattedDocs;
-      if (schemeData) existingApp.schemeData = schemeData;
-      if (declaredIncome !== null) existingApp.declaredIncome = declaredIncome;
-      if (declaredMarks !== null) existingApp.declaredMarks = declaredMarks;
-      existingApp.aiVerification = { checks: verification.checks, score: verification.score };
-      existingApp.status = verification.status || 'Eligible';
-      existingApp.meritScores = verification.meritScores || existingApp.meritScores;
-      existingApp.submittedAt = new Date();
-      await existingApp.save();
       application = existingApp;
+      application.set(fields);
+      application.resubmissionCount = (application.resubmissionCount || 0) + 1;
+      application.lastResubmittedAt = now;
     } else {
-      application = await Application.create({
+      application = new Application({
+        ...fields,
         applicationCode: generateApplicationCode(),
         student: req.student._id,
-        name, email, phone, dob, gender, state, district,
-        scheme, course, institution, session,
+        scheme,
         category: 'Scheduled Tribe',
-        status: verification.status || 'Eligible',
-        documents: formattedDocs,
-        schemeData,
-        declaredIncome: declaredIncome ?? undefined,
-        declaredMarks: declaredMarks ?? undefined,
-        aiVerification: { checks: verification.checks, score: verification.score },
-        meritScores: verification.meritScores || {
-          academic: 75,
-          exam: 70,
-          socioEconomic: 80,
-          interview: 70,
-        },
-        submittedAt: new Date(),
+        status: 'Pending',
       });
     }
+
+    // AI-assisted analysis (assistive only), rule evaluation and review flags.
+    // The status only routes the application to an officer; it never approves it.
+    const { analysis, raw } = await aiAnalysis.run({ ...application.toObject(), documents: formattedDocs });
+    application.aiAnalysis = analysis;
+    if (raw?.aiVerification) {
+      application.aiVerification = { checks: raw.aiVerification.checks || [], score: raw.aiVerification.score || 0 };
+    }
+    const assessment = review.assess(application.toObject(), req.student);
+    review.applySummary(application, assessment);
+    const fromStatus = existingApp ? existingApp.status : '';
+    application.status = review.initialStatus(assessment);
+    application.reviewHistory.push({
+      action: existingApp ? 'Resubmitted after correction' : 'Submitted',
+      fromStatus,
+      toStatus: application.status,
+      byId: req.student._id,
+      byName: name,
+      byRole: 'Applicant',
+      at: now,
+    });
+    await application.save();
 
     // The draft is no longer needed once the application is submitted.
     ApplicationDraft.deleteOne({ student: req.student._id, scheme }).catch(() => {});

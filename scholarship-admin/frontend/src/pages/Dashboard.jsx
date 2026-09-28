@@ -1,266 +1,194 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  FileText, Clock, AlertTriangle, CheckCircle2,
-  ArrowRight, ClipboardList, Eye,
-} from 'lucide-react';
-import AppShell from '../components/AppShell';
-import StatCard from '../components/StatCard';
-import StatusBadge from '../components/StatusBadge';
-import api from '../api/axios';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
+import AdminLayout from '../components/layout/AdminLayout';
+import Panel from '../components/ui/Panel';
+import Button from '../components/ui/Button';
+import { AiResultBadge, PriorityBadge, StatusBadge } from '../components/ui/Badge';
+import { Empty, ErrorState, Loading, Notice } from '../components/ui/States';
+import { getReviewQueue, getSummary, listApplications } from '../api/admin';
+import { errorMessage } from '../api/axios';
+import { AI_RESULT, SCHEMES, STATUS } from '../config/labels';
+import { daysSince, formatDate } from '../utils/format';
 
-const QUICK_ACTIONS = [
-  { label: 'Go to Review Queue',  to: '/queue',     desc: 'Process pending applications' },
-  { label: 'Merit & Selection',   to: '/merit',     desc: 'View merit lists and rankings' },
-  { label: 'Analytics Report',    to: '/analytics', desc: 'Review scheme-wise statistics' },
-];
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+function StatCard({ label, value, to, note, tone = 'text-ink' }) {
+  return (
+    <Link to={to} className="block rounded border border-line bg-white px-4 py-3 hover:border-navy/40">
+      <p className="text-[12px] text-muted">{label}</p>
+      <p className={`num mt-0.5 text-[22px] font-semibold leading-tight ${tone}`}>{value ?? '—'}</p>
+      {note && <p className="text-[11.5px] text-muted">{note}</p>}
+    </Link>
+  );
 }
 
-export default function Dashboard() {
-  const navigate = useNavigate();
-  const [summary, setSummary] = useState(null);
-  const [recentApps, setRecentApps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function Bar({ label, value, total, color = 'bg-navy' }) {
+  const pct = total ? Math.round((value / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-[12.5px]">
+        <span className="text-ink">{label}</span>
+        <span className="num text-muted">{value} ({pct}%)</span>
+      </div>
+      <div className="mt-1 h-2 rounded-sm bg-paper">
+        <div className={`h-2 rounded-sm ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [sumRes, appRes] = await Promise.all([
-          api.get('/analytics/summary'),
-          api.get('/applications?limit=5&page=1'),
-        ]);
-        if (isMounted) {
-          setSummary(sumRes.data);
-          setRecentApps(appRes.data?.data || []);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Failed to load dashboard data:', err);
-          setError('Failed to load dashboard data. Please try again.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    fetchData();
-    return () => { isMounted = false; };
+const STATUS_COLOR = { Pending: 'bg-navy-2', Flagged: 'bg-warn-line', Deficient: 'bg-[#c98a1b]', Eligible: 'bg-ok', Selected: 'bg-[#155c34]', Rejected: 'bg-bad' };
+
+export default function Dashboard() {
+  const [state, setState] = useState({ loading: true, error: '', summary: null, queue: [], recent: [] });
+
+  const load = useCallback(() => {
+    setState((s) => ({ ...s, loading: true, error: '' }));
+    Promise.all([getSummary(), getReviewQueue({ limit: 5 }), listApplications({ limit: 6, page: 1 })])
+      .then(([summary, queue, recent]) => setState({ loading: false, error: '', summary, queue: queue.data, recent: recent.data }))
+      .catch((err) => setState((s) => ({ ...s, loading: false, error: errorMessage(err, 'Unable to load the dashboard. Please try again.') })));
   }, []);
 
-  const total = summary?.total || 0;
-  const pending = summary?.pending || 0;
-  const pendingReview = summary?.pendingReview || 0;
-  const deficient = summary?.deficient || 0;
-  const flagged = summary?.flagged || 0;
-  const selected = summary?.selected || 0;
-  const rejected = summary?.rejected || 0;
-
-  const statusRows = [
-    { label: 'Pending Verification', count: pending, bar: 'bg-[#1a3557]' },
-    { label: 'Pending Admin Review', count: pendingReview, bar: 'bg-blue-500' },
-    { label: 'Deficient / Resubmit', count: deficient, bar: 'bg-amber-500' },
-    { label: 'Flagged', count: flagged, bar: 'bg-red-500' },
-    { label: 'Selected', count: selected, bar: 'bg-emerald-600' },
-    ...(rejected > 0 ? [{ label: 'Rejected', count: rejected, bar: 'bg-rose-700' }] : []),
-  ].map((item) => ({
-    ...item,
-    pct: total > 0 ? Math.round((item.count / total) * 100) : 0,
-  }));
+  useEffect(load, [load]);
+  const { loading, error, summary: s, queue, recent } = state;
 
   return (
-    <AppShell title="Dashboard">
-      {error && (
-        <div className="mb-4 px-4 py-2.5 bg-red-50 border border-red-200 text-red-700 text-[13px] rounded">
-          {error}
+    <AdminLayout
+      title="Dashboard"
+      breadcrumb={[{ label: 'Home' }, { label: 'Dashboard' }]}
+      actions={<Button variant="secondary" size="sm" icon={RefreshCw} onClick={load} loading={loading}>Refresh</Button>}
+    >
+      {error && !s ? (
+        <div className="rounded border border-line bg-white"><ErrorState message={error} onRetry={load} /></div>
+      ) : !s ? (
+        <Loading />
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Total applications" value={s.total} to="/applications" note={`${s.drafts} draft(s) not submitted`} />
+            <StatCard label="Pending review" value={s.pending} to="/applications/pending" tone="text-navy-2" />
+            <StatCard label="AI flagged" value={s.flagged} to="/applications/flagged" tone="text-warn" note="Human review required" />
+            <StatCard label="Defective" value={s.deficient} to="/applications/defective" tone="text-warn" note="Correction required" />
+            <StatCard label="Verified" value={s.verified} to="/applications/verified" tone="text-ok" note={`${s.selected} selected`} />
+            <StatCard label="Rejected" value={s.rejected} to="/applications/rejected" tone="text-bad" />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+            <Panel title="Application processing overview" subtitle="Where every submitted application stands today">
+              <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {[
+                  ['Submitted', s.total, 'All received'],
+                  ['Awaiting officer', s.awaitingAction, `${s.pending} pending, ${s.flagged} flagged`],
+                  ['Correction required', s.deficient, 'With applicant'],
+                  ['Verified', s.verified, 'Officer verified'],
+                  ['Closed', s.selected + s.rejected, `${s.selected} selected, ${s.rejected} rejected`],
+                ].map(([label, value, note], i) => (
+                  <li key={label} className="rounded border border-line px-3 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{i + 1}. {label}</p>
+                    <p className="num text-[20px] font-semibold text-ink">{value}</p>
+                    <p className="text-[11.5px] text-muted">{note}</p>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-[12px] text-muted">
+                Human review rate {s.kpis.humanReviewRate}%. Average time to officer action {s.kpis.avgProcessingDays} day(s) across {s.kpis.decided} decided application(s).
+              </p>
+            </Panel>
+
+            <Panel title="AI verification summary" subtitle="Preliminary results only; officers make every decision">
+              <ul className="space-y-2">
+                {Object.keys(AI_RESULT).map((key) => (
+                  <li key={key} className="flex items-center justify-between gap-2 text-[12.5px]">
+                    <AiResultBadge result={key} />
+                    <span className="num font-semibold text-ink">{s.aiSummary?.[key] || 0}</span>
+                  </li>
+                ))}
+              </ul>
+              <Notice className="mt-3">
+                &quot;Not run&quot; and &quot;Analysis unavailable&quot; mean no AI result exists. Rule evaluation still applies to every application.
+              </Notice>
+            </Panel>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Panel title="Scheme-wise applications" bodyClass="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-[12.5px]">
+                <thead className="bg-paper text-left text-[11px] uppercase tracking-wide text-muted">
+                  <tr>{['Scheme', 'Received', 'Pending', 'Flagged', 'Defective', 'Verified', 'Rejected'].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {s.schemeWise.length === 0 ? (
+                    <tr><td colSpan={7}><Empty title="No applications yet" className="py-6" /></td></tr>
+                  ) : (
+                    s.schemeWise.map((r) => (
+                      <tr key={r.scheme} className="border-t border-line">
+                        <td className="px-3 py-2 font-semibold text-ink">{SCHEMES[r.scheme]?.short || r.scheme}</td>
+                        {['received', 'pending', 'flagged', 'defective', 'verified', 'rejected'].map((k) => <td key={k} className="num px-3 py-2">{r[k]}</td>)}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Panel>
+
+            <Panel title="Application status distribution">
+              <div className="space-y-2.5">
+                {['Pending', 'Flagged', 'Deficient', 'Eligible', 'Selected', 'Rejected'].map((k) => (
+                  <Bar key={k} label={STATUS[k].label} value={s.byStatus?.[k] || 0} total={s.total} color={STATUS_COLOR[k]} />
+                ))}
+              </div>
+            </Panel>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Panel title="Priority review queue" subtitle="Highest priority first, oldest first" actions={<Link to="/queue" className="text-[12.5px] font-semibold text-navy hover:underline">Open queue</Link>} bodyClass="">
+              {queue.length === 0 ? (
+                <Empty title="No applications awaiting review" message="Every submitted application has an officer decision." />
+              ) : (
+                <ul className="divide-y divide-line">
+                  {queue.map((a) => (
+                    <li key={a._id} className="flex flex-wrap items-start justify-between gap-2 px-4 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-ink">
+                          <Link to={`/application/${a._id}`} className="hover:underline">{a.applicationCode}</Link>
+                          <span className="font-normal text-muted">, {a.name}, {SCHEMES[a.scheme]?.short}</span>
+                        </p>
+                        <p className="text-[12px] text-muted">{a.reviewFlags?.[0]?.title || 'No issues detected by rules or data checks'}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <PriorityBadge priority={a.reviewPriority} />
+                        <span className="num text-[11.5px] text-muted" title="Days since submission">{daysSince(a.submittedAt)}d</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel title="Recent applications" actions={<Link to="/applications" className="text-[12.5px] font-semibold text-navy hover:underline">View all</Link>} bodyClass="overflow-x-auto">
+              {recent.length === 0 ? <Empty title="No applications received" /> : (
+                <table className="w-full min-w-[520px] text-[12.5px]">
+                  <thead className="bg-paper text-left text-[11px] uppercase tracking-wide text-muted">
+                    <tr>{['Application No.', 'Applicant', 'Scheme', 'Date', 'Status', ''].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {recent.map((a) => (
+                      <tr key={a._id} className="border-t border-line">
+                        <td className="num whitespace-nowrap px-3 py-2 font-semibold">{a.applicationCode}</td>
+                        <td className="px-3 py-2">{a.name}</td>
+                        <td className="px-3 py-2">{SCHEMES[a.scheme]?.short || a.scheme}</td>
+                        <td className="num whitespace-nowrap px-3 py-2">{formatDate(a.submittedAt)}</td>
+                        <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
+                        <td className="px-3 py-2 text-right"><Link to={`/application/${a._id}`} className="font-semibold text-navy hover:underline">View</Link></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Panel>
+          </div>
+          {loading && <p className="text-[12px] text-muted">Refreshing…</p>}
         </div>
       )}
-
-      {/* ── Stat cards ─────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          icon={FileText}
-          value={loading ? '...' : total.toLocaleString('en-IN')}
-          label="Total Applications"
-          iconBg="bg-slate-100"
-          iconColor="text-slate-600"
-        />
-        <StatCard
-          icon={Clock}
-          value={loading ? '...' : pendingReview.toLocaleString('en-IN')}
-          label="Pending Admin Review"
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-        />
-        <StatCard
-          icon={AlertTriangle}
-          value={loading ? '...' : deficient.toLocaleString('en-IN')}
-          label="Deficient / Resubmission"
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-        />
-        <StatCard
-          icon={CheckCircle2}
-          value={loading ? '...' : selected.toLocaleString('en-IN')}
-          label="Selected"
-          iconBg="bg-green-50"
-          iconColor="text-green-600"
-        />
-      </div>
-
-      {/* ── Main grid: table + sidebar panels ────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-
-        {/* Recent applications table */}
-        <div className="xl:col-span-2 bg-white border border-[#dde1e7] rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#dde1e7]">
-            <h2 className="text-[13px] font-semibold text-[#1c2b3a] uppercase tracking-wide">
-              Recent Applications
-            </h2>
-            <Link
-              to="/queue"
-              className="flex items-center gap-1 text-[12px] text-[#1a3557] font-medium hover:underline"
-            >
-              View all <ArrowRight size={13} />
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="bg-[#f9fafb] border-b border-[#dde1e7] text-[#6b7a8d] font-medium text-[12px] uppercase tracking-wide">
-                  <th className="text-left px-5 py-3">Applicant</th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">Scheme</th>
-                  <th className="text-left px-4 py-3 hidden md:table-cell">State</th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">Submitted</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f0f2f5]">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-[#9aa3af]">
-                      Loading applications...
-                    </td>
-                  </tr>
-                ) : recentApps.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-[#9aa3af]">
-                      No applications found.
-                    </td>
-                  </tr>
-                ) : (
-                  recentApps.map((app) => (
-                    <tr key={app._id} className="hover:bg-[#fafbfc] transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="font-medium text-[#1c2b3a]">{app.name}</div>
-                        <div className="text-[11px] text-[#9aa3af] mt-0.5">
-                          {app.applicationCode || app._id}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-[#4b5563]">{app.scheme}</td>
-                      <td className="px-4 py-3 hidden md:table-cell text-[#4b5563]">{app.state}</td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-[#6b7a8d]">
-                        {formatDate(app.submittedAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={app.status} />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          title="View application"
-                          onClick={() => navigate(`/application/${app._id}`)}
-                          className="p-1.5 rounded text-[#6b7a8d] hover:text-[#1a3557] hover:bg-slate-100 transition-colors"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-5">
-
-          {/* Status breakdown */}
-          <div className="bg-white border border-[#dde1e7] rounded-lg overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#dde1e7]">
-              <h2 className="text-[13px] font-semibold text-[#1c2b3a] uppercase tracking-wide">
-                Review Status Summary
-              </h2>
-            </div>
-            <div className="px-5 py-4 space-y-4">
-              {loading ? (
-                <div className="text-center text-[#9aa3af] text-xs py-4">Loading summary...</div>
-              ) : (
-                statusRows.map((row) => (
-                  <div key={row.label}>
-                    <div className="flex justify-between text-[12px] mb-1.5">
-                      <span className="text-[#4b5563]">{row.label}</span>
-                      <span className="font-medium text-[#1c2b3a]">
-                        {row.count.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-[#f0f2f5] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${row.bar}`}
-                        style={{ width: `${row.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="bg-white border border-[#dde1e7] rounded-lg overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#dde1e7]">
-              <h2 className="text-[13px] font-semibold text-[#1c2b3a] uppercase tracking-wide">
-                Quick Actions
-              </h2>
-            </div>
-            <div className="divide-y divide-[#f0f2f5]">
-              {QUICK_ACTIONS.map(({ label, to, desc }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center justify-between px-5 py-3.5 hover:bg-[#fafbfc] transition-colors group"
-                >
-                  <div>
-                    <div className="text-[13px] font-medium text-[#1c2b3a] flex items-center gap-2">
-                      <ClipboardList size={14} className="text-[#1a3557]" />
-                      {label}
-                    </div>
-                    <div className="text-[11px] text-[#9aa3af] mt-0.5">{desc}</div>
-                  </div>
-                  <ArrowRight size={14} className="text-[#c0c8d2] group-hover:text-[#1a3557] transition-colors" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </AppShell>
+    </AdminLayout>
   );
 }
