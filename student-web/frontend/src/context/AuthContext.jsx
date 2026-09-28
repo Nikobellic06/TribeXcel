@@ -62,9 +62,38 @@ export const AuthProvider = ({ children }) => {
     [updateStudent]
   );
 
+  const loginDemo = useCallback(
+    (customStudent) => {
+      const demoStudent = customStudent || {
+        _id: 'demo-student-sunita-soren',
+        name: 'Sunita Soren',
+        email: 'sunita.soren@scholarship.gov.in',
+        phone: '9876543210',
+        category: 'ST',
+        community: 'Santhal',
+        state: 'Jharkhand',
+        district: 'Ranchi',
+        gender: 'Female',
+        dob: '2004-05-15',
+        aadhaarVerified: true,
+        rollNumber: 'JH/2026/ST/84920',
+        address: {
+          line: 'Quarter No. 4B, Sector 3, Morabadi',
+          district: 'Ranchi',
+          state: 'Jharkhand',
+          pincode: '834008',
+        },
+      };
+      localStorage.setItem('studentToken', 'demo-sih-prototype-token');
+      updateStudent(demoStudent);
+      return demoStudent;
+    },
+    [updateStudent]
+  );
+
   const value = useMemo(
-    () => ({ student, login, signup, logout, updateStudent }),
-    [student, login, signup, logout, updateStudent]
+    () => ({ student, login, loginDemo, signup, logout, updateStudent }),
+    [student, login, loginDemo, signup, logout, updateStudent]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

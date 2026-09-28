@@ -86,6 +86,40 @@ export default function Dashboard() {
           <Button to="/schemes" icon={Send}>{t('nav.apply')}</Button>
         </div>
 
+        {/* Profile Completion Bar */}
+        <div className="rounded-md border border-line bg-white p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-muted">
+                {tx({ en: 'Student Profile Status', hi: 'छात्र प्रोफ़ाइल स्थिति' })}
+              </p>
+              <h3 className="text-[15px] font-bold text-navy flex items-center gap-2">
+                <span>{tx({ en: 'Profile Completion:', hi: 'प्रोफ़ाइल पूर्णता:' })} {student?.aadhaarVerified ? '100%' : '75%'}</span>
+                {student?.aadhaarVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded bg-leaf-soft px-2 py-0.5 text-[11.5px] font-bold text-leaf border border-leaf/30">
+                    {tx({ en: 'Aadhaar e-KYC Verified', hi: 'आधार ई-केवाईसी सत्यापित' })}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-[11.5px] font-bold text-amber-800 border border-amber-300">
+                    {tx({ en: 'e-KYC Pending', hi: 'ई-केवाईसी लंबित' })}
+                  </span>
+                )}
+              </h3>
+            </div>
+            <Button size="sm" variant="secondary" to="/profile">
+              {tx({ en: 'Manage Profile', hi: 'प्रोफ़ाइल प्रबंधित करें' })}
+            </Button>
+          </div>
+          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-line">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                student?.aadhaarVerified ? 'bg-leaf' : 'bg-ochre'
+              }`}
+              style={{ width: student?.aadhaarVerified ? '100%' : '75%' }}
+            />
+          </div>
+        </div>
+
         {!student?.aadhaarVerified && (
           <Alert
             tone="warn"
@@ -111,14 +145,37 @@ export default function Dashboard() {
             {actionNeeded.map((app) => {
               const scheme = getSchemeByCode(app.scheme);
               return (
-                <Alert
-                  key={app._id}
-                  tone="warn"
-                  title={tx({ en: `${tx(scheme?.short) || app.scheme}: correction requested`, hi: `${tx(scheme?.short) || app.scheme}: सुधार का अनुरोध` })}
-                  action={scheme && <Button size="sm" to={`/apply/${scheme.id}/documents`} icon={PencilLine}>{tx({ en: 'Correct', hi: 'सुधारें' })}</Button>}
-                >
-                  {app.adminRemarks || tx({ en: 'The verifying officer has asked you to correct your application.', hi: 'सत्यापन अधिकारी ने आवेदन सुधारने को कहा है।' })}
-                </Alert>
+                <div key={app._id} className="rounded-md border-2 border-ochre bg-amber-50/60 p-4 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="rounded bg-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-900 uppercase tracking-wide">
+                        {tx({ en: 'Defective Application - Action Required', hi: 'त्रुटिपूर्ण आवेदन - कार्रवाई आवश्यक' })}
+                      </span>
+                      <h3 className="font-bold text-ink text-[15px]">
+                        {scheme ? tx(scheme.name) : app.scheme} ({app.applicationCode})
+                      </h3>
+                      <p className="text-[13px] text-ink/90 font-medium">
+                        <span className="font-semibold text-navy">{tx({ en: 'Officer Remark: ', hi: 'अधिकारी की टिप्पणी: ' })}</span>
+                        {app.adminRemarks || tx({ en: 'Document needs re-upload or details need verification.', hi: 'दस्तावेज़ पुनः अपलोड करने या विवरण सत्यापित करने की आवश्यकता है।' })}
+                      </p>
+                      <p className="text-[12px] text-muted">
+                        {tx({
+                          en: 'Please replace the defective certificate and resubmit for reconsideration.',
+                          hi: 'कृपया त्रुटिपूर्ण प्रमाणपत्र को बदलकर पुनर्विचार हेतु पुनः जमा करें।',
+                        })}
+                      </p>
+                    </div>
+                    {scheme && (
+                      <Button
+                        to={`/apply/${scheme.id}/documents`}
+                        icon={PencilLine}
+                        className="shrink-0 bg-ochre hover:bg-ochre/90 text-white"
+                      >
+                        {tx({ en: 'Correct & Resubmit Application', hi: 'आवेदन सुधारें एवं पुनः जमा करें' })}
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             })}
 

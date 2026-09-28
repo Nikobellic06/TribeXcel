@@ -109,4 +109,19 @@ make_pdf('sample_aadhaar_card.pdf',
     ]
 )
 
+# 7. Domicile Certificate
+make_pdf('sample_domicile_certificate.pdf',
+    'GOVERNMENT OF JHARKHAND - REVENUE & LAND REFORMS DEPARTMENT',
+    [
+        'OFFICE OF THE CIRCLE OFFICER, DUMKA',
+        'CERTIFICATE OF DOMICILE / PERMANENT RESIDENCE',
+        'Certificate No: DOM/JH/2022/99120',
+        'Date of Issue: 18/06/2022',
+        'This is to certify that Sunita Soren, daughter of Mangal Soren,',
+        'is a permanent resident of Village Haripur, PO Dumka, District Dumka, State Jharkhand.',
+        'Address: Village Haripur, Dumka, Jharkhand - 814101',
+        'Issuing Authority: Circle Officer, Dumka'
+    ]
+)
+
 print('Sample PDFs generated successfully!')

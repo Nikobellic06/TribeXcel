@@ -2,40 +2,14 @@
  * Structured Applicant Profile Generator
  * 
  * Aggregates and normalizes extracted data from all analyzed documents
- * into a single unified profile. Does NOT invent values (uses null if not found).
+ * into a unified profile adhering to Section 16 requirements.
+ * 
+ * Includes the best-supported value with source document and confidence.
  */
 
 export function generateApplicantProfile(documents = []) {
-  const profile = {
-    applicant: {
-      fullName: null,
-      dateOfBirth: null,
-      gender: null,
-      category: null,
-      tribeName: null,
-      domicileState: null
-    },
-    education: {
-      class: null,
-      institution: null,
-      course: null,
-      qualification: null,
-      percentage: null
-    },
-    financial: {
-      annualIncome: null
-    },
-    bank: {
-      bankName: null,
-      accountHolderName: null,
-      accountNumberMasked: null,
-      ifsc: null
-    },
-    documents: []
-  };
-
-  // Helper priority getter: returns first non-null value from given document types, checking field aliases
-  function findFieldValue(preferredTypes, fieldKeys) {
+  // Helper to extract value, source filename, and confidence
+  function findFieldEntry(preferredTypes, fieldKeys) {
     const keys = Array.isArray(fieldKeys) ? fieldKeys : [fieldKeys];
 
     const getVal = (fields, k) => {
@@ -49,78 +23,126 @@ export function generateApplicantProfile(documents = []) {
       return s.length > 0 ? s : null;
     };
 
+    // 1. Try preferred document types first
     for (const type of preferredTypes) {
       const doc = documents.find(d => d.documentType === type);
       if (doc && doc.fields) {
         for (const k of keys) {
           const val = getVal(doc.fields, k);
-          if (val !== null) return val;
+          if (val !== null) {
+            const fc = doc.fieldConfidence?.[k];
+            return {
+              value: val,
+              source: doc.filename || doc.documentType,
+              confidence: fc && fc.confidence ? fc.confidence : doc.confidence || 0.90
+            };
+          }
         }
       }
     }
 
-    // Fallback to any document that has any of these field keys
+    // 2. Fallback to any document that has this field
     for (const doc of documents) {
       if (doc && doc.fields) {
         for (const k of keys) {
           const val = getVal(doc.fields, k);
-          if (val !== null) return val;
+          if (val !== null) {
+            const fc = doc.fieldConfidence?.[k];
+            return {
+              value: val,
+              source: doc.filename || doc.documentType,
+              confidence: fc && fc.confidence ? fc.confidence : doc.confidence || 0.85
+            };
+          }
         }
       }
     }
-    return null;
+
+    return {
+      value: null,
+      source: null,
+      confidence: 0.0
+    };
   }
 
-  // Populate Applicant
-  profile.applicant.fullName = findFieldValue(
+  // Section 16 Top-Level Profile Attributes
+  const fullNameEntry = findFieldEntry(
     ['AADHAAR', 'ST_CERTIFICATE', 'PVTG_CERTIFICATE', 'MARKSHEET', 'BANK_PASSBOOK', 'DOMICILE_CERTIFICATE'],
     ['fullName', 'name', 'studentName', 'applicantName']
   );
-  profile.applicant.dateOfBirth = findFieldValue(['AADHAAR', 'MARKSHEET'], ['dateOfBirth', 'dob']);
-  profile.applicant.gender = findFieldValue(['AADHAAR'], ['gender']);
-  profile.applicant.category = findFieldValue(['ST_CERTIFICATE', 'PVTG_CERTIFICATE'], ['category']);
-  profile.applicant.tribeName = findFieldValue(['ST_CERTIFICATE', 'PVTG_CERTIFICATE'], ['tribeName']);
-  profile.applicant.domicileState = findFieldValue(
-    ['DOMICILE_CERTIFICATE', 'AADHAAR', 'ST_CERTIFICATE'],
-    ['domicileState', 'state']
-  );
 
-  // Populate Education
-  profile.education.class = findFieldValue(
-    ['MARKSHEET', 'BONAFIDE_CERTIFICATE', 'ADMISSION_LETTER'],
-    ['class', 'courseOrClass']
+  const dobEntry = findFieldEntry(['AADHAAR', 'MARKSHEET'], ['dateOfBirth', 'dob']);
+  const categoryEntry = findFieldEntry(['ST_CERTIFICATE', 'PVTG_CERTIFICATE'], ['category']);
+  const tribeNameEntry = findFieldEntry(['ST_CERTIFICATE', 'PVTG_CERTIFICATE'], ['tribeName']);
+  const domicileEntry = findFieldEntry(
+    ['DOMICILE_CERTIFICATE', 'AADHAAR', 'ST_CERTIFICATE'],
+    ['domicileState', 'state', 'address']
   );
-  profile.education.institution = findFieldValue(
+  const institutionEntry = findFieldEntry(
     ['ADMISSION_LETTER', 'OFFER_LETTER', 'MARKSHEET', 'DEGREE_CERTIFICATE', 'BONAFIDE_CERTIFICATE'],
     ['institution', 'university']
   );
-  profile.education.course = findFieldValue(
+  const courseEntry = findFieldEntry(
     ['ADMISSION_LETTER', 'OFFER_LETTER', 'MARKSHEET', 'DEGREE_CERTIFICATE', 'BONAFIDE_CERTIFICATE'],
-    ['course', 'degree', 'courseOrClass']
+    ['course', 'degree', 'courseOrClass', 'programme']
   );
-  profile.education.qualification = findFieldValue(
+  const qualificationEntry = findFieldEntry(
     ['MARKSHEET', 'DEGREE_CERTIFICATE'],
     ['qualification', 'examination', 'degree']
   );
-  profile.education.percentage = findFieldValue(['MARKSHEET'], ['percentage']);
+  const incomeEntry = findFieldEntry(['INCOME_CERTIFICATE'], ['annualIncome']);
+  const classEntry = findFieldEntry(['MARKSHEET', 'BONAFIDE_CERTIFICATE'], ['class', 'courseOrClass']);
+  const percentageEntry = findFieldEntry(['MARKSHEET', 'DEGREE_CERTIFICATE'], ['percentage']);
+  const genderEntry = findFieldEntry(['AADHAAR'], ['gender']);
+  const bankNameEntry = findFieldEntry(['BANK_PASSBOOK'], ['bankName']);
+  const ifscEntry = findFieldEntry(['BANK_PASSBOOK'], ['ifsc', 'IFSC']);
+  const accMaskedEntry = findFieldEntry(['BANK_PASSBOOK'], ['maskedAccountNumber', 'accountNumberMasked', 'accountNumber']);
 
-  // Populate Financial
-  profile.financial.annualIncome = findFieldValue(['INCOME_CERTIFICATE'], ['annualIncome']);
+  return {
+    // Section 16 exact attributes
+    fullName: fullNameEntry,
+    dateOfBirth: dobEntry,
+    category: categoryEntry,
+    tribeName: tribeNameEntry,
+    domicileState: domicileEntry,
+    institution: institutionEntry,
+    course: courseEntry,
+    qualification: qualificationEntry,
+    annualIncome: incomeEntry,
 
-  // Populate Bank
-  profile.bank.bankName = findFieldValue(['BANK_PASSBOOK'], ['bankName']);
-  profile.bank.accountHolderName = findFieldValue(['BANK_PASSBOOK'], ['accountHolderName', 'name']) || profile.applicant.fullName;
-  profile.bank.accountNumberMasked = findFieldValue(['BANK_PASSBOOK'], ['accountNumberMasked', 'maskedAccountNumber']);
-  profile.bank.ifsc = findFieldValue(['BANK_PASSBOOK'], ['ifsc', 'IFSC']);
+    // Nested structures for full backwards compatibility
+    applicant: {
+      fullName: fullNameEntry.value,
+      dateOfBirth: dobEntry.value,
+      gender: genderEntry.value,
+      category: categoryEntry.value,
+      tribeName: tribeNameEntry.value,
+      domicileState: domicileEntry.value
+    },
+    education: {
+      class: classEntry.value,
+      institution: institutionEntry.value,
+      course: courseEntry.value,
+      qualification: qualificationEntry.value,
+      percentage: percentageEntry.value
+    },
+    financial: {
+      annualIncome: incomeEntry.value
+    },
+    bank: {
+      bankName: bankNameEntry.value,
+      accountHolderName: fullNameEntry.value,
+      accountNumberMasked: accMaskedEntry.value,
+      ifsc: ifscEntry.value
+    },
 
-  // Document Summary
-  profile.documents = documents.map(d => ({
-    documentType: d.documentType,
-    filename: d.filename,
-    quality: d.quality,
-    qualityScore: d.qualityScore,
-    confidence: d.confidence
-  }));
-
-  return profile;
+    // Document Summary
+    documents: documents.map(d => ({
+      documentType: d.documentType,
+      filename: d.filename,
+      quality: d.quality,
+      qualityScore: d.qualityScore,
+      confidence: d.confidence
+    }))
+  };
 }

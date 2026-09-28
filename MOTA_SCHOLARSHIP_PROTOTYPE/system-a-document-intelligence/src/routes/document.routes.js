@@ -29,9 +29,13 @@ const handleMultipleUpload = (req, res, next) => {
 
 /**
  * POST /api/analyze-documents
+ * POST /api/documents/upload
+ * POST /api/documents/analyze
  * Ingests multiple documents (PDF, JPG, JPEG, PNG)
  */
 router.post('/analyze-documents', handleMultipleUpload, analyzeMultipleDocuments);
+router.post('/documents/upload', handleMultipleUpload, analyzeMultipleDocuments);
+router.post('/documents/analyze', handleMultipleUpload, analyzeMultipleDocuments);
 
 /**
  * POST /api/analyze-document

@@ -179,9 +179,16 @@ export function classifyDocument(ocrText = '') {
   scores.sort((a, b) => b.score - a.score);
   const best = scores[0];
 
+  // Build scores map across all document types
+  const classificationScores = {};
+  for (const s of scores) {
+    classificationScores[s.type] = s.score;
+  }
+
   // If highest score is too weak (< 25), do not force a classification
   if (best.score < 25) {
     return {
+      classificationScores,
       documentType: 'UNKNOWN',
       confidence: Math.round((best.score / 100) * 100) / 100,
       evidence: []
@@ -192,6 +199,7 @@ export function classifyDocument(ocrText = '') {
   const confidence = Math.min(0.99, Math.max(0.70, (best.score / 100) * 0.95 + 0.15));
 
   return {
+    classificationScores,
     documentType: best.type,
     confidence: Number(confidence.toFixed(2)),
     evidence: best.evidence

@@ -12,7 +12,7 @@ import { apiErrorMessage } from '../api/axios';
 
 const Login = () => {
   const { t, tx } = useLang();
-  const { student, login } = useAuth();
+  const { student, login, loginDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [identifier, setIdentifier] = useState('');
@@ -22,6 +22,17 @@ const Login = () => {
 
   const redirectTo = location.state?.from || '/dashboard';
   if (student) return <Navigate to={redirectTo} replace />;
+
+  const handleDemoLogin = () => {
+    loginDemo();
+    navigate(redirectTo, { replace: true });
+  };
+
+  const fillDemoCredentials = () => {
+    setIdentifier('sunita.soren@scholarship.gov.in');
+    setPassword('Demo@1234');
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +46,7 @@ const Login = () => {
       await login(identifier.trim(), password);
       navigate(redirectTo, { replace: true });
     } catch (err) {
+      // If server unreachable or demo user, let them easily fallback
       setError(apiErrorMessage(err) || t('err.network'));
     } finally {
       setLoading(false);
@@ -47,7 +59,52 @@ const Login = () => {
       subtitle={tx({ en: 'Use the email or roll number you registered with.', hi: 'पंजीकरण में दिया गया ईमेल या रोल नंबर उपयोग करें।' })}
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {error && <Alert tone="error">{error}</Alert>}
+        {error && (
+          <div className="space-y-2">
+            <Alert tone="error">{error}</Alert>
+            <div className="rounded border border-ochre/30 bg-ochre-soft p-3 text-[12.5px] text-ink">
+              <p className="font-semibold text-ochre">
+                {tx({ en: 'Offline / Testing without backend?', hi: 'ऑफ़लाइन या बिना बैकएंड परीक्षण कर रहे हैं?' })}
+              </p>
+              <p className="mt-0.5 text-muted">
+                {tx({
+                  en: 'You can proceed instantly with pre-populated ST applicant credentials.',
+                  hi: 'आप पूर्व-निर्धारित एसटी छात्र क्रेडेंशियल्स के साथ तुरंत आगे बढ़ सकते हैं।',
+                })}
+              </p>
+              <button
+                type="button"
+                onClick={handleDemoLogin}
+                className="mt-2 inline-flex items-center gap-1.5 rounded bg-navy px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-navy/90"
+              >
+                {tx({ en: 'Log In with Demo ST Applicant', hi: 'डेमो एसटी छात्र के रूप में लॉगिन करें' })} &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SIH Evaluator / Quick Access Box */}
+        <div className="rounded-md border border-line bg-paper p-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11.5px] font-bold uppercase tracking-wider text-muted">
+              {tx({ en: 'SIH Evaluator Quick Access', hi: 'एसआईएच मूल्यांकनकर्ता त्वरित पहुँच' })}
+            </span>
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="text-[12px] font-bold text-navy hover:underline"
+            >
+              {tx({ en: '1-Click Demo Login', hi: '1-क्लिक डेमो लॉगिन' })} &rarr;
+            </button>
+          </div>
+          <p className="mt-1 text-[12px] text-muted">
+            {tx({
+              en: 'Applicant: Sunita Soren (ST Santhal, Jharkhand • Aadhaar e-KYC Verified)',
+              hi: 'आवेदक: सुनीता सोरेन (एसटी संथाल, झारखंड • आधार ई-केवाईसी सत्यापित)',
+            })}
+          </p>
+        </div>
+
         <Field label={tx({ en: 'Email or roll number', hi: 'ईमेल या रोल नंबर' })} htmlFor="identifier" required>
           <TextInput id="identifier" value={identifier} onChange={setIdentifier} autoComplete="username" />
         </Field>

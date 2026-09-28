@@ -302,7 +302,8 @@ def process_document(file: UploadFile = File(...)):
                                 extracted_lines.append({
                                     "text": cleaned,
                                     "confidence": 0.99,
-                                    "page": page_idx + 1
+                                    "page": page_idx + 1,
+                                    "box": [float(block[0]), float(block[1]), float(block[2]), float(block[3])]
                                 })
                                 full_text_parts.append(cleaned)
                                 total_conf += 0.99
@@ -406,6 +407,9 @@ def process_document(file: UploadFile = File(...)):
     return {
         "filename": filename,
         "isPdf": is_pdf,
+        "pages": page_count,
+        "ocrRequired": any(p.get("source") != "PDF_DIGITAL_TEXT" for p in preprocessing_history),
+        "pagesProcessed": page_count,
         "pageCount": page_count,
         "fullText": full_text,
         "lineCount": len(extracted_lines),
@@ -413,6 +417,7 @@ def process_document(file: UploadFile = File(...)):
         "averageConfidence": avg_conf,
         "quality": quality_analysis,
         "preprocessing": first_prep,
+        "preprocessingHistory": preprocessing_history,
         "processingTimeMs": round(t_elapsed * 1000)
     }
 

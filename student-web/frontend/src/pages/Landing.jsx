@@ -13,13 +13,24 @@ import {
   ChevronRight,
   CheckCircle,
   FileText,
+  HelpCircle,
+  Phone,
+  Mail,
+  MapPin,
+  ChevronDown,
+  Building,
+  Users,
+  FileCheck2,
 } from 'lucide-react';
 import GovHeader from '../components/GovHeader';
 import GovFooter from '../components/GovFooter';
+import EligibilityCheckerModal from '../components/EligibilityCheckerModal';
 import { useLang } from '../i18n/LanguageContext';
 
 const Landing = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [eligibilityOpen, setEligibilityOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
   const { isHindi } = useLang();
 
   // Auto-advance hero carousel every 5000ms
@@ -139,24 +150,28 @@ const Landing = () => {
                   <p className="text-[14px] sm:text-[15px] text-[#4b5563] mb-6 leading-relaxed max-w-xl">
                     {slide.subtext}
                   </p>
-                  <div>
-                    {slide.buttonLink ? (
-                      <Link
-                        to={slide.buttonLink}
-                        className="inline-flex items-center gap-2 bg-[#1a3557] hover:bg-[#102540] text-white text-[14px] font-semibold px-6 py-3 rounded-md transition-colors shadow-sm"
-                      >
-                        {slide.buttonText}
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    ) : (
-                      <a
-                        href={slide.buttonAnchor}
-                        className="inline-flex items-center gap-2 border-2 border-[#1a3557] text-[#1a3557] hover:bg-[#1a3557] hover:text-white text-[14px] font-semibold px-6 py-3 rounded-md transition-colors shadow-xs"
-                      >
-                        {slide.buttonText}
-                        <ArrowRight className="w-4 h-4" />
-                      </a>
-                    )}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <a
+                      href="#available-schemes"
+                      className="inline-flex items-center gap-2 bg-[#1a3557] hover:bg-[#102540] text-white text-[13.5px] font-semibold px-5 py-2.5 rounded-md transition-colors shadow-sm"
+                    >
+                      {isHindi ? 'योजनाएं देखें' : 'Explore Schemes'}
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setEligibilityOpen(true)}
+                      className="inline-flex items-center gap-1.5 bg-[#fef3c7] border border-[#d97706] text-[#92400e] hover:bg-[#fde68a] text-[13.5px] font-bold px-4 py-2.5 rounded-md transition-colors shadow-2xs"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-[#b45309]" />
+                      {isHindi ? 'पात्रता जांचें' : 'Check Eligibility'}
+                    </button>
+                    <Link
+                      to="/signup"
+                      className="inline-flex items-center gap-1.5 border border-line bg-white hover:bg-paper text-ink text-[13.5px] font-semibold px-4 py-2.5 rounded-md transition-colors shadow-2xs"
+                    >
+                      {isHindi ? 'नया पंजीकरण' : 'Register'}
+                    </Link>
                   </div>
                 </div>
 
@@ -544,7 +559,269 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* 10. RESOURCE LINKS ROW */}
+        {/* 10. WHO CAN APPLY SECTION */}
+        <section id="who-can-apply" className="py-12 px-4 sm:px-6 max-w-6xl mx-auto border-t border-gray-200/80">
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-[#dbeafe] to-white px-5 py-2.5 rounded border-l-4 border-[#1a3557] shadow-xs">
+              <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1a3557]">
+                {isHindi ? 'कौन आवेदन कर सकता है?' : 'Who Can Apply?'}
+              </h2>
+            </div>
+            <p className="text-[14px] text-[#6b7a8d] mt-2">
+              {isHindi ? 'जनजातीय कार्य मंत्रालय की योजनाओं हेतु सामान्य पात्रता मानदंड' : 'General statutory eligibility criteria across Ministry of Tribal Affairs schemes'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-navy-soft text-navy mb-3">
+                <Users className="h-5 w-5" />
+              </div>
+              <h3 className="font-serif text-[15px] font-bold text-ink mb-1.5">
+                {isHindi ? 'अनुसूचित जनजाति (ST) पहचान' : 'Scheduled Tribe (ST)'}
+              </h3>
+              <p className="text-[13px] text-muted leading-relaxed">
+                {isHindi
+                  ? 'उम्मीदवार को भारत के संविधान के अनुच्छेद 342 के तहत अधिसूचित अनुसूचित जनजाति से संबंधित होना चाहिए।'
+                  : 'Applicant must belong to a Scheduled Tribe notified under Article 342 of the Constitution of India.'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-navy-soft text-navy mb-3">
+                <Building className="h-5 w-5" />
+              </div>
+              <h3 className="font-serif text-[15px] font-bold text-ink mb-1.5">
+                {isHindi ? 'मान्यता प्राप्त संस्थान' : 'Recognised Institutions'}
+              </h3>
+              <p className="text-[13px] text-muted leading-relaxed">
+                {isHindi
+                  ? 'सरकारी या सहायता प्राप्त स्कूल (कक्षा IX/X), यूजीसी-मान्यता प्राप्त विश्वविद्यालय (शोध), या शीर्ष 1000 क्यूएस संस्थान (विदेश)।'
+                  : 'Enrolled in Govt/aided schools (Class IX/X), UGC-recognised universities (NFST), or Top 1000 QS ranked universities abroad (NOS).'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-navy-soft text-navy mb-3">
+                <ShieldCheck className="h-5 w-5 text-ochre" />
+              </div>
+              <h3 className="font-serif text-[15px] font-bold text-ink mb-1.5">
+                {isHindi ? 'विशेष प्राथमिकता समूह' : 'Priority Groups (PVTG)'}
+              </h3>
+              <p className="text-[13px] text-muted leading-relaxed">
+                {isHindi
+                  ? 'विशेष रूप से कमजोर जनजातीय समूहों (PVTG) और दिव्यांगजन छात्रों हेतु विशेष स्लॉट आरक्षण एवं पात्रता छूट।'
+                  : 'Special reservation slots and allowances earmarked for Particularly Vulnerable Tribal Groups (PVTG) and Divyangjan scholars.'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-navy-soft text-navy mb-3">
+                <FileCheck2 className="h-5 w-5 text-leaf" />
+              </div>
+              <h3 className="font-serif text-[15px] font-bold text-ink mb-1.5">
+                {isHindi ? 'पारिवारिक आय सीमा' : 'Income Limits (Where Applicable)'}
+              </h3>
+              <p className="text-[13px] text-muted leading-relaxed">
+                {isHindi
+                  ? 'मैट्रिक-पूर्व हेतु ₹2.5 लाख/वर्ष, विदेश छात्रवृत्ति हेतु ₹6.0 लाख/वर्ष। राष्ट्रीय फेलोशिप (NFST) में कोई आय सीमा नहीं है।'
+                  : 'Family income up to ₹2.5 Lakh for Pre-Matric, ₹6.0 Lakh for NOS. National Fellowship (NFST) has NO income ceiling.'}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* 11. REQUIRED DOCUMENTS SUMMARY TABLE */}
+        <section id="required-documents" className="py-12 px-4 sm:px-6 max-w-6xl mx-auto border-t border-gray-200/80">
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-[#dbeafe] to-white px-5 py-2.5 rounded border-l-4 border-[#1a3557] shadow-xs">
+              <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1a3557]">
+                {isHindi ? 'अनिवार्य दस्तावेज़ चेकलिस्ट' : 'Mandatory Document Checklist'}
+              </h2>
+            </div>
+            <p className="text-[14px] text-[#6b7a8d] mt-2">
+              {isHindi ? 'आवेदन शुरू करने से पहले निम्नलिखित प्रमाणपत्र एवं दस्तावेज़ तैयार रखें' : 'Keep the following certificates and documents ready before applying'}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-line bg-white shadow-xs">
+            <table className="w-full text-left border-collapse text-[13px]">
+              <thead>
+                <tr className="border-b border-line bg-navy text-white text-[12px] uppercase tracking-wider">
+                  <th className="px-4 py-3 font-semibold">{isHindi ? 'दस्तावेज़' : 'Document'}</th>
+                  <th className="px-4 py-3 font-semibold">{isHindi ? 'जारीकर्ता प्राधिकारी' : 'Issuing Authority'}</th>
+                  <th className="px-4 py-3 font-semibold">{isHindi ? 'लागू योजना' : 'Applicable Scheme'}</th>
+                  <th className="px-4 py-3 font-semibold">{isHindi ? 'डिजिलॉकर' : 'DigiLocker'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line text-ink">
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Scheduled Tribe (ST) Certificate</td>
+                  <td className="px-4 py-3 text-muted">Tehsildar / SDO / District Magistrate</td>
+                  <td className="px-4 py-3"><span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">All Schemes</span></td>
+                  <td className="px-4 py-3 text-leaf font-semibold">✓ Supported (CSTCR)</td>
+                </tr>
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Family Income Certificate</td>
+                  <td className="px-4 py-3 text-muted">Competent Revenue Authority (Current FY)</td>
+                  <td className="px-4 py-3"><span className="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Pre-Matric & NOS</span></td>
+                  <td className="px-4 py-3 text-leaf font-semibold">✓ Supported (INCER)</td>
+                </tr>
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Domicile / Residence Certificate</td>
+                  <td className="px-4 py-3 text-muted">Circle Officer / Tehsildar / State Portal</td>
+                  <td className="px-4 py-3"><span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">Pre-Matric & NOS</span></td>
+                  <td className="px-4 py-3 text-leaf font-semibold">✓ Supported (DOMCR)</td>
+                </tr>
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Academic Marksheet & Certificates</td>
+                  <td className="px-4 py-3 text-muted">Recognised School Board / UGC University</td>
+                  <td className="px-4 py-3"><span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">All Schemes</span></td>
+                  <td className="px-4 py-3 text-leaf font-semibold">✓ Class X / Univ Marksheets</td>
+                </tr>
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Admission Letter / Bonafide Certificate</td>
+                  <td className="px-4 py-3 text-muted">Head of School / Registrar of University</td>
+                  <td className="px-4 py-3"><span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">All Schemes</span></td>
+                  <td className="px-4 py-3 text-muted font-medium">Institutional Upload (PDF)</td>
+                </tr>
+                <tr className="hover:bg-paper">
+                  <td className="px-4 py-3 font-semibold">Bank Passbook / Proof (Aadhaar Seeded)</td>
+                  <td className="px-4 py-3 text-muted">Scheduled Commercial Bank (DBT Active)</td>
+                  <td className="px-4 py-3"><span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">All Schemes</span></td>
+                  <td className="px-4 py-3 text-muted font-medium">Bank Account Upload (PDF/JPG)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 12. FREQUENTLY ASKED QUESTIONS (FAQ) ACCORDION */}
+        <section id="faq" className="py-12 px-4 sm:px-6 max-w-6xl mx-auto border-t border-gray-200/80">
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-[#dbeafe] to-white px-5 py-2.5 rounded border-l-4 border-[#1a3557] shadow-xs">
+              <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1a3557]">
+                {isHindi ? 'अक्सर पूछे जाने वाले प्रश्न (FAQ)' : 'Frequently Asked Questions (FAQ)'}
+              </h2>
+            </div>
+            <p className="text-[14px] text-[#6b7a8d] mt-2">
+              {isHindi ? 'आवेदन प्रक्रिया, सत्यापन और लाभों से जुड़े महत्वपूर्ण उत्तर' : 'Essential answers regarding application rules, verification, and disbursement'}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: isHindi ? 'क्या डिजिलॉकर के बिना भी आवेदन किया जा सकता है?' : 'Can I apply if my certificates are not available on DigiLocker?',
+                a: isHindi
+                  ? 'हाँ। आप अपने प्रमाणपत्रों की स्पष्ट पीडीएफ अथवा फोटो कॉपी मैन्युअल रूप से अपलोड कर सकते हैं। अपलोड के तुरंत बाद सिस्टम एआई-सहायता प्राप्त प्रारंभिक दस्तावेज़ विश्लेषण करता है ताकि स्पष्टता की जांच हो सके।'
+                  : 'Yes. You can manually upload clear PDF or image copies of your certificates. The portal runs real-time AI-assisted document intelligence to extract and validate mandatory fields immediately upon upload.'
+              },
+              {
+                q: isHindi ? 'राष्ट्रीय फेलोशिप (NFST) के लिए क्या कोई पारिवारिक आय सीमा है?' : 'Is there an income ceiling for the National Fellowship (NFST)?',
+                a: isHindi
+                  ? 'नहीं। राष्ट्रीय फेलोशिप (NFST) योजना के तहत कोई पारिवारिक आय सीमा लागू नहीं होती। चयन विशुद्ध रूप से स्नातकोत्तर (PG) अंकों की मेरिट के आधार पर 750 सीटों के लिए किया जाता है।'
+                  : 'No. There is strictly NO income ceiling for the National Fellowship (NFST). Fellowships are awarded on academic merit in Post-Graduation across 750 national slots.'
+              },
+              {
+                q: isHindi ? 'यदि मेरे आवेदन में कोई त्रुटि पाई जाती है तो क्या होगा?' : 'What happens if my application is marked Defective or Correction Required?',
+                a: isHindi
+                  ? 'आवेदन अस्वीकार नहीं किया जाता। आपको "Correction Required" सूचना प्राप्त होगी जिसमें अधिकारी की टिप्पणी और सुधार के निर्देश होंगे। आप अपने डैशबोर्ड से सीधे त्रुटिपूर्ण दस्तावेज़ बदलकर पुनः जमा कर सकते हैं।'
+                  : 'Your application is not rejected. It enters the "Correction Required" state with explicit officer remarks. You can replace the specific defective document and resubmit directly from your student dashboard.'
+              },
+              {
+                q: isHindi ? 'एआई-सहायता प्राप्त दस्तावेज़ सत्यापन का क्या महत्व है?' : 'What role does AI-assisted verification play in the portal?',
+                a: isHindi
+                  ? 'एआई सत्यापन एक प्रारंभिक तकनीकी सहायता है जो दस्तावेज़ के प्रकार, नाम, आय, और अंकों को स्वचालित रूप से पढ़कर छात्र को त्वरित प्रतिक्रिया देता है। अंतिम निर्णय हमेशा अधिकृत नोडल अधिकारियों द्वारा लिया जाता है।'
+                  : 'AI verification performs preliminary optical character extraction, quality checks, and schema matching to assist the student and verify authenticity early. Final statutory authority strictly rests with authorized government nodal officers.'
+              },
+              {
+                q: isHindi ? 'छात्रवृत्ति राशि का भुगतान किस प्रकार किया जाता है?' : 'How is the scholarship amount disbursed to the student?',
+                a: isHindi
+                  ? 'सभी स्वीकृत छात्रवृत्ति एवं फेलोशिप का भुगतान प्रत्यक्ष लाभ अंतरण (DBT) के माध्यम से सीधे छात्र के आधार-सीडेड बैंक खाते में किया जाता है।'
+                  : 'All scholarship and fellowship stipends are disbursed directly to the scholar\'s Aadhaar-seeded bank account through the Public Financial Management System (PFMS) via Direct Benefit Transfer (DBT).'
+              }
+            ].map((faq, idx) => (
+              <div key={idx} className="rounded-lg border border-line bg-white overflow-hidden shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-4 text-left font-serif font-bold text-[14.5px] text-navy hover:bg-paper transition-colors"
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform text-muted ${openFaq === idx ? 'rotate-180 text-navy' : ''}`} />
+                </button>
+                {openFaq === idx && (
+                  <div className="border-t border-line bg-paper px-4 py-3 text-[13px] leading-relaxed text-[#374151]">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 13. HELPDESK & SUPPORT SECTION */}
+        <section id="help-support" className="py-12 px-4 sm:px-6 max-w-6xl mx-auto border-t border-gray-200/80">
+          <div className="text-center mb-8">
+            <div className="inline-block bg-gradient-to-r from-[#dbeafe] to-white px-5 py-2.5 rounded border-l-4 border-[#1a3557] shadow-xs">
+              <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1a3557]">
+                {isHindi ? 'हेल्पडेस्क एवं तकनीकी सहायता' : 'Helpdesk & Grievance Support'}
+              </h2>
+            </div>
+            <p className="text-[14px] text-[#6b7a8d] mt-2">
+              {isHindi ? 'आवेदन या पोर्टल से संबंधित किसी भी सहायता हेतु संपर्क करें' : 'Dedicated support lines for students applying under MoTA schemes'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="flex items-start gap-3 rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-navy-soft text-navy">
+                <Phone className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-serif text-[14px] font-bold text-ink">
+                  {isHindi ? 'राष्ट्रीय टोल-फ्री हेल्पलाइन' : 'National Toll-Free Helpline'}
+                </h4>
+                <p className="mt-1 font-mono font-bold text-[15px] text-navy">1800-11-7777</p>
+                <p className="text-[11.5px] text-muted mt-0.5">
+                  {isHindi ? 'सोमवार से शुक्रवार (प्रातः 9:30 से शाम 5:30)' : 'Mon – Fri, 09:30 AM to 05:30 PM (IST)'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-navy-soft text-navy">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-serif text-[14px] font-bold text-ink">
+                  {isHindi ? 'आधिकारिक सहायता ईमेल' : 'Official Support Desk'}
+                </h4>
+                <p className="mt-1 font-mono font-bold text-[14px] text-navy">scholarship-mota@gov.in</p>
+                <p className="text-[11.5px] text-muted mt-0.5">
+                  {isHindi ? 'प्रतिक्रिया समय: 1-2 कार्य दिवस' : 'Expected response time: 24–48 working hours'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border border-line bg-white p-5 shadow-2xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-navy-soft text-navy">
+                <MapPin className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-serif text-[14px] font-bold text-ink">
+                  {isHindi ? 'मंत्रालय नोडल कार्यालय' : 'Ministry Office Location'}
+                </h4>
+                <p className="mt-1 text-[12.5px] text-ink font-medium">
+                  Ministry of Tribal Affairs, Shastri Bhawan, Dr. Rajendra Prasad Road, New Delhi - 110001
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 14. RESOURCE LINKS ROW */}
         <section id="resources" className="py-8 px-4 sm:px-6 border-t border-gray-200 bg-[#f8fafc] text-center">
           <h3 className="text-[13px] font-bold text-[#6b7a8d] uppercase tracking-wide mb-4">
             {isHindi ? 'संबंधित संसाधन' : 'Related Resources'}
@@ -596,6 +873,9 @@ const Landing = () => {
           </div>
         </section>
       </main>
+
+      {/* Eligibility Checker Modal */}
+      <EligibilityCheckerModal open={eligibilityOpen} onClose={() => setEligibilityOpen(false)} />
 
       {/* GovFooter Component */}
       <GovFooter />

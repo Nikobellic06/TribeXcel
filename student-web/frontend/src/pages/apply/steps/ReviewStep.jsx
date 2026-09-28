@@ -209,10 +209,18 @@ export default function ReviewStep({ scheme, data, errors, setDeclaration, goTo,
               <li key={doc.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px]">
                 <span className="text-ink">{tx(doc.label)}</span>
                 {rec ? (
-                  <span className={`inline-flex shrink-0 items-center gap-1 font-semibold ${rec.source === 'digilocker' ? 'text-leaf' : 'text-navy'}`}>
-                    <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                    {rec.source === 'digilocker' ? 'DigiLocker' : tx({ en: 'Uploaded', hi: 'अपलोड' })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {rec.aiVerification?.preliminaryStatus === 'VERIFIED' && (
+                      <span className="hidden sm:inline-flex items-center gap-1 rounded bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf border border-leaf/25">
+                        <BadgeCheck className="h-3 w-3" />
+                        {tx({ en: 'Preliminary Validated', hi: 'प्रारंभिक रूप से सत्यापित' })}
+                      </span>
+                    )}
+                    <span className={`inline-flex shrink-0 items-center gap-1 font-semibold ${rec.source === 'digilocker' ? 'text-leaf' : 'text-navy'}`}>
+                      <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                      {rec.source === 'digilocker' ? 'DigiLocker' : tx({ en: 'Uploaded', hi: 'अपलोड' })}
+                    </span>
+                  </div>
                 ) : (
                   <span className={`inline-flex shrink-0 items-center gap-1 ${doc.required ? 'font-semibold text-alert' : 'text-muted'}`}>
                     {doc.required && <TriangleAlert className="h-4 w-4" aria-hidden="true" />}

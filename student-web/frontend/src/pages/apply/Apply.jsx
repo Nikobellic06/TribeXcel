@@ -597,25 +597,33 @@ export default function Apply() {
         open={confirmOpen}
         onClose={() => !submitting && setConfirmOpen(false)}
         dismissable={!submitting}
-        title={tx({ en: 'Submit and lock application?', hi: 'आवेदन जमा करके लॉक करें?' })}
+        title={tx({ en: 'Submit Scholarship Application', hi: 'छात्रवृत्ति आवेदन जमा करें' })}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={submitting}>
-              {t('common.cancel')}
+              {tx({ en: 'Go Back & Review', hi: 'वापस जाएँ एवं समीक्षा करें' })}
             </Button>
             <Button variant="success" icon={Send} onClick={handleSubmit} loading={submitting}>
-              {tx({ en: 'Yes, submit', hi: 'हाँ, जमा करें' })}
+              {tx({ en: 'Confirm & Submit Application', hi: 'पुष्टि करें एवं आवेदन जमा करें' })}
             </Button>
           </>
         }
       >
-        <p className="text-[14px] leading-relaxed text-ink">
-          {tx({
-            en: 'After final submission you cannot change the application unless the verifying officer returns it for correction.',
-            hi: 'अंतिम जमा के बाद आप आवेदन में बदलाव नहीं कर सकेंगे, जब तक सत्यापन अधिकारी इसे सुधार हेतु न लौटाएँ।',
-          })}
-        </p>
-        {submitError && <p className="mt-3 text-[13px] text-alert" role="alert">{submitError}</p>}
+        <div className="space-y-3 text-[13.5px] leading-relaxed text-ink">
+          <p className="font-semibold text-navy">
+            {tx({
+              en: 'You are about to submit your scholarship application for official government verification.',
+              hi: 'आप आधिकारिक सरकारी सत्यापन हेतु अपना छात्रवृत्ति आवेदन जमा करने जा रहे हैं।',
+            })}
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5 text-muted text-[13px]">
+            <li>{tx({ en: 'Ensure all entered personal, academic and bank details are true and accurate.', hi: 'सुनिश्चित करें कि सभी व्यक्तिगत, शैक्षणिक एवं बैंक विवरण सत्य व सटीक हैं।' })}</li>
+            <li>{tx({ en: 'All uploaded certificates and documents must be authentic and legally valid.', hi: 'सभी अपलोड किए गए प्रमाणपत्र व दस्तावेज़ प्रामाणिक एवं वैध होने चाहिए।' })}</li>
+            <li>{tx({ en: 'AI document verification is preliminary; official scrutiny is carried out by designated institutional and ministry nodal officers.', hi: 'एआई दस्तावेज़ सत्यापन प्रारंभिक है; आधिकारिक जाँच अधिकृत संस्थान एवं मंत्रालय नोडल अधिकारियों द्वारा की जाएगी।' })}</li>
+            <li>{tx({ en: 'Once submitted, the application is locked unless returned by an officer for required corrections.', hi: 'जमा होने के बाद आवेदन लॉक हो जाएगा, जब तक अधिकारी द्वारा सुधार हेतु वापस न भेजा जाए।' })}</li>
+          </ul>
+          {submitError && <p className="mt-2 text-[13px] text-alert" role="alert">{submitError}</p>}
+        </div>
       </Modal>
     </PortalLayout>
   );

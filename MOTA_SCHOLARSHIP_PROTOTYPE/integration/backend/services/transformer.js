@@ -193,7 +193,8 @@ export function buildFinalResponse(systemAData, systemBData, requestedScheme) {
     document: d.originalFilename || d.filename || 'Document',
     detectedType: d.documentType,
     confidence: d.confidence,
-    evidence: d.classificationEvidence || []
+    evidence: d.evidence || d.classificationEvidence || [],
+    classificationScores: d.classificationScores || {}
   }));
 
   const ocr = rawDocs.map(d => ({
@@ -201,7 +202,9 @@ export function buildFinalResponse(systemAData, systemBData, requestedScheme) {
     ocrEngine: 'PaddleOCR (PP-OCRv6) + PyMuPDF',
     status: 'SUCCESS',
     confidence: d.confidence,
-    lineCount: Array.isArray(d.lines) ? d.lines.length : (d.fields ? Object.keys(d.fields).length : 0)
+    lineCount: Array.isArray(d.lines) ? d.lines.length : (d.fields ? Object.keys(d.fields).length : 0),
+    originalText: d.originalText || '',
+    normalizedText: d.normalizedText || ''
   }));
 
   const extraction = rawDocs.map(d => ({
@@ -224,11 +227,16 @@ export function buildFinalResponse(systemAData, systemBData, requestedScheme) {
     confidence: d.confidence,
     quality: d.quality,
     qualityScore: d.qualityScore,
-    classificationEvidence: d.classificationEvidence || [],
+    classificationEvidence: d.evidence || d.classificationEvidence || [],
+    evidence: d.evidence || d.classificationEvidence || [],
+    classificationScores: d.classificationScores || {},
     fields: d.fields || {},
     fieldConfidence: d.fieldConfidence || {},
     missingFields: d.missingFields || [],
-    issues: d.issues || []
+    issues: d.issues || [],
+    originalText: d.originalText || '',
+    normalizedText: d.normalizedText || '',
+    lines: d.lines || []
   }));
 
   const normApplicantProfile = {

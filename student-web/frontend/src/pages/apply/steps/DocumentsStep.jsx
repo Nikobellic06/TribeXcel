@@ -55,6 +55,7 @@ export default function DocumentsStep({ scheme, data, errors, setDocument, openD
             doc={doc}
             record={documents[doc.id]}
             error={errors[doc.id]}
+            applicationData={data}
             onChange={(rec) => setDocument(doc.id, rec)}
             onDigiLocker={(d) => openDigiLocker([d], ([rec]) => rec && setDocument(d.id, rec))}
           />

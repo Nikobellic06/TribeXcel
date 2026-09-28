@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { SCHEME_LIST } from '../config/schemes';
 import UtilityBar from './layout/UtilityBar';
 import Emblem from './layout/Emblem';
+import EligibilityCheckerModal from './EligibilityCheckerModal';
 
 /* Header for public pages: landing, scheme pages, login and sign-up. */
 const GovHeader = () => {
@@ -14,6 +15,7 @@ const GovHeader = () => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [schemesOpen, setSchemesOpen] = useState(false);
+  const [eligibilityOpen, setEligibilityOpen] = useState(false);
 
   const navLink = 'flex h-full items-center px-4 text-[14px] text-white transition-colors hover:bg-[#25456e]';
 
@@ -83,6 +85,13 @@ const GovHeader = () => {
                 </div>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setEligibilityOpen(true)}
+              className={`${navLink} font-semibold text-[#f0c870] hover:text-white`}
+            >
+              {tx({ en: 'Check Eligibility', hi: 'पात्रता जांचें' })}
+            </button>
             <a href="/#resources" className={navLink}>{tx({ en: 'Resources', hi: 'संसाधन' })}</a>
             <a href="/#contact" className={navLink}>{tx({ en: 'Contact us', hi: 'संपर्क करें' })}</a>
           </nav>
@@ -140,6 +149,16 @@ const GovHeader = () => {
           <a href="/#about-scheme" onClick={() => setMobileOpen(false)} className="block rounded px-3 py-2 text-[14px] hover:bg-[#25456e]">
             {tx({ en: 'About the scheme', hi: 'योजना के बारे में' })}
           </a>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileOpen(false);
+              setEligibilityOpen(true);
+            }}
+            className="block w-full text-left rounded px-3 py-2 text-[14px] font-semibold text-[#f0c870] hover:bg-[#25456e]"
+          >
+            {tx({ en: 'Check Eligibility', hi: 'पात्रता जांचें' })}
+          </button>
           <div className="my-1 rounded-r border-l-2 border-[#d9a441] bg-[#102035] px-3 py-2">
             <span className="mb-1 block text-[12px] font-semibold text-[#f0c870]">
               {tx({ en: 'Available schemes', hi: 'उपलब्ध योजनाएं' })}
@@ -163,6 +182,8 @@ const GovHeader = () => {
           </a>
         </div>
       )}
+
+      <EligibilityCheckerModal open={eligibilityOpen} onClose={() => setEligibilityOpen(false)} />
     </header>
   );
 };
