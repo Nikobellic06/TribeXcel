@@ -1,144 +1,110 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, GraduationCap, Globe, CheckCircle } from 'lucide-react';
-import SiteHeader from '../components/SiteHeader';
-import SiteFooter from '../components/SiteFooter';
+import { ArrowRight, BookOpen, CircleCheck, Globe, GraduationCap, PencilLine, School } from 'lucide-react';
+import { useLang } from '../i18n/LanguageContext';
+import PortalLayout from '../components/layout/PortalLayout';
+import StatusBadge from '../components/ui/StatusBadge';
+import Button from '../components/ui/Button';
+import PageLoader from '../components/ui/PageLoader';
+import { SCHEME_LIST, SELECTION_YEAR } from '../config/schemes';
+import { fetchDrafts, fetchMyApplications } from '../api/student';
+import { formatINR } from '../utils/format';
 
-const SchemeSelection = () => {
+const ICONS = { school: School, graduation: GraduationCap, globe: Globe };
+
+function keyFacts(s, tx) {
+  const r = s.rules;
+  const facts = [];
+  if (r.incomeLimit) facts.push(tx({ en: `Income up to ${formatINR(r.incomeLimit)}`, hi: `आय ${formatINR(r.incomeLimit)} तक` }));
+  else facts.push(tx({ en: 'No income limit', hi: 'कोई आय सीमा नहीं' }));
+  if (r.minMarks) facts.push(tx({ en: `${r.minMarks}% in qualifying degree`, hi: `योग्यता डिग्री में ${r.minMarks}%` }));
+  if (r.maxAge) facts.push(tx({ en: `Age up to ${r.maxAge}`, hi: `आयु ${r.maxAge} तक` }));
+  if (r.maxAgeByLevel) facts.push(tx({ en: 'Age 32 / 35 / 38 by level', hi: 'स्तर अनुसार आयु 32 / 35 / 38' }));
+  if (r.allowedClasses) facts.push(tx({ en: 'Class IX or X', hi: 'कक्षा IX या X' }));
+  if (s.slots) facts.push(tx({ en: `${s.slots.total} awards a year`, hi: `प्रति वर्ष ${s.slots.total} छात्रवृत्तियाँ` }));
+  return facts;
+}
+
+export default function SchemeSelection() {
+  const { t, tx } = useLang();
+  const [apps, setApps] = useState([]);
+  const [drafts, setDrafts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.allSettled([fetchMyApplications(), fetchDrafts()]).then(([a, d]) => {
+      if (a.status === 'fulfilled') setApps(a.value);
+      if (d.status === 'fulfilled') setDrafts(d.value);
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f7fa]">
-      <SiteHeader />
-
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
-        {/* Back to Dashboard Link */}
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6b7a8d] hover:text-[#1a3557] transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
-
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-[22px] sm:text-[24px] font-bold text-[#1c2b3a] tracking-tight">
-            Choose a Scheme
-          </h1>
-          <p className="text-[14px] text-[#6b7a8d] mt-1">
-            Select the scholarship or fellowship you're eligible for to begin your application.
+    <PortalLayout>
+      <div className="space-y-5">
+        <div>
+          <p className="text-[13px] font-semibold uppercase tracking-wide text-ochre">{t('portal.session')}</p>
+          <h1 className="font-serif text-[24px] font-bold text-navy">{t('nav.apply')}</h1>
+          <p className="mt-1 max-w-2xl text-[14px] text-muted">
+            {tx({
+              en: 'Choose the scheme that matches your class or course. You can apply for one application per scheme each session.',
+              hi: 'अपनी कक्षा या पाठ्यक्रम के अनुसार योजना चुनें। प्रत्येक सत्र में हर योजना हेतु एक आवेदन किया जा सकता है।',
+            })}
           </p>
         </div>
 
-        {/* Scheme Cards Stacked Vertically */}
-        <div className="space-y-6">
-          {/* NFST Card */}
-          <div className="bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] text-[#1a3557] shrink-0">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-[18px] font-bold text-[#1c2b3a]">NFST Scheme</h2>
-                  <span className="inline-block text-[12px] font-medium text-[#16a34a] bg-green-50 border border-green-200 px-2 py-0.5 rounded mt-0.5">
-                    Scheduled Tribe Students
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[14px] text-[#6b7a8d] leading-relaxed mb-6">
-              National Fellowship for Higher Education of ST Students pursuing M.Phil. and Ph.D. degrees in Indian Universities and Institutions.
-            </p>
-
-            {/* Eligibility Section */}
-            <div className="bg-[#f5f7fa] border border-[#dde1e7] rounded-lg p-4 mb-6">
-              <h3 className="text-[13px] font-semibold text-[#1c2b3a] mb-2.5">
-                Eligibility Requirements:
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Scheduled Tribe category</span>
+        {loading ? (
+          <PageLoader label={t('common.loading')} />
+        ) : (
+          <ul className="space-y-4">
+            {SCHEME_LIST.map((s) => {
+              const Icon = ICONS[s.icon] || BookOpen;
+              const app = apps.find((a) => a.scheme === s.code && (a.session || SELECTION_YEAR) === SELECTION_YEAR);
+              const draft = drafts.find((d) => d.scheme === s.code);
+              let action;
+              if (app && app.status === 'Deficient') {
+                action = <Button to={`/apply/${s.id}/documents`} icon={PencilLine}>{tx({ en: 'Correct and resubmit', hi: 'सुधारें और पुनः जमा करें' })}</Button>;
+              } else if (app) {
+                action = <Button to="/applications" variant="secondary" icon={CircleCheck}>{tx({ en: 'Track application', hi: 'आवेदन की स्थिति देखें' })}</Button>;
+              } else if (draft) {
+                action = <Button to={`/apply/${s.id}`} iconRight={ArrowRight}>{tx({ en: 'Continue draft', hi: 'ड्राफ्ट जारी रखें' })}</Button>;
+              } else {
+                action = <Button to={`/apply/${s.id}`} iconRight={ArrowRight}>{tx({ en: 'Start application', hi: 'आवेदन शुरू करें' })}</Button>;
+              }
+              return (
+                <li key={s.id} className="overflow-hidden rounded-md border border-line bg-white">
+                  <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:p-6">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-navy-soft text-navy">
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[12px] font-semibold uppercase tracking-wide text-ochre">{tx(s.type)}</p>
+                        {app ? <StatusBadge status={app.status} /> : draft ? <StatusBadge status="Draft" /> : null}
+                      </div>
+                      <h2 className="mt-1 text-[17px] font-bold leading-snug text-ink">{tx(s.name)}</h2>
+                      <p className="mt-1 text-[13px] text-muted">
+                        {tx(s.level)}. {tx({ en: 'Apply', hi: 'आवेदन' })}: {tx(s.window)}
+                      </p>
+                      <ul className="mt-3 flex flex-wrap gap-2">
+                        {keyFacts(s, tx).map((f) => (
+                          <li key={f} className="rounded border border-line bg-paper px-2 py-1 text-[12px] text-ink">{f}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-paper px-5 py-3 sm:px-6">
+                    <Link to={`/schemes/${s.id}`} className="text-[13px] font-semibold text-navy hover:underline">
+                      {tx({ en: 'Eligibility, benefits and documents', hi: 'पात्रता, लाभ और दस्तावेज़' })}
+                    </Link>
+                    {action}
+                  </div>
                 </li>
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Pursuing M.Phil or Ph.D</span>
-                </li>
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Enrolled in a recognised Indian institution</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Apply Button */}
-            <div>
-              <Link
-                to="/apply/nfst"
-                className="inline-flex items-center justify-center bg-[#1a3557] hover:bg-[#102540] text-white rounded-lg px-6 py-3 text-[14px] font-medium min-h-[44px] transition-colors shadow-sm w-full sm:w-auto"
-              >
-                Apply for this Scheme
-              </Link>
-            </div>
-          </div>
-
-          {/* NOS Card */}
-          <div className="bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-[#f5f7fa] border border-[#dde1e7] text-[#1a3557] shrink-0">
-                  <Globe className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-[18px] font-bold text-[#1c2b3a]">NOS Scheme</h2>
-                  <span className="inline-block text-[12px] font-medium text-[#16a34a] bg-green-50 border border-green-200 px-2 py-0.5 rounded mt-0.5">
-                    Scheduled Tribe Students
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[14px] text-[#6b7a8d] leading-relaxed mb-6">
-              National Overseas Scholarship providing financial assistance to selected ST students for pursuing Post Graduate and Ph.D. courses abroad.
-            </p>
-
-            {/* Eligibility Section */}
-            <div className="bg-[#f5f7fa] border border-[#dde1e7] rounded-lg p-4 mb-6">
-              <h3 className="text-[13px] font-semibold text-[#1c2b3a] mb-2.5">
-                Eligibility Requirements:
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Scheduled Tribe category</span>
-                </li>
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Admission secured in an overseas institution</span>
-                </li>
-                <li className="flex items-center gap-2 text-[13px] text-[#4b5563]">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#16a34a] shrink-0" />
-                  <span>Family income within prescribed limit</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Apply Button */}
-            <div>
-              <Link
-                to="/apply/nos"
-                className="inline-flex items-center justify-center bg-[#1a3557] hover:bg-[#102540] text-white rounded-lg px-6 py-3 text-[14px] font-medium min-h-[44px] transition-colors shadow-sm w-full sm:w-auto"
-              >
-                Apply for this Scheme
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </PortalLayout>
   );
-};
-
-export default SchemeSelection;
+}

@@ -3,9 +3,18 @@ const mongoose = require('mongoose');
 const documentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    // Machine-readable id from the student portal, e.g. 'st_certificate'
+    docType: { type: String, default: '' },
     source: { type: String, enum: ['manual', 'digilocker'], default: 'manual' },
     verified: { type: Boolean, default: false },
     fileUrl: { type: String, default: '' },
+    fileName: { type: String, default: '' },
+    mimeType: { type: String, default: '' },
+    size: { type: Number, default: 0 },
+    // DigiLocker metadata (documents pulled from DigiLocker)
+    digilockerUri: { type: String, default: '' },
+    issuer: { type: String, default: '' },
+    certificateNo: { type: String, default: '' },
   },
   { _id: false }
 );
@@ -38,7 +47,8 @@ const applicationSchema = new mongoose.Schema(
     district: { type: String },
 
     // Scheme info
-    scheme: { type: String, enum: ['NFST', 'NOS'], required: true },
+    scheme: { type: String, enum: ['NFST', 'NOS', 'PRE_MATRIC'], required: true },
+    session: { type: String, default: '2026-27' },
     course: { type: String },
     institution: { type: String },
 
@@ -50,6 +60,13 @@ const applicationSchema = new mongoose.Schema(
     },
 
     documents: [documentSchema],
+
+    // Full form submitted from the student portal (personal, category,
+    // academic, bank and declarations sections). Kept flexible because each
+    // scheme asks different questions.
+    schemeData: { type: mongoose.Schema.Types.Mixed },
+    declaredIncome: { type: Number },
+    declaredMarks: { type: Number },
 
     aiVerification: {
       checks: [aiCheckSchema],
@@ -88,6 +105,7 @@ const applicationSchema = new mongoose.Schema(
 );
 
 applicationSchema.index({ status: 1, scheme: 1, state: 1 });
+applicationSchema.index({ student: 1, scheme: 1, session: 1 });
 applicationSchema.index({ name: 'text', applicationCode: 'text' });
 
 module.exports = mongoose.model('Application', applicationSchema);

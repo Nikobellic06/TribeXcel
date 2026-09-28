@@ -12,6 +12,10 @@ import AppShell from '../components/AppShell';
 import StatusBadge from '../components/StatusBadge';
 import api from '../api/axios';
 
+/* Files uploaded from the student portal are stored as /uploads/... on the API server. */
+const fileHref = (url) =>
+  /^https?:/.test(url) ? url : `${(api.defaults.baseURL || '').replace(/\/api\/?$/, '')}${url}`;
+
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   try {
@@ -260,7 +264,7 @@ export default function ApplicationDetail() {
                     </div>
                     {doc.fileUrl ? (
                       <a
-                        href={doc.fileUrl}
+                        href={fileHref(doc.fileUrl)}
                         target="_blank"
                         rel="noreferrer"
                         className="text-[12px] text-[#1a3557] font-medium hover:underline px-1"

@@ -46,15 +46,7 @@ const register = async (req, res) => {
 
     res.status(201).json({
       token: generateToken(student._id),
-      student: {
-        id: student._id,
-        name: student.name,
-        email: student.email,
-        rollNumber: student.rollNumber,
-        phone: student.phone,
-        dob: student.dob,
-        state: student.state,
-      },
+      student: student.toProfile(),
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error during registration' });
@@ -86,15 +78,7 @@ const login = async (req, res) => {
 
     res.json({
       token: generateToken(student._id),
-      student: {
-        id: student._id,
-        name: student.name,
-        email: student.email,
-        rollNumber: student.rollNumber,
-        phone: student.phone,
-        dob: student.dob,
-        state: student.state,
-      },
+      student: student.toProfile(),
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error during login' });
@@ -103,7 +87,7 @@ const login = async (req, res) => {
 
 /* GET /api/student/me */
 const getProfile = async (req, res) => {
-  res.json({ student: req.student });
+  res.json({ student: req.student.toProfile() });
 };
 
 module.exports = { register, login, getProfile };

@@ -6,6 +6,8 @@ const authRoutes = require('./routes/authRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const studentAuthRoutes = require('./routes/studentAuthRoutes');
 const studentApplicationRoutes = require('./routes/studentApplicationRoutes');
+const studentPortalRoutes = require('./routes/studentPortalRoutes');
+const { UPLOAD_ROOT } = require('./controllers/studentUploadController');
 
 connectDB();
 
@@ -15,8 +17,23 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
+// Documents uploaded from the student portal. File names are random and
+// unguessable; see CHANGES.md before using this in production.
+app.use(
+  '/uploads',
+  express.static(UPLOAD_ROOT, {
+    index: false,
+    dotfiles: 'deny',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'inline');
+    },
+  })
+);
+
 app.use('/api/admin', authRoutes);
 app.use('/api/student', studentAuthRoutes);
+app.use('/api/student', studentPortalRoutes);
 app.use('/api/student', studentApplicationRoutes);
 app.use('/api', applicationRoutes);
 

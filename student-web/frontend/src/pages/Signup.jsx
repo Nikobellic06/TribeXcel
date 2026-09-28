@@ -1,236 +1,111 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import SiteHeader from '../components/SiteHeader';
-import SiteFooter from '../components/SiteFooter';
+import { useLang } from '../i18n/LanguageContext';
+import AuthLayout from '../components/layout/AuthLayout';
+import { Field, TextInput, SelectInput, binder } from '../components/ui/Field';
+import PasswordInput from '../components/ui/PasswordInput';
+import Button from '../components/ui/Button';
+import Alert from '../components/ui/Alert';
+import { STATES } from '../config/options';
+import { apiErrorMessage } from '../api/axios';
+import * as v from '../utils/validation';
 
-const STATES = ['Odisha', 'Jharkhand', 'Chhattisgarh', 'Madhya Pradesh', 'Other'];
+const EMPTY = { name: '', email: '', rollNumber: '', phone: '', dob: '', state: '', password: '', confirmPassword: '' };
 
 const Signup = () => {
-  const [form, setForm] = useState({
-    name: '', email: '', phone: '', rollNumber: '',
-    dob: '', state: '', password: '', confirmPassword: '',
-  });
+  const { t, tx } = useLang();
+  const { student, signup } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { signup } = useAuth();
-  const navigate = useNavigate();
+  const redirectTo = location.state?.from || '/profile';
+  if (student) return <Navigate to={location.state?.from || '/dashboard'} replace />;
 
-  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const setValue = (k, val) => setForm((f) => ({ ...f, [k]: val }));
+  const bind = binder(form, errors, setValue);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    const required = ['name', 'email', 'phone', 'rollNumber', 'password', 'confirmPassword'];
-    for (const field of required) {
-      if (!form[field].trim()) {
-        setError('Please fill in all required fields');
-        return;
-      }
-    }
-    if (form.password !== form.confirmPassword) {
-      setError('Password and confirm password do not match');
-      return;
-    }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    const errs = {};
+    if (v.required(form.name)) errs.name = 'err.required';
+    const emailErr = v.email(form.email);
+    if (emailErr) errs.email = emailErr;
+    if (v.required(form.rollNumber)) errs.rollNumber = 'err.required';
+    const mobileErr = v.mobile(form.phone);
+    if (mobileErr) errs.phone = mobileErr;
+    if (form.password.length < 6) errs.password = 'auth.passwordShort';
+    if (form.password !== form.confirmPassword) errs.confirmPassword = 'auth.passwordMatch';
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
 
     setLoading(true);
     try {
-      await signup(form);
-      navigate('/dashboard');
+      await signup({ ...form, email: form.email.trim(), rollNumber: form.rollNumber.trim() });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed. Please try again.');
+      setError(apiErrorMessage(err) || t('err.network'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f7fa]">
-      <SiteHeader />
-
-      <main className="flex-1 py-8 px-4 sm:px-6 flex items-center justify-center">
-        <div className="w-full max-w-lg bg-white border border-[#dde1e7] rounded-xl p-6 sm:p-8 shadow-sm">
-          <div className="mb-6">
-            <h1 className="text-[22px] font-bold text-[#1c2b3a] tracking-tight">
-              Create your account
-            </h1>
-            <p className="text-[14px] text-[#6b7a8d] mt-1">
-              Register to apply for scholarship &amp; fellowship schemes
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 2-Column Responsive Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={update('name')}
-                  placeholder="Enter full name"
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  Roll Number *
-                </label>
-                <input
-                  type="text"
-                  value={form.rollNumber}
-                  onChange={update('rollNumber')}
-                  placeholder="Enter roll number"
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={update('email')}
-                  placeholder="you@example.com"
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  Phone *
-                </label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={update('phone')}
-                  placeholder="10-digit mobile number"
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={form.dob}
-                  onChange={update('dob')}
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                  State
-                </label>
-                <select
-                  value={form.state}
-                  onChange={update('state')}
-                  className="w-full border border-[#dde1e7] rounded-lg px-3 py-2.5 text-[14px] text-[#1c2b3a] focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors bg-white"
-                >
-                  <option value="">Select state</option>
-                  {STATES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Full-width Password fields with Eye/EyeOff toggles */}
-            <div>
-              <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                Password *
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={update('password')}
-                  placeholder="At least 6 characters"
-                  className="w-full border border-[#dde1e7] rounded-lg pl-3 pr-10 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a8d] hover:text-[#1c2b3a] p-1 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-[#4b5563] mb-1.5">
-                Confirm Password *
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={form.confirmPassword}
-                  onChange={update('confirmPassword')}
-                  placeholder="Re-enter your password"
-                  className="w-full border border-[#dde1e7] rounded-lg pl-3 pr-10 py-2.5 text-[14px] text-[#1c2b3a] placeholder-[#6b7a8d]/60 focus:border-[#1a3557] focus:ring-1 focus:ring-[#1a3557] outline-none transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a8d] hover:text-[#1c2b3a] p-1 focus:outline-none"
-                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Error Banner */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-lg px-4 py-2.5 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#1a3557] hover:bg-[#102540] text-white rounded-lg py-3 text-[14px] font-medium disabled:opacity-50 min-h-[44px] cursor-pointer transition-colors shadow-sm mt-2"
-            >
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </button>
-
-            {/* Link to Login */}
-            <p className="text-[13px] text-[#6b7a8d] text-center pt-2">
-              Already have an account?{' '}
-              <Link to="/login" className="text-[#1a3557] font-semibold hover:underline">
-                Log in
-              </Link>
-            </p>
-          </form>
+    <AuthLayout
+      title={tx({ en: 'Create your account', hi: 'अपना खाता बनाएं' })}
+      subtitle={tx({ en: 'Register once and apply for any open scheme.', hi: 'एक बार पंजीकरण करें और किसी भी खुली योजना हेतु आवेदन करें।' })}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {error && <Alert tone="error">{error}</Alert>}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={tx({ en: 'Full name (as in Aadhaar)', hi: 'पूरा नाम (आधार अनुसार)' })} htmlFor="name" required error={errors.name} className="sm:col-span-2">
+            <TextInput {...bind('name')} autoComplete="name" />
+          </Field>
+          <Field label={tx({ en: 'Email address', hi: 'ईमेल पता' })} htmlFor="email" required error={errors.email}>
+            <TextInput {...bind('email')} type="email" autoComplete="email" />
+          </Field>
+          <Field label={tx({ en: 'Mobile number', hi: 'मोबाइल नंबर' })} htmlFor="phone" required error={errors.phone}>
+            <TextInput {...bind('phone')} transform={(x) => x.replace(/\D/g, '').slice(0, 10)} inputMode="numeric" autoComplete="tel" />
+          </Field>
+          <Field
+            label={tx({ en: 'Roll / enrolment number', hi: 'रोल / नामांकन संख्या' })}
+            htmlFor="rollNumber"
+            required
+            error={errors.rollNumber}
+            hint={tx({ en: 'From your school or university ID. You can log in with it.', hi: 'विद्यालय या विश्वविद्यालय पहचान पत्र से। इससे लॉगिन भी कर सकते हैं।' })}
+          >
+            <TextInput {...bind('rollNumber')} autoComplete="off" />
+          </Field>
+          <Field label={tx({ en: 'Date of birth', hi: 'जन्मतिथि' })} htmlFor="dob" optional>
+            <TextInput {...bind('dob')} type="date" />
+          </Field>
+          <Field label={tx({ en: 'State / UT', hi: 'राज्य / संघ राज्य क्षेत्र' })} htmlFor="state" optional className="sm:col-span-2">
+            <SelectInput {...bind('state')} options={STATES} />
+          </Field>
+          <Field label={tx({ en: 'Password', hi: 'पासवर्ड' })} htmlFor="password" required error={errors.password} hint={tx({ en: 'At least 6 characters.', hi: 'कम से कम 6 अक्षर।' })}>
+            <PasswordInput {...bind('password')} autoComplete="new-password" />
+          </Field>
+          <Field label={tx({ en: 'Confirm password', hi: 'पासवर्ड की पुष्टि करें' })} htmlFor="confirmPassword" required error={errors.confirmPassword}>
+            <PasswordInput {...bind('confirmPassword')} autoComplete="new-password" />
+          </Field>
         </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+        <Button type="submit" className="w-full" icon={UserPlus} loading={loading}>
+          {tx({ en: 'Register', hi: 'पंजीकरण करें' })}
+        </Button>
+        <p className="text-center text-[13px] text-muted">
+          {tx({ en: 'Already registered?', hi: 'पहले से पंजीकृत?' })}{' '}
+          <Link to="/login" state={location.state} className="font-semibold text-navy hover:underline">
+            {t('nav.login')}
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

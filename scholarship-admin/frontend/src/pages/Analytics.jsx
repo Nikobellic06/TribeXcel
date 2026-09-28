@@ -140,6 +140,7 @@ export default function Analytics() {
               <option value="All">All Schemes</option>
               <option value="NFST">NFST — National Fellowship for ST Students</option>
               <option value="NOS">NOS — National Overseas Scholarship</option>
+              <option value="PRE_MATRIC">Pre-Matric — Scholarship for ST Students (Class IX-X)</option>
             </select>
           </div>
 
