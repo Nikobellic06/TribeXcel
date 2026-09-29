@@ -1,7 +1,7 @@
 const ApplicationDraft = require('../models/ApplicationDraft');
 const Application = require('../models/Application');
 
-const SCHEMES = ['NFST', 'NOS', 'PRE_MATRIC'];
+const SCHEMES = ['NFST', 'NOS', 'PRE_MATRIC', 'POST_MATRIC', 'TOP_CLASS'];
 const STEPS = ['personal', 'category', 'academic', 'bank', 'documents', 'review'];
 
 function schemeFrom(req, res) {
@@ -17,7 +17,7 @@ function schemeFrom(req, res) {
 const listDrafts = async (req, res) => {
   try {
     const drafts = await ApplicationDraft.find({ student: req.student._id })
-      .select('scheme session currentStep completedSteps updatedAt')
+      .select('scheme session applicationType currentStep completedSteps updatedAt')
       .sort({ updatedAt: -1 });
     res.json({ drafts });
   } catch (err) {
@@ -37,12 +37,12 @@ const getDraft = async (req, res) => {
   }
 };
 
-/* PUT /api/student/drafts/:scheme   body: { data, currentStep, completedSteps } */
+/* PUT /api/student/drafts/:scheme   body: { data, currentStep, completedSteps, applicationType } */
 const saveDraft = async (req, res) => {
   const scheme = schemeFrom(req, res);
   if (!scheme) return;
   try {
-    const { data, currentStep, completedSteps } = req.body || {};
+    const { data, currentStep, completedSteps, applicationType } = req.body || {};
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       return res.status(400).json({ message: 'Draft data must be an object' });
     }
@@ -52,9 +52,9 @@ const saveDraft = async (req, res) => {
     const locked = await Application.findOne({
       student: req.student._id,
       scheme,
-      status: { $in: ['Pending', 'Eligible', 'Flagged', 'Selected', 'Rejected'] },
+      status: { $in: ['Pending', 'Eligible', 'Flagged', 'Selected', 'Rejected', 'Submitted', 'Under Scrutiny'] },
     });
-    if (locked) {
+    if (locked && locked.status !== 'Deficient') {
       return res.status(200).json({ draft: null, locked: true, message: 'An application for this scheme is already submitted' });
     }
 
@@ -65,6 +65,7 @@ const saveDraft = async (req, res) => {
           data,
           currentStep: STEPS.includes(currentStep) ? currentStep : '',
           completedSteps: steps,
+          applicationType: applicationType === 'RENEWAL' ? 'RENEWAL' : 'FRESH',
         },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }

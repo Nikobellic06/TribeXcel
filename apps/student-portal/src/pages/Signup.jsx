@@ -24,8 +24,9 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const redirectTo = location.state?.from || '/profile';
-  if (student) return <Navigate to={location.state?.from || '/dashboard'} replace />;
+  // Always route newly registered users to dashboard where they can review profile status and choose schemes
+  const redirectTo = '/dashboard';
+  if (student) return <Navigate to="/dashboard" replace />;
 
   const setValue = (k, val) => setForm((f) => ({ ...f, [k]: val }));
   const bind = binder(form, errors, setValue);

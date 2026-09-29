@@ -24,7 +24,7 @@ const typeLabel = (accept) =>
  * One row of the document checklist. A document can come from DigiLocker
  * (issued, treated as verified) or be uploaded by the student.
  */
-export default function DocumentItem({ doc, record, onChange, onDigiLocker, error, locked, applicationData = {} }) {
+export default function DocumentItem({ doc, record, onChange, onDigiLocker, onViewDetails, error, locked, applicationData = {} }) {
   const { t, tx } = useLang();
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -49,11 +49,9 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, erro
     setBusy(true);
     try {
       const data = await readAsBase64(file);
-      let res = { fileUrl: '', fileName: file.name };
-      try {
-        res = await uploadFile({ fileName: file.name, mimeType: file.type, data, docType: doc.id });
-      } catch (uploadErr) {
-        res = { fileUrl: URL.createObjectURL(file), fileName: file.name };
+      const res = await uploadFile({ fileName: file.name, mimeType: file.type, data, docType: doc.id });
+      if (!res?.fileUrl) {
+        throw new Error('Server did not return a valid document storage reference');
       }
 
       // Execute visible multi-stage AI document intelligence pipeline
@@ -110,19 +108,39 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, erro
               )}
             </p>
             {record ? (
-              <p className="mt-0.5 text-[12px] text-muted">
-                <span className={`font-semibold ${fromDigiLocker ? 'text-leaf' : 'text-navy'}`}>
-                  {fromDigiLocker ? t('doc.digilocker') : t('doc.manual')}
-                </span>
-                {' — '}
-                <span className="break-all">{record.fileName}</span>
-                {record.size ? ` (${formatFileSize(record.size)})` : ''}
-                {fromDigiLocker && record.issuer ? (
-                  <span className="block">{record.issuer}{record.certificateNo ? `, ${record.certificateNo}` : ''}</span>
-                ) : null}
-              </p>
+              <div className="mt-0.5 space-y-1">
+                <p className="text-[12px] text-muted">
+                  <span className={`font-semibold ${fromDigiLocker ? 'text-leaf' : 'text-navy'}`}>
+                    {fromDigiLocker ? t('doc.digilocker') : t('doc.manual')}
+                  </span>
+                  {' — '}
+                  <span className="break-all">{record.fileName}</span>
+                  {record.size ? ` (${formatFileSize(record.size)})` : ''}
+                  {fromDigiLocker && record.issuer ? (
+                    <span className="block text-[11.5px] text-muted mt-0.5">
+                      {record.issuer}{record.certificateNo ? `, Ref: ${record.certificateNo}` : ''}
+                    </span>
+                  ) : null}
+                </p>
+
+                {fromDigiLocker && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="inline-flex items-center gap-1 rounded bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf border border-leaf/25">
+                      ✓ Retrieved from DigiLocker
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy border border-navy/20">
+                      ✓ Matched with application requirement
+                    </span>
+                  </div>
+                )}
+              </div>
             ) : (
-              <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{tx(doc.hint)}</p>
+              <div>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{tx(doc.hint)}</p>
+                <p className="mt-1 text-[11.5px] text-muted font-medium">
+                  ○ {doc.digilocker ? tx({ en: 'Available from DigiLocker or manual upload', hi: 'डिजिलॉकर या मैन्युअल अपलोड हेतु उपलब्ध' }) : tx({ en: 'Manual upload required', hi: 'मैन्युअल अपलोड अनिवार्य' })}
+                </p>
+              </div>
             )}
             {(uploadError || (error && !record)) && (
               <p className="mt-1 text-[12px] text-alert" role="alert">
@@ -136,6 +154,11 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, erro
           <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
             {record ? (
               <>
+                {fromDigiLocker && onViewDetails && (
+                  <Button size="sm" variant="secondary" icon={FileText} onClick={() => onViewDetails(record, doc)}>
+                    {tx({ en: 'View Details', hi: 'विवरण देखें' })}
+                  </Button>
+                )}
                 {record.fileUrl && (
                   <Button size="sm" variant="ghost" href={fileHref(record.fileUrl)} target="_blank" rel="noreferrer" icon={Eye}>
                     {t('common.view')}

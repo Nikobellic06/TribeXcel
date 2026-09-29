@@ -16,7 +16,12 @@
     "build:admin": "npm --prefix apps/admin-portal run build",
     "build:all": "npm run build:student && npm run build:admin",
     "seed:admin": "node scripts/development/seedAdmin.js",
-    "test:security": "node tests/security/securityAudit.js"
+    "test:security": "node tests/security/securityAudit.js",
+    "test:digilocker": "node services/api-server/scripts/testDigiLockerSandbox.js",
+    "test:wallet": "node tests/digilocker/walletE2ETest.js",
+    "test:e2e": "node tests/e2e/fiveSchemesE2E.js",
+    "test:analysis": "node tests/e2e/documentAnalysisFlowTest.js",
+    "test": "npm run test:security && npm run test:digilocker && npm run test:wallet && npm run test:e2e && npm run test:analysis"
   },
   "keywords": [
     "scholarship",

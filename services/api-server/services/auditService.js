@@ -8,7 +8,7 @@ async function logAuditEvent({
   userName = 'SYSTEM',
   userRole = 'SYSTEM',
   action,
-  entityType,
+  entityType = 'System',
   entityId,
   oldValue = null,
   newValue = null,

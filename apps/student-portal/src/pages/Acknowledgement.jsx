@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { LayoutDashboard, Printer } from 'lucide-react';
+import { LayoutDashboard, PencilLine, Printer } from 'lucide-react';
 import { useLang } from '../i18n/LanguageContext';
 import PortalLayout from '../components/layout/PortalLayout';
 import Emblem from '../components/layout/Emblem';
@@ -79,13 +79,46 @@ export default function Acknowledgement() {
   return (
     <PortalLayout>
       <div className="space-y-4">
-        {location.state?.justSubmitted && (
+        {app.status === 'Deficient' ? (
+          <div className="no-print">
+            <Alert
+              tone="warn"
+              title={tx({
+                en: 'Action Required: Document Analysis Discrepancies Detected',
+                hi: 'कार्रवाई आवश्यक: दस्तावेज़ विश्लेषण में विसंगतियां पाई गईं',
+              })}
+            >
+              <div className="space-y-2">
+                <p>
+                  {tx({
+                    en: 'The Document Analysis Engine identified discrepancies in your submitted documents. Please review the items below and update your application.',
+                    hi: 'दस्तावेज़ विश्लेषण इंजन ने आपके जमा किए गए दस्तावेज़ों में विसंगतियों की पहचान की है। कृपया नीचे दी गई वस्तुओं की समीक्षा करें और अपने आवेदन को सुधारें।',
+                  })}
+                </p>
+                {app.deficiencies?.length > 0 && (
+                  <ul className="list-disc pl-5 space-y-1 text-[12.5px] font-medium text-amber-900">
+                    {app.deficiencies.map((d, idx) => (
+                      <li key={idx}>{d.actionRequired}</li>
+                    ))}
+                  </ul>
+                )}
+                {scheme && (
+                  <div className="pt-2">
+                    <Button size="sm" icon={PencilLine} to={`/apply/${scheme.id}/documents`}>
+                      {tx({ en: 'Correct and Resubmit Application', hi: 'आवेदन सुधारें और पुनः जमा करें' })}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Alert>
+          </div>
+        ) : location.state?.justSubmitted ? (
           <div className="no-print">
             <Alert tone="success" title={tx({ en: 'Application submitted successfully', hi: 'आवेदन सफलतापूर्वक जमा हुआ' })}>
               {tx({ en: 'Save or print this acknowledgement for your records.', hi: 'अपने रिकॉर्ड हेतु यह पावती सहेजें या प्रिंट करें।' })}
             </Alert>
           </div>
-        )}
+        ) : null}
 
         <div className="no-print flex flex-wrap gap-2">
           <Button icon={Printer} onClick={() => window.print()}>{t('common.print')}</Button>

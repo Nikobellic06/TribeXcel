@@ -104,6 +104,47 @@ function academicRules(scheme, values) {
       accommodation: req,
     };
   }
+  if (scheme.academicForm === 'post-matric') {
+    return {
+      courseLevel: req,
+      currentCourse: req,
+      currentYear: req,
+      courseDuration: req,
+      institutionName: req,
+      universityOrBoard: req,
+      institutionState: req,
+      enrollmentNumber: req,
+      admissionYear: req,
+      residence: req,
+      blockName: req,
+    };
+  }
+  if (scheme.academicForm === 'top-class') {
+    const isRenewal = values.applicationType === 'RENEWAL';
+    if (isRenewal) {
+      return {
+        applicationType: req,
+        premierInstituteName: req,
+        programmeName: req,
+        rollNumber: req,
+        currentYearSemester: req,
+        previousYearMarksPercentage: v.percent,
+        hasBacklogs: yesNo,
+        promotedToNextYear: yesNo,
+        tuitionFeePerAnnum: req,
+      };
+    }
+    return {
+      applicationType: req,
+      premierInstituteName: req,
+      programmeName: req,
+      rollNumber: req,
+      entranceExamName: req,
+      entranceRank: req,
+      admissionDate: req,
+      tuitionFeePerAnnum: req,
+    };
+  }
   // overseas (NOS)
   const overseasRules = {
     courseLevel: req,

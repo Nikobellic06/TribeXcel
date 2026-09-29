@@ -17,6 +17,9 @@ const SchemeSelection = lazy(() => import('./pages/SchemeSelection'));
 const MyApplications = lazy(() => import('./pages/MyApplications'));
 const Apply = lazy(() => import('./pages/apply/Apply'));
 const Acknowledgement = lazy(() => import('./pages/Acknowledgement'));
+const DigiLockerDevControl = lazy(() => import('./pages/dev/DigiLockerDevControl'));
+const DigiLockerCallback = lazy(() => import('./pages/DigiLockerCallback'));
+const DigiLockerWallet = lazy(() => import('./pages/DigiLockerWallet'));
 
 const protect = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
@@ -29,7 +32,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
+        {/* Developer Sandbox Control Route (Hidden from normal navigation) */}
+        <Route path="/dev/digilocker" element={<DigiLockerDevControl />} />
+        <Route path="/digilocker/callback" element={<DigiLockerCallback />} />
+
         <Route path="/dashboard" element={protect(<Dashboard />)} />
+        <Route path="/digilocker-wallet" element={protect(<DigiLockerWallet />)} />
+        <Route path="/wallet" element={protect(<DigiLockerWallet />)} />
         <Route path="/profile" element={protect(<Profile />)} />
         <Route path="/schemes" element={protect(<SchemeSelection />)} />
         <Route path="/applications" element={protect(<MyApplications />)} />

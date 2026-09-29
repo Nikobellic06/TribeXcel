@@ -8,7 +8,16 @@ const mongoose = require('mongoose');
 const applicationDraftSchema = new mongoose.Schema(
   {
     student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
-    scheme: { type: String, enum: ['NFST', 'NOS', 'PRE_MATRIC'], required: true },
+    scheme: {
+      type: String,
+      enum: ['NFST', 'NOS', 'PRE_MATRIC', 'POST_MATRIC', 'TOP_CLASS'],
+      required: true,
+    },
+    applicationType: {
+      type: String,
+      enum: ['FRESH', 'RENEWAL'],
+      default: 'FRESH',
+    },
     session: { type: String, default: '2026-27' },
     data: { type: mongoose.Schema.Types.Mixed, default: {} },
     currentStep: { type: String, default: '' },

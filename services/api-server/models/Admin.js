@@ -6,7 +6,7 @@ const adminSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'super-admin'], default: 'admin' },
+    role: { type: String, enum: ['super-admin', 'admin', 'reviewer'], default: 'admin' },
     designation: { type: String, default: 'Scholarship Verification Officer' },
     lastNotificationsSeenAt: { type: Date },
   },

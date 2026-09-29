@@ -11,6 +11,12 @@ function courseAndInstitution(scheme, a) {
   if (scheme.academicForm === 'research') {
     return { course: `${a.courseLevel} - ${a.subject}`, institution: a.universityName };
   }
+  if (scheme.academicForm === 'post-matric') {
+    return { course: `${a.courseLevel || 'Post-Matric'} - ${a.currentCourse || ''}`, institution: a.institutionName };
+  }
+  if (scheme.academicForm === 'top-class') {
+    return { course: a.programmeName, institution: a.premierInstituteName };
+  }
   const level = NOS_LEVELS.find((l) => l.value === a.courseLevel)?.label.en || a.courseLevel;
   return {
     course: `${level} - ${a.courseName}`,
@@ -50,6 +56,7 @@ export function buildApplicationPayload(scheme, data) {
 
   return {
     scheme: scheme.code,
+    applicationType: academic.applicationType || 'FRESH',
     session: SELECTION_YEAR,
     name: personal.fullName,
     email: personal.email,

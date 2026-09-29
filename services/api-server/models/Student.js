@@ -28,8 +28,11 @@ const studentSchema = new mongoose.Schema(
     altPhone: { type: String, trim: true, default: '' },
     address: { type: addressSchema, default: () => ({}) },
 
-    // Aadhaar e-KYC — only the last 4 digits are ever stored.
+    // Aadhaar Identity — format validation using Verhoeff checksum.
+    // Storing ONLY last 4 digits per Aadhaar Act 2016. No false claim of UIDAI e-KYC.
     aadhaarLast4: { type: String, default: '' },
+    aadhaarFormatValidated: { type: Boolean, default: false },
+    formatValidatedAt: { type: Date },
     aadhaarVerified: { type: Boolean, default: false },
     aadhaarVerifiedAt: { type: Date },
   },
@@ -69,6 +72,8 @@ studentSchema.methods.toProfile = function () {
       pincode: this.address?.pincode || '',
     },
     aadhaarLast4: this.aadhaarLast4 || '',
+    aadhaarFormatValidated: Boolean(this.aadhaarFormatValidated || this.aadhaarVerified),
+    formatValidatedAt: this.formatValidatedAt || this.aadhaarVerifiedAt,
     aadhaarVerified: Boolean(this.aadhaarVerified),
     aadhaarVerifiedAt: this.aadhaarVerifiedAt,
     createdAt: this.createdAt,

@@ -104,6 +104,19 @@ const DIGILOCKER_DOCUMENT_CATALOGUE = {
       { name: 'Year', label: 'Passing Year', required: true },
     ],
   },
+
+  domicile_certificate: {
+    docType: 'DOMCR',
+    name: 'Domicile Certificate',
+    description: 'Resident / Domicile Certificate issued by Tahsildar / SDM / Revenue Authority',
+    supportedIssuers: [
+      { id: 'in.gov.edistrict.jharkhand', name: 'e-District Jharkhand / Revenue' },
+      { id: 'in.gov.edistrict.state', name: 'State Government / e-District Revenue Department' },
+    ],
+    parameters: [
+      { name: 'Certificate_Number', label: 'Certificate Number', required: true },
+    ],
+  },
 };
 
 module.exports = {

@@ -18,6 +18,7 @@ const documentItemSchema = new mongoose.Schema(
         'VERIFIED',
         'DEFICIENT',
         'REJECTED',
+        'SANDBOX_SOURCE_CONFIRMED',
       ],
       default: 'PENDING',
     },
@@ -99,8 +100,16 @@ const applicationSchema = new mongoose.Schema(
       enum: ['NFST', 'NOS', 'PRE_MATRIC', 'POST_MATRIC', 'TOP_CLASS'],
       required: true,
     },
+    applicationType: {
+      type: String,
+      enum: ['FRESH', 'RENEWAL'],
+      default: 'FRESH',
+    },
     session: { type: String, default: '2026-27' },
+    schemeVersion: { type: String, default: '2026.1' },
     ruleVersion: { type: String, default: '2026.1' },
+    formVersion: { type: String, default: '2026.1' },
+    documentVersion: { type: String, default: '2026.1' },
 
     // Primary applicant identity (synchronized with trusted identity)
     name: { type: String, required: true },

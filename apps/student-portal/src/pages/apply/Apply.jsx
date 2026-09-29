@@ -85,16 +85,6 @@ function applyKyc(data, profile) {
   };
 }
 
-const backupKey = (code, studentId) => `draft:${code}:${studentId || 'me'}`;
-
-function readBackup(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 export default function Apply() {
   const { schemeId, step } = useParams();
@@ -121,8 +111,6 @@ export default function Apply() {
   const skipDirtyRef = useRef(false);
 
   const code = scheme?.code;
-  const studentId = student?.id || student?._id;
-  const localKey = backupKey(code, studentId);
 
   /* ---------------- Load draft, applications and profile ---------------- */
   useEffect(() => {
@@ -145,15 +133,11 @@ export default function Apply() {
       setReturnedApp(returned || null);
 
       const serverDraft = draftRes.status === 'fulfilled' ? draftRes.value : null;
-      const backup = readBackup(localKey);
       let initial;
       let steps = [];
       if (serverDraft?.data) {
         initial = { ...EMPTY, ...serverDraft.data };
         steps = serverDraft.completedSteps || [];
-      } else if (backup?.data && draftRes.status === 'rejected') {
-        initial = { ...EMPTY, ...backup.data };
-        steps = backup.completedSteps || [];
       } else if (returned) {
         initial = { ...EMPTY, ...wizardStateFromApplication(returned) };
         steps = STEP_KEYS.filter((k) => k !== 'review');
@@ -176,7 +160,7 @@ export default function Apply() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemeId]);
 
-  /* ---------------- Local backup + unsaved marker ---------------- */
+  /* ---------------- Unsaved marker ---------------- */
   useEffect(() => {
     if (!hydratedRef.current) return undefined;
     if (skipDirtyRef.current) {
@@ -184,15 +168,7 @@ export default function Apply() {
       return undefined;
     }
     setSaveState((s) => (s === 'saving' ? s : 'dirty'));
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(localKey, JSON.stringify({ data, completedSteps: savedSteps, at: Date.now() }));
-      } catch {
-        /* quota or private mode — server draft still works */
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [data, savedSteps, localKey]);
+  }, [data, savedSteps]);
 
   useEffect(() => {
     if (saveState !== 'dirty') return undefined;
@@ -274,11 +250,6 @@ export default function Apply() {
       if (lockedApp) return false;
       setSaveState('saving');
       try {
-        localStorage.setItem(localKey, JSON.stringify({ data, completedSteps: nextSteps, at: Date.now() }));
-      } catch {
-        /* ignore */
-      }
-      try {
         const draft = await saveDraft(code, { data, currentStep, completedSteps: nextSteps });
         if (draft === null) {
           setSaveState('idle');
@@ -292,7 +263,7 @@ export default function Apply() {
         return false;
       }
     },
-    [code, data, localKey, lockedApp]
+    [code, data, lockedApp]
   );
 
   /* Autosave to the server a few seconds after the student stops typing. */
@@ -353,11 +324,6 @@ export default function Apply() {
     try {
       const application = await submitApplication(buildApplicationPayload(scheme, data));
       deleteDraft(code).catch(() => {});
-      try {
-        localStorage.removeItem(localKey);
-      } catch {
-        /* ignore */
-      }
       setSaveState('saved');
       setConfirmOpen(false);
       navigate(`/applications/${application._id}/acknowledgement`, { replace: true, state: { justSubmitted: true } });
@@ -380,65 +346,7 @@ export default function Apply() {
     );
   }
 
-  if (scheme.applicationMode === 'EXTERNAL_FEDERATED') {
-    return (
-      <PortalLayout>
-        <div className="overflow-hidden rounded-md border border-line bg-white">
-          <div className="border-b border-line bg-surface px-6 py-5">
-            <span className="inline-block rounded border border-navy/20 bg-navy/5 px-2.5 py-0.5 text-[11px] font-semibold tracking-wider text-navy uppercase">
-              {tx(scheme.type)}
-            </span>
-            <h1 className="mt-2 font-serif text-[22px] font-bold text-navy">
-              {tx(scheme.name)}
-            </h1>
-            <p className="mt-1 text-[13.5px] text-muted">{tx(scheme.level)}</p>
-          </div>
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="rounded-md border border-sky-300 bg-sky-50/70 p-4 text-[14px] text-navy">
-              <h2 className="font-semibold text-navy flex items-center gap-2">
-                <CircleCheck className="h-5 w-5 text-sky-700" />
-                {tx({
-                  en: 'External Federated Workflow Notice',
-                  hi: 'बाह्य संबद्ध कार्यप्रवाह सूचना',
-                })}
-              </h2>
-              <p className="mt-2 leading-relaxed text-muted">
-                {tx(scheme.applicationRouteNotice)}
-              </p>
-            </div>
 
-            <div className="rounded-md border border-line bg-paper p-5 space-y-3">
-              <h3 className="font-bold text-ink text-[14px]">
-                {tx({ en: 'Scheme Eligibility & Norms', hi: 'योजना पात्रता एवं मानदंड' })}
-              </h3>
-              <ul className="list-disc pl-5 text-[13.5px] text-muted space-y-1.5">
-                {(scheme.eligibility || []).map((e, idx) => (
-                  <li key={idx}>{tx(e)}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <a
-                href={scheme.externalPortalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md bg-navy px-5 py-2.5 text-[14px] font-semibold text-white shadow-xs hover:bg-navy/90"
-              >
-                {tx({
-                  en: `Open ${scheme.externalPortalName} (External Official Portal)`,
-                  hi: `आधिकारिक पोर्टल पर जाएं (${scheme.externalPortalName})`,
-                })}
-              </a>
-              <Button to="/schemes" variant="secondary">
-                {tx({ en: 'Browse Other MoTA Schemes', hi: 'अन्य योजनाएं देखें' })}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </PortalLayout>
-    );
-  }
 
   if (loading) {
     return (
@@ -653,9 +561,71 @@ export default function Apply() {
       <DigiLockerModal
         open={dl.open}
         docs={dl.docs}
-        context={{ mobile: data.personal?.mobile, state: data.category?.domicileState || data.personal?.state }}
+        context={{
+          mobile: data.personal?.mobile,
+          state: data.category?.domicileState || data.personal?.state,
+          schemeCode: scheme?.code,
+          applicationId: lockedApp?._id || returnedApp?._id,
+        }}
         onClose={() => setDl((s) => ({ ...s, open: false }))}
-        onComplete={(records) => dl.onDone?.(records)}
+        onComplete={(records, autoFill) => {
+          dl.onDone?.(records);
+          if (autoFill && typeof autoFill === 'object' && Object.keys(autoFill).length > 0) {
+            setData((prev) => {
+              const personal = { ...(prev.personal || {}) };
+              const category = { ...(prev.category || {}) };
+              const academic = { ...(prev.academic || {}) };
+
+              if (autoFill.fullName?.value) {
+                personal.name = autoFill.fullName.value;
+                personal.fullName = autoFill.fullName.value;
+                personal.fullNameSourceValue = autoFill.fullName.value;
+              }
+              if (autoFill.dob?.value) {
+                personal.dob = autoFill.dob.value;
+                personal.dobSourceValue = autoFill.dob.value;
+              }
+              if (autoFill.fatherName?.value) {
+                personal.fatherName = autoFill.fatherName.value;
+                personal.fatherNameSourceValue = autoFill.fatherName.value;
+              }
+              if (autoFill.stCertificateNumber?.value) {
+                category.stCertificateNo = String(autoFill.stCertificateNumber.value);
+                category.stCertificateNoSourceValue = String(autoFill.stCertificateNumber.value);
+              }
+              if (autoFill.stIssuingAuthority?.value) {
+                category.stIssuingAuthority = autoFill.stIssuingAuthority.value;
+              }
+              if (autoFill.stIssueDate?.value) {
+                category.stIssueDate = autoFill.stIssueDate.value;
+              }
+              if (autoFill.tribe?.value) {
+                category.tribeName = autoFill.tribe.value;
+                category.tribeNameSourceValue = autoFill.tribe.value;
+              }
+              if (autoFill.incomeCertificateNumber?.value) {
+                category.incomeCertificateNo = String(autoFill.incomeCertificateNumber.value);
+                category.incomeCertificateNoSourceValue = String(autoFill.incomeCertificateNumber.value);
+              }
+              if (autoFill.annualIncome?.value) {
+                category.familyIncome = String(autoFill.annualIncome.value);
+                category.familyIncomeSourceValue = String(autoFill.annualIncome.value);
+              }
+              if (autoFill.incomeIssuingAuthority?.value) {
+                category.incomeIssuingAuthority = autoFill.incomeIssuingAuthority.value;
+              }
+              if (autoFill.incomeIssueDate?.value) {
+                category.incomeCertificateDate = autoFill.incomeIssueDate.value;
+              }
+              if (autoFill.state?.value) {
+                category.domicileState = autoFill.state.value;
+              }
+
+              return { ...prev, personal, category, academic };
+            });
+          }
+          setDl((s) => ({ ...s, open: false }));
+        }}
       />
 
       <Modal

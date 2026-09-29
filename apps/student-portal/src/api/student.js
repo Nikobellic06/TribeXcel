@@ -142,3 +142,91 @@ export const fetchDigiLockerDocuments = async () => {
     throw err;
   }
 };
+
+export const initiateDigiLockerAuth = async (payload = {}) => {
+  const res = await api.post('/digilocker/authorize', payload);
+  return res.data;
+};
+
+export const fetchDigiLockerSession = async (sessionId) => {
+  const res = await api.get(`/digilocker/session/${sessionId}`);
+  return res.data?.session;
+};
+
+export const submitDigiLockerOtp = async (sessionId, otp) => {
+  const res = await api.post(`/digilocker/session/${sessionId}/auth-otp`, { otp });
+  return res.data;
+};
+
+export const submitDigiLockerConsent = async (sessionId, consentGranted = true) => {
+  const res = await api.post(`/digilocker/session/${sessionId}/consent`, { consentGranted });
+  return res.data;
+};
+
+export const fetchIssuedDigiLockerDocuments = async (sessionId) => {
+  const res = await api.get(`/digilocker/session/${sessionId}/documents`);
+  return res.data;
+};
+
+export const retrieveDigiLockerDocuments = async (sessionId, selectedDocumentIds) => {
+  const res = await api.post(`/digilocker/session/${sessionId}/retrieve`, { selectedDocumentIds });
+  return res.data;
+};
+
+export const completeDigiLockerSession = async (sessionId) => {
+  const res = await api.post(`/digilocker/session/${sessionId}/complete`);
+  return res.data;
+};
+
+export const cancelDigiLockerSession = async (sessionId) => {
+  const res = await api.post(`/digilocker/session/${sessionId}/cancel`);
+  return res.data;
+};
+
+export const fetchDigiLockerScenarios = async () => {
+  const res = await api.get('/digilocker/dev/scenarios');
+  return res.data;
+};
+
+export const setDigiLockerScenario = async (scenario) => {
+  const res = await api.post('/digilocker/dev/scenario', { scenario });
+  return res.data;
+};
+
+/* --- DigiLocker Sandbox Wallet API --- */
+export const fetchWalletOverview = async () => {
+  const res = await api.get('/digilocker/wallet/overview');
+  return res.data;
+};
+
+export const fetchWalletDocuments = async (params = {}) => {
+  const res = await api.get('/digilocker/wallet/documents', { params });
+  return res.data?.documents || [];
+};
+
+export const uploadWalletDocument = async (payload) => {
+  const res = await api.post('/digilocker/wallet/upload', payload);
+  return res.data;
+};
+
+export const fetchWalletDocumentDetail = async (id) => {
+  const res = await api.get(`/digilocker/wallet/documents/${id}`);
+  return res.data?.document;
+};
+
+export const updateWalletDocumentFields = async (id, payload) => {
+  const res = await api.patch(`/digilocker/wallet/documents/${id}/fields`, payload);
+  return res.data;
+};
+
+export const markWalletDocumentReady = async (id) => {
+  const res = await api.post(`/digilocker/wallet/documents/${id}/verify`);
+  return res.data;
+};
+
+
+export const deleteWalletDocument = async (id) => {
+  const res = await api.delete(`/digilocker/wallet/documents/${id}`);
+  return res.data;
+};
+

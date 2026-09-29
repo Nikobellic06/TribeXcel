@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
-import { BadgeCheck, SquarePen, TriangleAlert } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BadgeCheck, SquarePen, TriangleAlert, Eye } from 'lucide-react';
 import { useLang } from '../../../i18n/LanguageContext';
 import { Checkbox } from '../../../components/ui/Field';
 import Alert from '../../../components/ui/Alert';
 import EligibilityPanel from '../../../components/apply/EligibilityPanel';
+import DocumentDetailsDrawer from '../../../components/digilocker/DocumentDetailsDrawer';
 import { getDocumentChecklist } from '../../../config/documents';
 import {
   GENDERS,
@@ -56,6 +57,8 @@ export default function ReviewStep({ scheme, data, errors, setDeclaration, goTo,
   const b = data.bank || {};
   const docs = data.documents || {};
   const d = data.declarations || {};
+  const [reviewDrawerDoc, setReviewDrawerDoc] = useState(null);
+  const [reviewDrawerOpen, setReviewDrawerOpen] = useState(false);
 
   const opt = (options, value) => {
     const found = options.find((o) => o.value === value);
@@ -92,6 +95,44 @@ export default function ReviewStep({ scheme, data, errors, setDeclaration, goTo,
         [tx({ en: 'Post-graduation', hi: 'स्नातकोत्तर' }), [a.pgDegree, a.pgUniversity, a.pgYear].filter(Boolean).join(', ')],
         [tx({ en: 'PG marks', hi: 'स्नातकोत्तर अंक' }), marks],
         [tx({ en: 'Other fellowship', hi: 'अन्य फेलोशिप' }), yn(a.otherFellowship)],
+      ];
+    }
+    if (scheme.academicForm === 'post-matric') {
+      return [
+        [tx({ en: 'Course Level', hi: 'पाठ्यक्रम स्तर' }), a.courseLevel],
+        [tx({ en: 'Course Name', hi: 'पाठ्यक्रम नाम' }), a.currentCourse],
+        [tx({ en: 'Current Year', hi: 'वर्तमान वर्ष' }), a.currentYear],
+        [tx({ en: 'Duration', hi: 'अवधि' }), a.courseDuration ? `${a.courseDuration} yrs` : ''],
+        [tx({ en: 'Institution', hi: 'संस्थान' }), [a.institutionName, a.institutionState].filter(Boolean).join(', ')],
+        [tx({ en: 'University / Board', hi: 'विश्वविद्यालय / बोर्ड' }), a.universityOrBoard],
+        [tx({ en: 'Enrollment No.', hi: 'नामांकन संख्या' }), a.enrollmentNumber],
+        [tx({ en: 'Admission Year', hi: 'प्रवेश वर्ष' }), a.admissionYear],
+        [tx({ en: 'Hostel Status', hi: 'छात्रावास स्थिति' }), opt(RESIDENCE_TYPES, a.residence)],
+        [tx({ en: 'Tehsil / Block', hi: 'तहसील / प्रखंड' }), a.blockName],
+      ];
+    }
+    if (scheme.academicForm === 'top-class') {
+      const isRenewal = a.applicationType === 'RENEWAL';
+      return [
+        [tx({ en: 'Application Flow', hi: 'आवेदन प्रवाह' }), isRenewal ? tx({ en: 'Renewal', hi: 'नवीनीकरण' }) : tx({ en: 'Fresh', hi: 'नवीन' })],
+        [tx({ en: 'Premier Institute', hi: 'उत्कृष्ट संस्थान' }), a.premierInstituteName],
+        [tx({ en: 'Programme', hi: 'कार्यक्रम' }), a.programmeName],
+        [tx({ en: 'Roll No.', hi: 'रोल नंबर' }), a.rollNumber],
+        ...(isRenewal
+          ? [
+              [tx({ en: 'Current Semester / Year', hi: 'वर्तमान सेमेस्टर / वर्ष' }), a.currentYearSemester],
+              [tx({ en: 'Previous Year Passing Marks', hi: 'पिछले वर्ष के उत्तीर्ण अंक' }), a.previousYearMarksPercentage ? `${a.previousYearMarksPercentage}%` : ''],
+              [tx({ en: 'Backlogs', hi: 'बैकलॉग' }), yn(a.hasBacklogs)],
+              [tx({ en: 'Promoted to Next Year', hi: 'अगले वर्ष में पदोन्नत' }), yn(a.promotedToNextYear)],
+              [tx({ en: 'Annual Tuition Fee', hi: 'वार्षिक शिक्षण शुल्क' }), a.tuitionFeePerAnnum ? `₹${a.tuitionFeePerAnnum}` : ''],
+            ]
+          : [
+              [tx({ en: 'Entrance Exam', hi: 'प्रवेश परीक्षा' }), a.entranceExamName],
+              [tx({ en: 'Entrance Rank', hi: 'प्रवेश रैंक' }), a.entranceRank],
+              [tx({ en: 'Admission Date', hi: 'प्रवेश तिथि' }), formatDate(a.admissionDate, lang)],
+              [tx({ en: 'Annual Tuition Fee', hi: 'वार्षिक शिक्षण शुल्क' }), a.tuitionFeePerAnnum ? `₹${a.tuitionFeePerAnnum}` : ''],
+              [tx({ en: 'Non-Refundable Charges', hi: 'गैर-वापसी योग्य शुल्क' }), a.nonRefundableCharges ? `₹${a.nonRefundableCharges}` : ''],
+            ]),
       ];
     }
     return [
@@ -207,26 +248,58 @@ export default function ReviewStep({ scheme, data, errors, setDeclaration, goTo,
         <ul className="divide-y divide-line">
           {checklist.map((doc) => {
             const rec = docs[doc.id];
+            const isFromDigiLocker = rec?.source === 'digilocker';
+
             return (
-              <li key={doc.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px]">
-                <span className="text-ink">{tx(doc.label)}</span>
-                {rec ? (
-                  <div className="flex items-center gap-2">
-                    {rec.aiVerification?.preliminaryStatus === 'VERIFIED' && (
-                      <span className="hidden sm:inline-flex items-center gap-1 rounded bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf border border-leaf/25">
-                        <BadgeCheck className="h-3 w-3" />
-                        {tx({ en: 'Preliminary Validated', hi: 'प्रारंभिक रूप से सत्यापित' })}
+              <li key={doc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 text-[13px]">
+                <div className="min-w-0">
+                  <span className="font-medium text-ink">{tx(doc.label)}</span>
+                  {isFromDigiLocker && (
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-leaf">
+                        ✓ Retrieved from DigiLocker
                       </span>
-                    )}
-                    <span className={`inline-flex shrink-0 items-center gap-1 font-semibold ${rec.source === 'digilocker' ? 'text-leaf' : 'text-navy'}`}>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy">
+                        ✓ Matched
+                      </span>
+                      <span className="text-[11px] text-muted">
+                        • {rec.fileName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {rec ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isFromDigiLocker ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReviewDrawerDoc({
+                            ...rec,
+                            documentName: tx(doc.label),
+                            issuer: rec.issuer || 'State Government / e-District',
+                            documentCategory: doc.digilocker?.code || 'Government Certificate',
+                            applicationMapping: tx(doc.label),
+                            documentReference: rec.certificateNo || rec.digilockerUri || 'DL-RECORD',
+                          });
+                          setReviewDrawerOpen(true);
+                        }}
+                        className="text-[12px] font-semibold text-navy hover:underline flex items-center gap-1 mr-2"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {tx({ en: 'View Details', hi: 'विवरण देखें' })}
+                      </button>
+                    ) : null}
+                    <span className={`inline-flex shrink-0 items-center gap-1 font-semibold ${isFromDigiLocker ? 'text-leaf' : 'text-navy'}`}>
                       <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                      {rec.source === 'digilocker' ? 'DigiLocker' : tx({ en: 'Uploaded', hi: 'अपलोड' })}
+                      {isFromDigiLocker ? 'DigiLocker' : tx({ en: 'Uploaded', hi: 'अपलोड' })}
                     </span>
                   </div>
                 ) : (
-                  <span className={`inline-flex shrink-0 items-center gap-1 ${doc.required ? 'font-semibold text-alert' : 'text-muted'}`}>
+                  <span className={`inline-flex shrink-0 items-center gap-1 text-[12px] ${doc.required ? 'font-semibold text-alert' : 'text-muted'}`}>
                     {doc.required && <TriangleAlert className="h-4 w-4" aria-hidden="true" />}
-                    {doc.required ? tx({ en: 'Missing', hi: 'अनुपलब्ध' }) : t('common.optional')}
+                    {doc.required ? tx({ en: '○ Manual upload required', hi: '○ मैन्युअल अपलोड अनिवार्य' }) : tx({ en: '○ Upload optional', hi: '○ अपलोड वैकल्पिक' })}
                   </span>
                 )}
               </li>
@@ -234,6 +307,13 @@ export default function ReviewStep({ scheme, data, errors, setDeclaration, goTo,
           })}
         </ul>
       </section>
+
+      {/* Review Document Details Drawer */}
+      <DocumentDetailsDrawer
+        open={reviewDrawerOpen}
+        onClose={() => setReviewDrawerOpen(false)}
+        document={reviewDrawerDoc}
+      />
 
       <section className="space-y-3">
         <h3 className="font-serif text-[17px] font-bold text-navy">{tx({ en: 'Declaration', hi: 'घोषणा' })}</h3>

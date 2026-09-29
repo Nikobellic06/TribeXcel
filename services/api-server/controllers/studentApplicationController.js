@@ -5,13 +5,18 @@ const { logAuditEvent } = require('../services/auditService');
 const { evaluate } = require('../services/ruleEngine');
 const aiAnalysis = require('../services/aiAnalysis');
 const review = require('../services/review');
+const { processApplicationDocumentAnalysis } = require('../services/documentAnalysisEngine');
 
-const DIRECT_SCHEMES = ['NFST', 'NOS'];
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+const SUPPORTED_SCHEMES = ['NFST', 'NOS', 'PRE_MATRIC', 'POST_MATRIC', 'TOP_CLASS'];
 const CURRENT_SESSION = '2026-27';
 
-function generateApplicationCode(scheme) {
-  const prefix = scheme === 'NOS' ? 'MOTA-NOS' : 'MOTA-NFST';
-  return `${prefix}-${Date.now().toString().slice(-8)}`;
+function generateApplicationCode(scheme, session = CURRENT_SESSION) {
+  const rand = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `TX-${session}-${scheme}-${rand}`;
 }
 
 function sanitizeSections(sections) {
@@ -37,10 +42,10 @@ const submitApplication = async (req, res) => {
     const { scheme, name, email, phone, dob, gender, state, district, course, institution } = body;
 
     // Check scheme validity
-    if (!DIRECT_SCHEMES.includes(scheme)) {
+    if (!SUPPORTED_SCHEMES.includes(scheme)) {
       return res.status(400).json({
         success: false,
-        message: `Direct applications are accepted only for NFST and NOS. For Pre-Matric, Post-Matric, and Top Class schemes, please apply through the National Scholarship Portal (NSP) or your State Portal.`,
+        message: `Invalid scheme: ${scheme}. Supported schemes are NFST, NOS, PRE_MATRIC, POST_MATRIC, and TOP_CLASS.`,
       });
     }
 
@@ -96,7 +101,7 @@ const submitApplication = async (req, res) => {
         documentType: docType,
       }).sort({ updatedAt: -1 });
 
-      if (dbDoc && dbDoc.source === 'digilocker' && dbDoc.verificationStatus === 'VERIFIED') {
+      if (dbDoc && dbDoc.source === 'digilocker' && (dbDoc.verificationStatus === 'VERIFIED' || dbDoc.verificationStatus === 'SANDBOX_SOURCE_CONFIRMED')) {
         // Authenticated DigiLocker document verified server-side
         verifiedDocumentsList.push({
           documentId: dbDoc.documentId,
@@ -198,11 +203,15 @@ const submitApplication = async (req, res) => {
       }
     } else {
       application = new Application({
-        applicationCode: generateApplicationCode(scheme),
+        applicationCode: generateApplicationCode(scheme, session),
         student: studentId,
         scheme,
+        applicationType: body.applicationType === 'RENEWAL' ? 'RENEWAL' : 'FRESH',
         session,
+        schemeVersion: '2026.1',
         ruleVersion: '2026.1',
+        formVersion: '2026.1',
+        documentVersion: '2026.1',
         name,
         email,
         phone,
@@ -248,36 +257,24 @@ const submitApplication = async (req, res) => {
       remarks: 'Automated preliminary rule evaluation completed. Official scrutiny required.',
     };
 
-    // AI Assisted Document Scrutiny (assistive only)
+    // Save initial state so document analysis engine has persistent application context
+    await application.save();
+
+    // Authoritative Post-Submission Document Analysis & Cross-Validation Engine
+    let analysisResult = null;
     try {
-      const { analysis, raw } = await aiAnalysis.run({ ...application.toObject(), documents: verifiedDocumentsList });
-      application.aiVerification = {
-        status: 'COMPLETED',
-        score: raw?.aiVerification?.score || 85,
-        checks: raw?.aiVerification?.checks || [],
-        anomalies: analysis?.anomalies || [],
-        analyzedAt: now,
-      };
-    } catch (_) {
-      application.aiVerification = {
-        status: 'AI_VERIFICATION_UNAVAILABLE',
-        score: 0,
-        checks: [],
-        anomalies: ['AI service offline. Routing directly to official manual scrutiny.'],
-        analyzedAt: now,
-      };
+      analysisResult = await processApplicationDocumentAnalysis(application, req.student);
+    } catch (analysisErr) {
+      console.error('[DocumentAnalysisEngine] Error processing application documents:', analysisErr);
     }
 
-    application.reviewHistory.push({
-      action: isResubmission ? 'Resubmitted after correction' : 'Application Submitted',
-      fromStatus: isResubmission ? 'Deficient' : 'Draft',
-      toStatus: application.status,
-      byId: studentId,
-      byName: name,
-      byRole: 'Applicant',
-      remarks: isResubmission ? 'Resubmitted with updated documents' : 'Initial submission',
-      at: now,
-    });
+    // Secondary AI Analysis telemetry if available
+    try {
+      const { analysis, raw } = await aiAnalysis.run({ ...application.toObject(), documents: verifiedDocumentsList });
+      if (application.aiVerification && raw?.aiVerification?.checks) {
+        application.aiVerification.checks = raw.aiVerification.checks;
+      }
+    } catch (_) {}
 
     await application.save();
 
@@ -305,8 +302,9 @@ const submitApplication = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: isResubmission ? 'Application successfully resubmitted' : 'Application submitted successfully',
+      message: analysisResult?.message || (isResubmission ? 'Application successfully resubmitted' : 'Application submitted successfully'),
       application,
+      analysis: analysisResult,
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -420,9 +418,62 @@ const resolveDeficiency = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/student/applications/:id/documents/:documentId
+ * Secure streaming of application document with student ownership check (no IDOR)
+ */
+const streamStudentApplicationDocument = async (req, res) => {
+  try {
+    const application = await Application.findOne({
+      _id: req.params.id,
+      student: req.student._id,
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found or unauthorized' });
+    }
+
+    const docParam = req.params.documentId;
+    const docItem = (application.documents || []).find(
+      (d) => d.documentId === docParam || d.docType === docParam || d.name === docParam
+    );
+    if (!docItem) {
+      return res.status(404).json({ success: false, message: 'Document not found in application' });
+    }
+
+    let dbDoc = null;
+    if (docItem.documentId) {
+      dbDoc = await Document.findOne({ documentId: docItem.documentId, studentId: req.student._id });
+    }
+    if (!dbDoc) {
+      dbDoc = await Document.findOne({ studentId: req.student._id, documentType: docItem.docType });
+    }
+
+    let filePath = dbDoc?.storagePath;
+    if (!filePath && docItem.fileUrl) {
+      const safeBase = path.join(__dirname, '..', 'uploads', String(req.student._id));
+      const relative = path.basename(docItem.fileUrl);
+      const candidate = path.join(safeBase, relative);
+      if (fs.existsSync(candidate)) filePath = candidate;
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'Physical document file not found on server' });
+    }
+
+    const mime = docItem.mimeType || dbDoc?.mimeType || 'application/pdf';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', `inline; filename="${docItem.fileName || 'document'}"`);
+    return fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error streaming document: ' + err.message });
+  }
+};
+
 module.exports = {
   submitApplication,
   getMyApplications,
   getMyApplicationById,
   resolveDeficiency,
+  streamStudentApplicationDocument,
 };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, Fingerprint, Save, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, Fingerprint, LayoutDashboard, Save, Send, ShieldCheck } from 'lucide-react';
 import { useLang } from '../i18n/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import PortalLayout from '../components/layout/PortalLayout';
@@ -88,13 +88,13 @@ function AadhaarKycModal({ open, onClose, onVerified }) {
       open={open}
       onClose={onClose}
       dismissable={!busy}
-      title={tx({ en: 'Aadhaar Identity Verification', hi: 'आधार पहचान प्रमाणीकरण' })}
-      badge={<span className="rounded bg-navy-50 px-2 py-0.5 text-[11px] font-semibold text-navy-800 border border-navy-200">{tx({ en: 'UIDAI e-KYC', hi: 'यूआईडीएआई ई-केवाईसी' })}</span>}
+      title={tx({ en: 'Aadhaar Format Validation', hi: 'आधार प्रारूप सत्यापन' })}
+      badge={<span className="rounded bg-navy-50 px-2 py-0.5 text-[11px] font-semibold text-navy-800 border border-navy-200">{tx({ en: 'Verhoeff Checksum', hi: 'वृहॉफ चेकसम' })}</span>}
       footer={
         <div className="flex w-full justify-between items-center">
           <Button variant="secondary" onClick={onClose} disabled={busy}>{tx({ en: 'Cancel', hi: 'रद्द करें' })}</Button>
           <Button icon={ShieldCheck} onClick={handleVerify} loading={busy} disabled={digits.length !== 12 || !consent}>
-            {tx({ en: 'Verify & Authenticate', hi: 'प्रमाणित एवं सत्यापित करें' })}
+            {tx({ en: 'Validate Format', hi: 'प्रारूप सत्यापित करें' })}
           </Button>
         </div>
       }
@@ -225,22 +225,22 @@ export default function Profile() {
               {kyc ? <BadgeCheck className="h-6 w-6 shrink-0 text-leaf" aria-hidden="true" /> : <Fingerprint className="h-6 w-6 shrink-0 text-ochre" aria-hidden="true" />}
               <div className="min-w-0 flex-1">
                 <h2 className="text-[15px] font-bold text-ink">
-                  {kyc ? tx({ en: 'Aadhaar e-KYC completed', hi: 'आधार ई-केवाईसी पूर्ण' }) : tx({ en: 'Complete Aadhaar e-KYC', hi: 'आधार ई-केवाईसी पूरा करें' })}
+                  {kyc ? tx({ en: 'Aadhaar format validated', hi: 'आधार प्रारूप सत्यापित' }) : tx({ en: 'Validate Aadhaar format', hi: 'आधार प्रारूप सत्यापित करें' })}
                 </h2>
                 <p className="mt-1 text-[13px] leading-relaxed text-muted">
                   {kyc
                     ? tx({
-                        en: `Aadhaar XXXX XXXX ${profile.aadhaarLast4}, verified on ${formatDate(profile.aadhaarVerifiedAt, 'en')}. Name, date of birth and gender are locked.`,
-                        hi: `आधार XXXX XXXX ${profile.aadhaarLast4}, ${formatDate(profile.aadhaarVerifiedAt, 'hi')} को सत्यापित। नाम, जन्मतिथि और लिंग लॉक हैं।`,
+                        en: `Aadhaar ending in ${profile.aadhaarLast4} (Verhoeff checksum validated on ${formatDate(profile.formatValidatedAt || profile.aadhaarVerifiedAt, 'en')}).`,
+                        hi: `आधार अंतिम 4 अंक: ${profile.aadhaarLast4} (वृहॉफ चेकसम ${formatDate(profile.formatValidatedAt || profile.aadhaarVerifiedAt, 'hi')} को सत्यापित)।`,
                       })
                     : tx({
-                        en: 'Required before you can submit any application. Fill your name, date of birth and gender exactly as in Aadhaar first.',
-                        hi: 'किसी भी आवेदन को जमा करने से पहले आवश्यक। पहले अपना नाम, जन्मतिथि और लिंग आधार के अनुसार भरें।',
+                        en: 'Format validation confirms valid 12-digit Aadhaar with Verhoeff checksum. Name, date of birth and gender should match your documents.',
+                        hi: 'प्रारूप सत्यापन 12-अंकीय आधार और वृहॉफ चेकसम की पुष्टि करता है।',
                       })}
                 </p>
                 {!kyc && (
                   <Button className="mt-3" size="sm" icon={Fingerprint} onClick={startKyc} loading={saving}>
-                    {tx({ en: 'Verify with Aadhaar OTP', hi: 'आधार ओटीपी से सत्यापित करें' })}
+                    {tx({ en: 'Validate Aadhaar Format', hi: 'आधार प्रारूप सत्यापित करें' })}
                   </Button>
                 )}
               </div>
@@ -311,7 +311,15 @@ export default function Profile() {
             <p className="text-[12px] text-muted">
               {profile?.createdAt && tx({ en: `Registered on ${formatDate(profile.createdAt, lang)}`, hi: `पंजीकरण तिथि ${formatDate(profile.createdAt, lang)}` })}
             </p>
-            <Button icon={Save} onClick={handleSave} loading={saving}>{t('common.save')}</Button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button variant="secondary" to="/dashboard" icon={LayoutDashboard}>
+                {tx({ en: 'Dashboard', hi: 'डैशबोर्ड' })}
+              </Button>
+              <Button variant="secondary" to="/schemes" icon={Send}>
+                {tx({ en: 'Explore Schemes', hi: 'योजनाएं देखें' })}
+              </Button>
+              <Button icon={Save} onClick={handleSave} loading={saving}>{t('common.save')}</Button>
+            </div>
           </div>
         </section>
       </div>

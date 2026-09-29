@@ -43,11 +43,17 @@ export function ageOn(dob, reference) {
   return age;
 }
 
-/** Uploaded files are stored as /uploads/... on the API server. */
+/** Uploaded files are stored on the API server and require authentication. */
 export function fileHref(url) {
   if (!url) return '';
   if (/^(https?:|data:|blob:)/.test(url)) return url;
-  return `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('studentToken') : null;
+  const base = `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (token && url.startsWith('/uploads/')) {
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}token=${encodeURIComponent(token)}`;
+  }
+  return base;
 }
 
 export function formatFileSize(bytes) {

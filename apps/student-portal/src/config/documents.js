@@ -1,6 +1,7 @@
 /**
  * Official Ministry of Tribal Affairs (MoTA) Document Configuration
- * Session: 2026-27
+ * Session: 2026-27 (Version: 2026.1)
+ * Canonical Document Checklist Engine for all 5 MoTA Schemes
  */
 
 const PDF_ONLY = ['application/pdf'];
@@ -99,8 +100,8 @@ export const DOCUMENTS = {
   family_income_proof: {
     id: 'family_income_proof',
     label: { en: 'Family Income Certificate / ITR', hi: 'पारिवारिक आय प्रमाण पत्र / आईटीआर' },
-    hint: { en: 'Income Certificate from Executive Magistrate/Tehsildar or ITR Form 16 of all earning family members (total income <= ₹6,00,000/yr).', hi: 'सक्षम कार्यपालक मजिस्ट्रेट/तहसीलदार द्वारा जारी आय प्रमाण पत्र या परिवार के कमाने वाले सदस्यों का आईटीआर।' },
-    accept: PDF_ONLY,
+    hint: { en: 'Income Certificate from Executive Magistrate/Tehsildar or ITR Form 16 of earning family members.', hi: 'सक्षम कार्यपालक मजिस्ट्रेट/तहसीलदार द्वारा जारी आय प्रमाण पत्र।' },
+    accept: PDF_OR_IMAGE,
     maxKB: 2048,
     digilocker: { code: 'INCER', issuer: { en: 'State Revenue Department', hi: 'राज्य राजस्व विभाग' } },
   },
@@ -128,66 +129,174 @@ export const DOCUMENTS = {
     maxKB: 2048,
     digilocker: null,
   },
+  domicile_certificate: {
+    id: 'domicile_certificate',
+    label: { en: 'Domicile / Residential Certificate', hi: 'मूल निवास / अधिवास प्रमाण पत्र' },
+    hint: { en: 'Domicile Certificate issued by competent Revenue Authority (Tehsildar/SDM).', hi: 'सक्षम राजस्व प्राधिकारी द्वारा जारी मूल निवास प्रमाण पत्र।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: { code: 'DOMCR', issuer: { en: 'State Revenue / e-District Department', hi: 'राज्य राजस्व / ई-डिस्ट्रिक्ट विभाग' } },
+  },
+  bonafide_certificate: {
+    id: 'bonafide_certificate',
+    label: { en: 'Institute Bonafide Certificate', hi: 'संस्थान बोनाफाइड प्रमाण पत्र' },
+    hint: { en: 'Current bonafide certificate issued by Head of Institution verifying enrollment.', hi: 'संस्थान प्रमुख द्वारा जारी चालू सत्र का बोनाफाइड प्रमाण पत्र।' },
+    accept: PDF_ONLY,
+    maxKB: 2048,
+    digilocker: null,
+  },
+  fee_receipt: {
+    id: 'fee_receipt',
+    label: { en: 'Official Institute Fee Receipt / Structure', hi: 'संस्थान शुल्क रसीद / शुल्क संरचना' },
+    hint: { en: 'Official fee breakdown and payment receipt for current academic year.', hi: 'चालू शैक्षणिक वर्ष का आधिकारिक शुल्क विवरण एवं भुगतान रसीद।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: null,
+  },
+  bank_passbook: {
+    id: 'bank_passbook',
+    label: { en: 'Bank Passbook / Cancelled Cheque', hi: 'बैंक पासबुक / रद्द चेक' },
+    hint: { en: 'First page of bank passbook or cancelled cheque clearly showing Account Number and IFSC.', hi: 'बैंक पासबुक का प्रथम पृष्ठ या रद्द चेक जिसमें खाता संख्या एवं आईएफएससी स्पष्ट हो।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: null,
+  },
+  last_passing_marksheet: {
+    id: 'last_passing_marksheet',
+    label: { en: 'Last Passing Semester / Annual Marksheet', hi: 'अंतिम उत्तीर्ण सत्र की अंकतालिका' },
+    hint: { en: 'Official marksheet of the most recently completed academic year/semester.', hi: 'अंतिम उत्तीर्ण वर्ष या सेमेस्टर की आधिकारिक अंकतालिका।' },
+    accept: PDF_ONLY,
+    maxKB: 2048,
+    digilocker: null,
+  },
+  visa_and_studentid: {
+    id: 'visa_and_studentid',
+    label: { en: 'Student Visa & Foreign University ID', hi: 'विद्यार्थी वीज़ा एवं विदेशी विश्वविद्यालय पहचान पत्र' },
+    hint: { en: 'Copy of valid student visa and foreign institution student identity card.', hi: 'वैध छात्र वीज़ा एवं विदेशी संस्थान के पहचान पत्र की प्रति।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: null,
+  },
+  joining_letter: {
+    id: 'joining_letter',
+    label: { en: 'Department Joining Letter', hi: 'विभाग कार्यभार ग्रहण पत्र' },
+    hint: { en: 'Official joining certificate from academic department abroad.', hi: 'विदेशी शैक्षणिक विभाग से कार्यभार ग्रहण प्रमाण पत्र।' },
+    accept: PDF_ONLY,
+    maxKB: 2048,
+    digilocker: null,
+  },
 };
 
 const yes = (v) => v === 'yes' || v === true;
 
 /**
  * Dynamically computes the document checklist tailored specifically to the applicant's
- * scheme, category, disability status, academic level, and employment condition.
+ * scheme, application type (Fresh vs Renewal), and conditional profile flags.
  */
 export function getDocumentChecklist(schemeCode, data = {}) {
   const category = data.category || {};
   const academic = data.academic || {};
   const employment = data.employment_gap || {};
+  const appType = (data.applicationType || 'FRESH').toUpperCase();
   const list = [];
+  const added = new Set();
+
   const add = (id, required = true) => {
-    if (DOCUMENTS[id]) list.push({ ...DOCUMENTS[id], required });
+    if (DOCUMENTS[id] && !added.has(id)) {
+      added.add(id);
+      list.push({ ...DOCUMENTS[id], required });
+    }
   };
 
+  const s = String(schemeCode || '').toUpperCase().replace(/-/g, '_');
+
   // Common statutory identification documents
-  add('photo');
-  add('signature');
-  add('class10_certificate');
-  add('st_certificate');
+  add('photo', true);
+  add('signature', true);
 
-  if (yes(category.isPVTG)) {
-    add('pvtg_certificate');
-  }
-
-  if (yes(category.hasDisability) || yes(category.isDivyangjan)) {
-    add('disability_certificate');
-  }
-
-  const s = String(schemeCode || '').toUpperCase();
-
-  if (s === 'NFST' || s === 'NATIONAL FELLOWSHIP FOR ST STUDENTS') {
-    // NFST Official Document Requirements
-    add('pg_marksheet');
-    if (academic.gradeType === 'cgpa' || academic.usesCGPA) {
-      add('cgpa_conversion');
-    }
-    add('admission_letter');
-  } else if (s === 'NOS' || s === 'NATIONAL OVERSEAS SCHOLARSHIP') {
-    // NOS Official Document Requirements
-    add('qualifying_degree');
-    if (academic.gradeType === 'cgpa' || academic.usesCGPA) {
-      add('cgpa_conversion');
-    }
-    add('foreign_admission_letter');
-
+  if (s === 'PRE_MATRIC') {
+    add('st_certificate', true);
+    add('class10_certificate', true);
     if (yes(category.isOrphan)) {
-      add('orphan_certificate');
+      add('orphan_certificate', true);
     } else {
-      add('family_income_proof');
+      add('family_income_proof', true);
     }
-
+    add('domicile_certificate', true);
+    if (yes(category.isPVTG)) add('pvtg_certificate', true);
+    if (yes(category.hasDisability)) add('disability_certificate', true);
+  } else if (s === 'POST_MATRIC') {
+    add('st_certificate', true);
+    add('class10_certificate', true);
+    if (yes(category.isOrphan)) {
+      add('orphan_certificate', true);
+    } else {
+      add('family_income_proof', true);
+    }
+    add('domicile_certificate', true);
+    if (yes(category.isPVTG)) add('pvtg_certificate', true);
+    if (yes(category.hasDisability)) add('disability_certificate', true);
+  } else if (s === 'TOP_CLASS') {
+    if (appType === 'RENEWAL') {
+      add('last_passing_marksheet', true);
+      add('bonafide_certificate', true);
+      add('fee_receipt', true);
+      add('bank_passbook', true);
+    } else {
+      // FRESH
+      add('st_certificate', true);
+      add('class10_certificate', true);
+      if (yes(category.isOrphan)) {
+        add('orphan_certificate', true);
+      } else {
+        add('family_income_proof', true);
+      }
+      add('bonafide_certificate', true);
+      add('fee_receipt', true);
+      add('bank_passbook', true);
+    }
+    if (yes(category.isPVTG)) add('pvtg_certificate', true);
+    if (yes(category.hasDisability)) add('disability_certificate', true);
+  } else if (s === 'NFST') {
+    add('st_certificate', true);
+    add('class10_certificate', true);
+    add('pg_marksheet', true);
+    add('admission_letter', true);
+    if (academic.gradeType === 'cgpa' || academic.usesCGPA) {
+      add('cgpa_conversion', true);
+    }
+    if (yes(category.isPVTG)) add('pvtg_certificate', true);
+    if (yes(category.hasDisability)) add('disability_certificate', true);
+  } else if (s === 'NOS') {
+    add('st_certificate', true);
+    add('class10_certificate', true);
+    add('qualifying_degree', true);
+    add('foreign_admission_letter', true);
+    if (yes(category.isOrphan)) {
+      add('orphan_certificate', true);
+    } else {
+      add('family_income_proof', true);
+    }
+    if (academic.gradeType === 'cgpa' || academic.usesCGPA) {
+      add('cgpa_conversion', true);
+    }
+    if (yes(academic.hasJoinedForeignUniversity)) {
+      add('visa_and_studentid', true);
+      add('joining_letter', true);
+    }
     if (yes(employment.isEmployed)) {
-      add('employer_noc');
+      add('employer_noc', true);
     }
     if (yes(employment.hasGap)) {
-      add('gap_certificate');
+      add('gap_certificate', true);
     }
+    if (yes(category.isPVTG)) add('pvtg_certificate', true);
+    if (yes(category.hasDisability)) add('disability_certificate', true);
+  } else {
+    // Fallback default
+    add('st_certificate', true);
+    add('class10_certificate', true);
+    add('family_income_proof', true);
   }
 
   return list;

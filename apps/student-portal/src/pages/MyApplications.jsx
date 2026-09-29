@@ -79,11 +79,45 @@ export default function MyApplications() {
                     <ApplicationTracker status={app.status} schemeCode={app.scheme} />
                     <p className="text-[13px] leading-relaxed text-muted">{tx(STATUS_NOTE[app.status] || STATUS_NOTE.Pending)}</p>
 
-                    {app.adminRemarks && (
-                      <Alert tone={app.status === 'Deficient' ? 'warn' : 'info'} title={tx({ en: 'Remarks from the officer', hi: 'अधिकारी की टिप्पणी' })}>
+                    {app.status === 'Deficient' ? (
+                      <Alert
+                        tone="warn"
+                        title={tx({
+                          en: 'Action Required: Document Analysis Discrepancies Detected',
+                          hi: 'कार्रवाई आवश्यक: दस्तावेज़ विश्लेषण में विसंगतियां पाई गईं',
+                        })}
+                      >
+                        <div className="space-y-2">
+                          <p>
+                            {app.adminRemarks || tx({
+                              en: 'The Document Analysis Engine identified discrepancies in your application. Please review the items below and correct your application.',
+                              hi: 'दस्तावेज़ विश्लेषण इंजन ने आपके आवेदन में विसंगतियों की पहचान की है। कृपया नीचे दी गई वस्तुओं की समीक्षा करें और अपने आवेदन को सुधारें।',
+                            })}
+                          </p>
+                          {app.deficiencies?.length > 0 && (
+                            <ul className="list-disc pl-5 space-y-1 text-[12.5px] font-medium text-amber-900">
+                              {app.deficiencies.map((d, idx) => (
+                                <li key={idx}>
+                                  <strong>{d.actionRequired}</strong>
+                                  {d.reason && <span className="font-normal text-amber-800 ml-1">({d.reason})</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {scheme && (
+                            <div className="pt-2">
+                              <Button size="sm" icon={PencilLine} to={`/apply/${scheme.id}/documents`}>
+                                {tx({ en: 'Correct and resubmit', hi: 'सुधारें और पुनः जमा करें' })}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </Alert>
+                    ) : app.adminRemarks ? (
+                      <Alert tone="info" title={tx({ en: 'Remarks from the officer', hi: 'अधिकारी की टिप्पणी' })}>
                         {app.adminRemarks}
                       </Alert>
-                    )}
+                    ) : null}
 
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px] sm:grid-cols-4">
                       <div>

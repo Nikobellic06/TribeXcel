@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     class Config:
         env_file = ".env"
@@ -55,7 +55,30 @@ SCHEME_RULES = {
         ],
         "allowed_categories": ["Scheduled Tribe", "ST"],
         "allowed_classes": ["9", "10", "IX", "X"],
-    }
+    },
+    "POST_MATRIC": {
+        "name": "Post-Matric Scholarship for ST Students",
+        "income_limit": 250000.0,  # 2.50 Lakhs per annum
+        "min_academic_pct": 0.0,
+        "required_documents": [
+            "Caste Certificate",
+            "Income Certificate",
+            "10th Board Certificate",
+            "Domicile Certificate"
+        ],
+        "allowed_categories": ["Scheduled Tribe", "ST"],
+    },
+    "TOP_CLASS": {
+        "name": "Top Class Education Scheme for ST Students",
+        "income_limit": 600000.0,  # 6.00 Lakhs per annum
+        "min_academic_pct": 0.0,
+        "required_documents": [
+            "Caste Certificate",
+            "Income Certificate",
+            "Bonafide Certificate"
+        ],
+        "allowed_categories": ["Scheduled Tribe", "ST"],
+    },
 }
 
 # Recognized ST communities for extra cross-referencing

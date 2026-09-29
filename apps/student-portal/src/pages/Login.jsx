@@ -20,7 +20,9 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const redirectTo = location.state?.from || '/dashboard';
+  const redirectTo = (location.state?.from && !location.state?.from.startsWith('/apply'))
+    ? location.state.from
+    : '/dashboard';
   if (student) return <Navigate to={redirectTo} replace />;
 
   const handleSubmit = async (e) => {

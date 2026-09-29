@@ -82,26 +82,34 @@ const verifyAadhaarKyc = async (req, res) => {
 
     const digits = String(aadhaarNumber).replace(/\s/g, '');
     const last4 = digits.slice(-4);
+    const now = new Date();
     student.aadhaarLast4 = last4;
+    student.aadhaarFormatValidated = true;
+    student.formatValidatedAt = now;
     student.aadhaarVerified = true;
-    student.aadhaarVerifiedAt = new Date();
+    student.aadhaarVerifiedAt = now;
     await student.save();
 
     await logAuditEvent({
       userId: student._id,
       userName: student.name,
       userRole: 'Applicant',
-      action: 'AADHAAR_KYC_COMPLETED',
+      action: 'AADHAAR_FORMAT_VALIDATED',
       entityType: 'Student',
       entityId: student._id,
-      newValue: { aadhaarLast4: last4, aadhaarVerified: true },
+      newValue: { aadhaarLast4: last4, aadhaarFormatValidated: true, formatValidatedAt: now },
       ipAddress: req.ip || '',
-      reason: 'Applicant completed Aadhaar identity verification',
+      reason: 'Applicant completed Aadhaar format validation (Verhoeff checksum confirmed)',
     });
 
-    res.json({ success: true, message: 'Identity verification completed successfully', student: student.toProfile() });
+    res.json({
+      success: true,
+      message: 'Aadhaar format validated successfully (Verhoeff checksum confirmed)',
+      validationStatus: 'FORMAT_VALIDATED',
+      student: student.toProfile(),
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Aadhaar e-KYC failed, please try again' });
+    res.status(500).json({ message: 'Aadhaar format validation failed, please try again' });
   }
 };
 

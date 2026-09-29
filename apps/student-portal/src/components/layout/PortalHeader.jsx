@@ -70,38 +70,40 @@ export default function PortalHeader({ onOpenMenu }) {
           </div>
 
           {student && (
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={() => setOpen((o) => !o)}
-                aria-expanded={open}
-                aria-haspopup="menu"
-                className="flex items-center gap-2 rounded-md border border-line py-1 pl-1 pr-2 hover:border-navy/40"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded bg-navy-soft text-[12px] font-bold text-navy">
-                  {initials}
-                </span>
-                <span className="hidden text-left sm:block">
-                  <span className="block max-w-[160px] truncate text-[13px] font-semibold leading-tight text-ink">
-                    {student.name}
+            <div className="flex items-center gap-3">
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setOpen((o) => !o)}
+                  aria-expanded={open}
+                  aria-haspopup="menu"
+                  className="flex items-center gap-2 rounded-md border border-line py-1 pl-1 pr-2 hover:border-navy/40"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded bg-navy-soft text-[12px] font-bold text-navy">
+                    {initials}
                   </span>
-                  <span className="block text-[11px] leading-tight text-muted">{student.rollNumber}</span>
-                </span>
-                <ChevronDown className={`h-4 w-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
-              </button>
-              {open && (
-                <div role="menu" className="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-md border border-line bg-white py-1 shadow-lg">
-                  <Link role="menuitem" to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink hover:bg-paper">
-                    <LayoutDashboard className="h-4 w-4 text-muted" /> {t('nav.dashboard')}
-                  </Link>
-                  <Link role="menuitem" to="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink hover:bg-paper">
-                    <UserRound className="h-4 w-4 text-muted" /> {t('nav.profile')}
-                  </Link>
-                  <button role="menuitem" type="button" onClick={handleLogout} className="flex w-full items-center gap-2.5 border-t border-line px-4 py-2.5 text-left text-[13px] text-alert hover:bg-alert-soft">
-                    <LogOut className="h-4 w-4" /> {t('nav.logout')}
-                  </button>
-                </div>
-              )}
+                  <span className="hidden text-left sm:block">
+                    <span className="block max-w-[160px] truncate text-[13px] font-semibold leading-tight text-ink">
+                      {student.name}
+                    </span>
+                    <span className="block text-[11px] leading-tight text-muted">{student.rollNumber}</span>
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+                </button>
+                {open && (
+                  <div role="menu" className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-md border border-line bg-white py-1 shadow-lg">
+                    <Link role="menuitem" to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink hover:bg-paper">
+                      <LayoutDashboard className="h-4 w-4 text-muted" /> {t('nav.dashboard')}
+                    </Link>
+                    <Link role="menuitem" to="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink hover:bg-paper border-t border-line/40">
+                      <UserRound className="h-4 w-4 text-muted" /> {t('nav.profile')}
+                    </Link>
+                    <button role="menuitem" type="button" onClick={handleLogout} className="flex w-full items-center gap-2.5 border-t border-line px-4 py-2.5 text-left text-[13px] text-alert hover:bg-alert-soft">
+                      <LogOut className="h-4 w-4" /> {t('nav.logout')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

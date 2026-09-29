@@ -3,7 +3,13 @@
  * Academic Session: 2026-27 (Rule Version: 2026.1)
  */
 
-const { SCHEME_CATALOGUE, DOCUMENT_REGISTRY } = require('../../../packages/scheme-config');
+const {
+  SCHEME_CATALOGUE,
+  DOCUMENT_REGISTRY,
+  getDocumentChecklist,
+  requiredDocTypes,
+  evaluateEligibility,
+} = require('../../../packages/scheme-config');
 
 const DOCUMENT_LABELS = {
   photo: 'Passport-size photograph',
@@ -18,7 +24,14 @@ const DOCUMENT_LABELS = {
   admission_letter: 'University joining / admission certificate',
   foreign_admission_letter: 'Offer of admission from foreign university',
   family_income_proof: 'Family income certificate / ITR acknowledgement',
+  domicile_certificate: 'Domicile / residential certificate',
   orphan_certificate: 'Orphan certificate / death certificate of parents',
+  bonafide_certificate: 'Institute bonafide certificate',
+  fee_receipt: 'Institute fee receipt / structure',
+  bank_passbook: 'Bank passbook / cancelled cheque',
+  last_passing_marksheet: 'Last passing semester / annual marksheet',
+  visa_and_studentid: 'Student visa and university student ID card',
+  joining_letter: 'Official department joining letter',
   employer_noc: 'Employer NOC & experience certificate',
   gap_certificate: 'Gap affidavit / certificate',
 };
@@ -57,13 +70,12 @@ const SCHEME_RULES = {
     name: 'Pre-Matric Scholarship for ST Students (Class IX & X)',
     shortName: 'Pre-Matric',
     level: 'Class IX & X',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    externalPortal: 'State Scholarship Portals / NSP',
+    applicationMode: 'DIRECT',
     incomeLimit: 250000,
     orphanIncomeExempt: true,
     minMarks: null,
     maxAge: null,
-    allowedClasses: ['IX', 'X'],
+    allowedClasses: ['IX', 'X', '9', '10'],
     meritBased: false,
     seats: null,
   },
@@ -72,8 +84,7 @@ const SCHEME_RULES = {
     name: 'Post-Matric Scholarship for ST Students',
     shortName: 'Post-Matric',
     level: 'Class XI, XII, UG, PG in India',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    externalPortal: 'State Scholarship Portals / NSP',
+    applicationMode: 'DIRECT',
     incomeLimit: 250000,
     orphanIncomeExempt: true,
     minMarks: null,
@@ -86,55 +97,14 @@ const SCHEME_RULES = {
     name: 'Top Class Education Scheme for ST Students',
     shortName: 'Top Class',
     level: 'Notified Premier Institutes in India',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    externalPortal: 'National Scholarship Portal (NSP)',
+    applicationMode: 'DIRECT',
     incomeLimit: 600000,
+    orphanIncomeExempt: true,
     minMarks: null,
     meritBased: true,
     seats: { total: 1000 },
   },
 };
-
-const yes = (v) => v === 'yes' || v === true;
-
-/**
- * Authoritative required documents based on official MoTA instructions
- */
-function requiredDocTypes(scheme, sections = {}) {
-  const c = sections.category || {};
-  const a = sections.academic || {};
-  const e = sections.employment_gap || {};
-  const list = ['photo', 'signature', 'st_certificate'];
-
-  if (scheme === 'NFST') {
-    // Aligned with official NFST guidelines:
-    // 10th certificate for DOB, ST/PVTG cert, UDID (if Divyangjan),
-    // Master's degree marksheets (M.Phil marks NOT used for eligibility),
-    // CGPA formula (if CGPA), university joining/admission letter.
-    // Notice: NO income certificate, NO domicile cert, NO school bonafide.
-    list.push('class10_certificate', 'pg_marksheet', 'admission_letter');
-    if (yes(c.isPVTG)) list.push('pvtg_certificate');
-    if (a.gradeType === 'cgpa' || a.usesCGPA) list.push('cgpa_conversion');
-  } else if (scheme === 'NOS') {
-    // Aligned with official NOS guidelines:
-    list.push('class10_certificate', 'qualifying_degree', 'foreign_admission_letter');
-    if (yes(c.isPVTG)) list.push('pvtg_certificate');
-    if (yes(c.isOrphan)) {
-      list.push('orphan_certificate');
-    } else {
-      list.push('family_income_proof');
-    }
-    if (a.gradeType === 'cgpa' || a.usesCGPA) list.push('cgpa_conversion');
-    if (yes(e.isEmployed)) list.push('employer_noc');
-    if (yes(e.hasGap)) list.push('gap_certificate');
-  }
-
-  if (yes(c.hasDisability) || yes(c.isDivyangjan)) {
-    list.push('disability_certificate');
-  }
-
-  return list;
-}
 
 const LEGACY_DOC_NAMES = {
   'Caste Certificate': 'st_certificate',
@@ -142,6 +112,7 @@ const LEGACY_DOC_NAMES = {
   'Latest Marksheet': 'pg_marksheet',
   Marksheet: 'pg_marksheet',
   'Admission Letter': 'admission_letter',
+  'Bonafide Certificate': 'bonafide_certificate',
 };
 
 module.exports = {
@@ -151,4 +122,6 @@ module.exports = {
   LEGACY_DOC_NAMES,
   SCHEME_CATALOGUE,
   DOCUMENT_REGISTRY,
+  getDocumentChecklist,
+  evaluateEligibility,
 };

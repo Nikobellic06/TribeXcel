@@ -279,6 +279,151 @@ function OverseasForm({ bind, values, errors, tx }) {
   );
 }
 
+function PostMatricForm({ bind, values, errors, tx }) {
+  const POST_MATRIC_LEVELS = [
+    { value: 'Class XI', label: { en: 'Class XI (Higher Secondary)', hi: 'कक्षा XI (उच्चतर माध्यमिक)' } },
+    { value: 'Class XII', label: { en: 'Class XII (Senior Secondary)', hi: 'कक्षा XII (वरिष्ठ माध्यमिक)' } },
+    { value: 'ITI / Diploma', label: { en: 'ITI / Polytechnic Diploma', hi: 'आईटीआई / पॉलिटेक्निक डिप्लोमा' } },
+    { value: 'Undergraduate', label: { en: 'Undergraduate (B.A., B.Sc., B.Com., B.Tech., etc.)', hi: 'स्नातक' } },
+    { value: 'Postgraduate', label: { en: 'Postgraduate (M.A., M.Sc., M.Com., M.Tech., etc.)', hi: 'स्नातकोत्तर' } },
+    { value: 'Professional', label: { en: 'Professional Courses (MBBS, LLB, B.Ed., etc.)', hi: 'व्यावसायिक पाठ्यक्रम' } },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <FormSection title={tx({ en: 'Course and Institution Details', hi: 'पाठ्यक्रम एवं संस्थान विवरण' })}>
+        <Field label={tx({ en: 'Course Level', hi: 'पाठ्यक्रम स्तर' })} required htmlFor="courseLevel" error={errors.courseLevel}>
+          <SelectInput {...bind('courseLevel')} options={POST_MATRIC_LEVELS} />
+        </Field>
+        <Field label={tx({ en: 'Current Course / Degree Name', hi: 'वर्तमान पाठ्यक्रम / डिग्री का नाम' })} required htmlFor="currentCourse" error={errors.currentCourse} hint="e.g. B.Tech Computer Science">
+          <TextInput {...bind('currentCourse')} />
+        </Field>
+        <Field label={tx({ en: 'Current Year of Study', hi: 'वर्तमान अध्ययन वर्ष' })} required htmlFor="currentYear" error={errors.currentYear}>
+          <SelectInput
+            {...bind('currentYear')}
+            options={[
+              { value: '1st Year', label: { en: '1st Year', hi: 'प्रथम वर्ष' } },
+              { value: '2nd Year', label: { en: '2nd Year', hi: 'द्वितीय वर्ष' } },
+              { value: '3rd Year', label: { en: '3rd Year', hi: 'तृतीय वर्ष' } },
+              { value: '4th Year', label: { en: '4th Year', hi: 'चतुर्थ वर्ष' } },
+              { value: '5th Year', label: { en: '5th Year', hi: 'पंचम वर्ष' } },
+            ]}
+          />
+        </Field>
+        <Field label={tx({ en: 'Total Course Duration (Years)', hi: 'कुल पाठ्यक्रम अवधि (वर्ष)' })} required htmlFor="courseDuration" error={errors.courseDuration}>
+          <SelectInput
+            {...bind('courseDuration')}
+            options={[
+              { value: '1', label: { en: '1 Year', hi: '1 वर्ष' } },
+              { value: '2', label: { en: '2 Years', hi: '2 वर्ष' } },
+              { value: '3', label: { en: '3 Years', hi: '3 वर्ष' } },
+              { value: '4', label: { en: '4 Years', hi: '4 वर्ष' } },
+              { value: '5', label: { en: '5 Years', hi: '5 वर्ष' } },
+            ]}
+          />
+        </Field>
+        <Field label={tx({ en: 'Institution Name', hi: 'संस्थान का नाम' })} required htmlFor="institutionName" error={errors.institutionName} className="md:col-span-2">
+          <TextInput {...bind('institutionName')} />
+        </Field>
+        <Field label={tx({ en: 'Affiliating University or Board', hi: 'संबद्ध विश्वविद्यालय या बोर्ड' })} required htmlFor="universityOrBoard" error={errors.universityOrBoard}>
+          <TextInput {...bind('universityOrBoard')} />
+        </Field>
+        <Field label={tx({ en: 'Institution State', hi: 'संस्थान का राज्य' })} required htmlFor="institutionState" error={errors.institutionState}>
+          <SelectInput {...bind('institutionState')} options={STATES} />
+        </Field>
+        <Field label={tx({ en: 'Enrollment / Registration Number', hi: 'नामांकन / पंजीकरण संख्या' })} required htmlFor="enrollmentNumber" error={errors.enrollmentNumber}>
+          <TextInput {...bind('enrollmentNumber')} />
+        </Field>
+        <Field label={tx({ en: 'Admission Year', hi: 'प्रवेश वर्ष' })} required htmlFor="admissionYear" error={errors.admissionYear}>
+          <SelectInput {...bind('admissionYear')} options={YEARS.slice(0, 6)} />
+        </Field>
+        <Field label={tx({ en: 'Hostel Status', hi: 'छात्रावास की स्थिति' })} required htmlFor="residence" error={errors.residence}>
+          <RadioGroup {...bind('residence')} options={RESIDENCE_TYPES} />
+        </Field>
+      </FormSection>
+
+      <FormSection title={tx({ en: 'State / Local Government Integration', hi: 'राज्य / स्थानीय प्रशासन एकीकरण' })}>
+        <Field label={tx({ en: 'Sub-District / Tehsil / Block', hi: 'उप-जिला / तहसील / प्रखंड' })} required htmlFor="blockName" error={errors.blockName}>
+          <TextInput {...bind('blockName')} />
+        </Field>
+        <Field label={tx({ en: 'State Portal / Samagra / e-District Ref (if any)', hi: 'राज्य पोर्टल / समग्र आईडी (यदि उपलब्ध हो)' })} optional htmlFor="statePortalRef">
+          <TextInput {...bind('statePortalRef')} />
+        </Field>
+      </FormSection>
+    </div>
+  );
+}
+
+function TopClassForm({ bind, values, errors, tx }) {
+  const isRenewal = values.applicationType === 'RENEWAL';
+
+  return (
+    <div className="space-y-8">
+      <FormSection title={tx({ en: 'Application Flow Type', hi: 'आवेदन प्रवाह प्रकार' })}>
+        <Field label={tx({ en: 'Application Category', hi: 'आवेदन श्रेणी' })} required htmlFor="applicationType" error={errors.applicationType}>
+          <RadioGroup
+            {...bind('applicationType')}
+            options={[
+              { value: 'FRESH', label: { en: 'Fresh Application (1st Year Admission)', hi: 'नवीन आवेदन (प्रथम वर्ष प्रवेश)' } },
+              { value: 'RENEWAL', label: { en: 'Renewal Application (2nd Year Onwards)', hi: 'नवीनीकरण आवेदन (द्वितीय वर्ष से आगे)' } },
+            ]}
+          />
+        </Field>
+      </FormSection>
+
+      <FormSection title={tx({ en: 'Notified Premier Institution', hi: 'अधिसूचित उत्कृष्ट संस्थान' })}>
+        <Field label={tx({ en: 'Premier Institute Name (IIT, IIM, NIT, AIIMS, NLU, etc.)', hi: 'उत्कृष्ट संस्थान का नाम' })} required htmlFor="premierInstituteName" error={errors.premierInstituteName} className="md:col-span-2">
+          <TextInput {...bind('premierInstituteName')} placeholder="e.g. Indian Institute of Technology (IIT) Delhi" />
+        </Field>
+        <Field label={tx({ en: 'Programme / Degree', hi: 'कार्यक्रम / डिग्री' })} required htmlFor="programmeName" error={errors.programmeName} hint="e.g. B.Tech Computer Science, MBA, MBBS">
+          <TextInput {...bind('programmeName')} />
+        </Field>
+        <Field label={tx({ en: 'Student Roll / Registration No.', hi: 'विद्यार्थी रोल / पंजीकरण संख्या' })} required htmlFor="rollNumber" error={errors.rollNumber}>
+          <TextInput {...bind('rollNumber')} />
+        </Field>
+      </FormSection>
+
+      {!isRenewal ? (
+        <FormSection title={tx({ en: 'Entrance Exam & Fee Structure (Fresh Intake)', hi: 'प्रवेश परीक्षा एवं शुल्क संरचना' })}>
+          <Field label={tx({ en: 'Entrance Examination', hi: 'प्रवेश परीक्षा' })} required htmlFor="entranceExamName" error={errors.entranceExamName} hint="JEE Advanced / CAT / NEET-UG / CLAT / etc.">
+            <TextInput {...bind('entranceExamName')} />
+          </Field>
+          <Field label={tx({ en: 'All India Rank / Category Rank', hi: 'अखिल भारतीय रैंक' })} required htmlFor="entranceRank" error={errors.entranceRank}>
+            <TextInput {...bind('entranceRank')} inputMode="numeric" />
+          </Field>
+          <Field label={tx({ en: 'Date of Admission', hi: 'प्रवेश तिथि' })} required htmlFor="admissionDate" error={errors.admissionDate}>
+            <TextInput {...bind('admissionDate')} type="date" />
+          </Field>
+          <Field label={tx({ en: 'Annual Tuition Fee (₹)', hi: 'वार्षिक शिक्षण शुल्क (₹)' })} required htmlFor="tuitionFeePerAnnum" error={errors.tuitionFeePerAnnum} hint="Reimbursed directly up to scheme limits">
+            <TextInput {...bind('tuitionFeePerAnnum')} inputMode="numeric" />
+          </Field>
+          <Field label={tx({ en: 'Other Non-Refundable Charges (₹)', hi: 'अन्य गैर-वापसी शुल्क (₹)' })} optional htmlFor="nonRefundableCharges">
+            <TextInput {...bind('nonRefundableCharges')} inputMode="numeric" />
+          </Field>
+        </FormSection>
+      ) : (
+        <FormSection title={tx({ en: 'Academic Performance for Renewal', hi: 'नवीनीकरण हेतु शैक्षणिक प्रदर्शन' })} description={tx({ en: 'Minimum 50% passing marks in previous academic year required. No active backlogs allowed.', hi: 'पिछले शैक्षणिक वर्ष में न्यूनतम 50% उत्तीर्ण अंक आवश्यक हैं।' })}>
+          <Field label={tx({ en: 'Current Semester / Year', hi: 'वर्तमान सेमेस्टर / वर्ष' })} required htmlFor="currentYearSemester" error={errors.currentYearSemester} hint="e.g. 3rd Year / 5th Semester">
+            <TextInput {...bind('currentYearSemester')} />
+          </Field>
+          <Field label={tx({ en: 'Previous Year Passing Marks (%)', hi: 'पिछले वर्ष के उत्तीर्ण अंक (%)' })} required htmlFor="previousYearMarksPercentage" error={errors.previousYearMarksPercentage} hint="Must be at least 50%">
+            <TextInput {...bind('previousYearMarksPercentage')} transform={decimal} inputMode="decimal" />
+          </Field>
+          <Field label={tx({ en: 'Do you have any active / uncleared backlogs?', hi: 'क्या कोई बकाया (बैकलॉग) पेपर है?' })} required htmlFor="hasBacklogs" error={errors.hasBacklogs}>
+            <RadioGroup {...bind('hasBacklogs')} options={YES_NO} />
+          </Field>
+          <Field label={tx({ en: 'Promoted to the next academic year?', hi: 'अगले शैक्षणिक वर्ष में पदोन्नत किया गया?' })} required htmlFor="promotedToNextYear" error={errors.promotedToNextYear}>
+            <RadioGroup {...bind('promotedToNextYear')} options={YES_NO} />
+          </Field>
+          <Field label={tx({ en: 'Current Year Tuition Fee (₹)', hi: 'चालू वर्ष शिक्षण शुल्क (₹)' })} required htmlFor="tuitionFeePerAnnum" error={errors.tuitionFeePerAnnum}>
+            <TextInput {...bind('tuitionFeePerAnnum')} inputMode="numeric" />
+          </Field>
+        </FormSection>
+      )}
+    </div>
+  );
+}
+
 export default function AcademicStep({ scheme, values, setValue, errors }) {
   const { tx } = useLang();
   const bind = binder(values, errors, setValue);
@@ -286,5 +431,7 @@ export default function AcademicStep({ scheme, values, setValue, errors }) {
 
   if (scheme.academicForm === 'school') return <SchoolForm {...props} />;
   if (scheme.academicForm === 'research') return <ResearchForm {...props} />;
+  if (scheme.academicForm === 'post-matric') return <PostMatricForm {...props} />;
+  if (scheme.academicForm === 'top-class') return <TopClassForm {...props} />;
   return <OverseasForm {...props} />;
 }

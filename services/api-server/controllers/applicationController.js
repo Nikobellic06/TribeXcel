@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const Application = require('../models/Application');
 const ApplicationDraft = require('../models/ApplicationDraft');
 const Student = require('../models/Student');
@@ -622,6 +624,55 @@ const verifyDocumentItem = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/applications/:id/documents/:documentId
+ * Authorized officer document streaming endpoint
+ */
+const streamApplicationDocument = async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const docParam = req.params.documentId;
+    const docItem = (application.documents || []).find(
+      (d) => d.documentId === docParam || d.docType === docParam || d.name === docParam
+    );
+    if (!docItem) {
+      return res.status(404).json({ success: false, message: 'Document not found in application' });
+    }
+
+    let dbDoc = null;
+    if (docItem.documentId) {
+      dbDoc = await Document.findOne({ documentId: docItem.documentId });
+    }
+    if (!dbDoc) {
+      dbDoc = await Document.findOne({ studentId: application.student, documentType: docItem.docType });
+    }
+
+    let filePath = dbDoc?.storagePath;
+    if (!filePath && docItem.fileUrl) {
+      const safeBase = path.join(__dirname, '..', 'uploads', String(application.student));
+      const relative = path.basename(docItem.fileUrl);
+      const candidate = path.join(safeBase, relative);
+      if (fs.existsSync(candidate)) filePath = candidate;
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'Physical document file not found on server' });
+    }
+
+    const mime = docItem.mimeType || dbDoc?.mimeType || 'application/pdf';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', `inline; filename="${docItem.fileName || 'document'}"`);
+    return fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error streaming document: ' + err.message });
+  }
+};
+
 module.exports = {
   getApplications,
   getCounts,
@@ -639,4 +690,5 @@ module.exports = {
   markNotificationsSeen,
   getAuditLogs,
   verifyDocumentItem,
+  streamApplicationDocument,
 };

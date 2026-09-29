@@ -31,12 +31,12 @@ const stateClass = (invalid, readOnly) =>
     ? 'border-alert bg-[#fff8f7]'
     : 'border-line bg-white hover:border-[#b9c3cf]';
 
-export function Field({ label, required, optional, hint, error, htmlFor, verified, className = '', children }) {
+export function Field({ label, required, optional, hint, error, htmlFor, verified, sourceNote, diffNote, className = '', children }) {
   const { t } = useLang();
   return (
     <div className={className}>
       {label && (
-        <label htmlFor={htmlFor} className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <label htmlFor={htmlFor} className="mb-1.5 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-ink">
           <span>
             {label}
             {required && <span className="ml-0.5 text-alert" aria-hidden="true">*</span>}
@@ -48,9 +48,19 @@ export function Field({ label, required, optional, hint, error, htmlFor, verifie
               {verified}
             </span>
           )}
+          {sourceNote && (
+            <span className="inline-flex items-center gap-1 rounded bg-navy/10 px-1.5 py-0.5 text-[10px] font-semibold text-navy">
+              {sourceNote}
+            </span>
+          )}
         </label>
       )}
       {children}
+      {diffNote && (
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-700 font-medium bg-amber-50 rounded px-2 py-0.5 border border-amber-200">
+          <span>⚠ Application value differs from retrieved document value.</span>
+        </p>
+      )}
       {error ? (
         <p id={htmlFor ? `${htmlFor}-error` : undefined} className="mt-1.5 flex items-start gap-1.5 text-[12px] text-alert" role="alert">
           <CircleAlert className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />

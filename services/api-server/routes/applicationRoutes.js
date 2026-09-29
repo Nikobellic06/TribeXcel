@@ -18,6 +18,7 @@ const {
   markNotificationsSeen,
   getAuditLogs,
   verifyDocumentItem,
+  streamApplicationDocument,
 } = require('../controllers/applicationController');
 
 router.use(protect);
@@ -27,6 +28,7 @@ router.get('/applications', getApplications);
 router.get('/applications/counts', getCounts);
 router.patch('/applications/bulk-status', bulkUpdateStatus);
 router.patch('/applications/finalize-selection', finalizeSelection);
+router.get('/applications/:id/documents/:documentId', streamApplicationDocument);
 router.get('/applications/:id', getApplicationById);
 router.post('/applications/:id/decision', decide);
 router.post('/applications/:id/verify', (req, res, next) => {

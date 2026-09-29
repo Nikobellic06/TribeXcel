@@ -2,6 +2,7 @@
  * Ministry of Tribal Affairs (MoTA), Government of India
  * Authoritative Scheme Catalogue & Configuration
  * Session: 2026-27 (Version: 2026.1)
+ * All 5 Schemes Processed Directly via TribeXcel Intake
  */
 
 export const SELECTION_YEAR = '2026-27';
@@ -14,6 +15,7 @@ export const SCHEMES = {
     icon: 'graduation',
     status: 'open',
     applicationMode: 'DIRECT',
+    academicForm: 'research',
     short: { en: 'NFST', hi: 'एनएफएसटी' },
     name: {
       en: 'National Fellowship for ST Students (M.Phil / Ph.D)',
@@ -74,6 +76,7 @@ export const SCHEMES = {
     icon: 'globe',
     status: 'open',
     applicationMode: 'DIRECT',
+    academicForm: 'overseas',
     short: { en: 'NOS', hi: 'एनओएस' },
     name: {
       en: 'National Overseas Scholarship for ST Students',
@@ -81,7 +84,7 @@ export const SCHEMES = {
     },
     type: { en: 'Central Sector Direct Scheme', hi: 'केंद्रीय क्षेत्र प्रत्यक्ष योजना' },
     level: { en: "Master's / Ph.D / Post-Doctoral Abroad", hi: 'विदेश में मास्टर्स / पीएच.डी / पोस्ट-डॉक्टरल' },
-    window: { en: 'As notified for Session 2026-27', hi: 'सत्र 2026-27 हेतु पोर्टल पर अधिसूचना अनुसार' },
+    window: { en: '1 July 2026 – 31 October 2026', hi: '1 जुलाई 2026 – 31 अक्टूबर 2026' },
     overview: {
       en: "Provides financial assistance to meritorious Scheduled Tribe students for pursuing Master’s level courses, Ph.D. and Post-Doctoral research in accredited foreign universities ranked within the top 1000 in QS World University Rankings. 20 awards per year.",
       hi: 'क्यूएस विश्व रैंकिंग के शीर्ष 1000 विश्वविद्यालयों में मास्टर्स, पीएच.डी एवं पोस्ट-डॉक्टरल शोध हेतु मेधावी अनुसूचित जनजाति छात्रों को वित्तीय सहायता। प्रतिवर्ष 20 छात्रवृत्तियां।',
@@ -137,29 +140,24 @@ export const SCHEMES = {
     code: 'PRE_MATRIC',
     icon: 'school',
     status: 'open',
-    applicationMode: 'EXTERNAL_FEDERATED',
+    applicationMode: 'DIRECT',
+    academicForm: 'school',
     short: { en: 'Pre-Matric', hi: 'मैट्रिक-पूर्व' },
     name: {
       en: 'Pre-Matric Scholarship Scheme for ST Students',
       hi: 'अनुसूचित जनजाति छात्रों हेतु मैट्रिक-पूर्व छात्रवृत्ति योजना',
     },
-    type: { en: 'Centrally Sponsored Scheme (Federated Portal Workflow)', hi: 'केंद्र प्रायोजित योजना (बाह्य राज्य/एनएसपी पोर्टल)' },
+    type: { en: 'Centrally Sponsored Scheme (Direct TribeXcel Intake)', hi: 'केंद्र प्रायोजित योजना (प्रत्यक्ष आवेदन)' },
     level: { en: 'Class IX & X in India', hi: 'कक्षा IX एवं X' },
-    window: { en: 'Processed via State Portals / NSP', hi: 'राज्य छात्रवृत्ति पोर्टल / एनएसपी के माध्यम से' },
+    window: { en: '1 July 2026 – 31 October 2026', hi: '1 जुलाई 2026 – 31 अक्टूबर 2026' },
     overview: {
-      en: 'Centrally sponsored scholarship scheme implemented through State Governments and UT Administrations to support ST parents in sending children to school at Class IX and X levels. Applications are submitted via the designated State Portal or National Scholarship Portal (NSP).',
-      hi: 'कक्षा IX और X के अनुसूचित जनजाति छात्रों हेतु राज्य सरकारों और संघ राज्य क्षेत्रों द्वारा क्रियान्वित केंद्र प्रायोजित योजना। आवेदन संबंधित राज्य पोर्टल अथवा राष्ट्रीय छात्रवृत्ति पोर्टल (NSP) के माध्यम से जमा किए जाते हैं।',
-    },
-    externalPortalName: 'National Scholarship Portal / State Portals',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: {
-      en: 'Applications for this scheme are processed through the designated State/UT Portal or National Scholarship Portal (NSP). TribeXcel provides official scheme details, eligibility evaluation, and direct redirection to the application authority.',
-      hi: 'इस योजना के आवेदन संबंधित राज्य/संघ राज्य क्षेत्र के पोर्टल अथवा राष्ट्रीय छात्रवृत्ति पोर्टल (NSP) द्वारा संसाधित किए जाते हैं। TribeXcel योजना विवरण, पात्रता जांच एवं आधिकारिक पोर्टल पुनर्निर्देशन प्रदान करता है।',
+      en: 'Centrally sponsored scholarship scheme implemented through State Governments and UT Administrations to support ST parents in sending children to school at Class IX and X levels. Seamlessly processed via TribeXcel unified portal.',
+      hi: 'कक्षा IX और X के अनुसूचित जनजाति छात्रों हेतु राज्य सरकारों और संघ राज्य क्षेत्रों द्वारा क्रियान्वित केंद्र प्रायोजित योजना। TribeXcel एकीकृत पोर्टल के माध्यम से सहज आवेदन।',
     },
     rules: {
       incomeLimit: 250000,
       orphanIncomeExempt: true,
-      allowedClasses: ['IX', 'X'],
+      allowedClasses: ['IX', 'X', '9', '10'],
     },
     eligibility: [
       { en: 'Belongs to a notified Scheduled Tribe (ST)', hi: 'अधिसूचित अनुसूचित जनजाति से संबंधित हों' },
@@ -182,24 +180,19 @@ export const SCHEMES = {
     code: 'POST_MATRIC',
     icon: 'book-open',
     status: 'open',
-    applicationMode: 'EXTERNAL_FEDERATED',
+    applicationMode: 'DIRECT',
+    academicForm: 'post-matric',
     short: { en: 'Post-Matric', hi: 'पोस्ट-मैट्रिक' },
     name: {
       en: 'Post-Matric Scholarship Scheme for ST Students',
       hi: 'अनुसूचित जनजाति छात्रों हेतु पोस्ट-मैट्रिक छात्रवृत्ति योजना',
     },
-    type: { en: 'Centrally Sponsored Scheme (Federated Portal Workflow)', hi: 'केंद्र प्रायोजित योजना (राज्य/एनएसपी पोर्टल)' },
+    type: { en: 'Centrally Sponsored Scheme (Direct TribeXcel Intake)', hi: 'केंद्र प्रायोजित योजना (प्रत्यक्ष आवेदन)' },
     level: { en: 'Class XI, XII, ITI, Diploma, UG, PG in India', hi: 'कक्षा XI, XII, डिप्लोमा, स्नातक, स्नातकोत्तर' },
-    window: { en: 'Processed via State Portals / NSP', hi: 'राज्य छात्रवृत्ति पोर्टल / एनएसपी के माध्यम से' },
+    window: { en: '1 July 2026 – 31 October 2026', hi: '1 जुलाई 2026 – 31 अक्टूबर 2026' },
     overview: {
       en: 'An open-ended entitlement scheme providing comprehensive financial assistance to Scheduled Tribe students studying at post-matriculation or post-secondary stages across India.',
-      hi: 'मैट्रिकोत्तर या माध्यमिकोत्तर स्तर पर अध्ययनरत अनुसूचित जनजाति के छात्रों को व्यापक वित्तीय सहायता प्रदान करने वाली योजना। आवेदन राज्य पोर्टलों एवं एनएसपी के माध्यम से स्वीकार किए जाते हैं।',
-    },
-    externalPortalName: 'National Scholarship Portal / State Tribal Portals',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: {
-      en: 'Applications are submitted through the State/UT Scholarship Portal or NSP under State-specific schemes. Direct benefit transfers (DBT) are managed jointly by States and MoTA.',
-      hi: 'आवेदन राज्य/संघ राज्य क्षेत्र के छात्रवृत्ति पोर्टल अथवा एनएसपी के माध्यम से प्रस्तुत किए जाते हैं। डीबीटी भुगतान राज्य एवं जनजातीय कार्य मंत्रालय द्वारा संयुक्त रूप से किया जाता है।',
+      hi: 'मैट्रिकोत्तर या माध्यमिकोत्तर स्तर पर अध्ययनरत अनुसूचित जनजाति के छात्रों को व्यापक वित्तीय सहायता प्रदान करने वाली योजना।',
     },
     rules: {
       incomeLimit: 250000,
@@ -212,7 +205,7 @@ export const SCHEMES = {
     ],
     benefits: [
       { label: { en: 'Compulsory Non-Refundable Fees', hi: 'अनिवार्य गैर-वापसी योग्य शुल्क' }, value: { en: 'Reimbursement of tuition, library, examination, and laboratory fees', hi: 'शिक्षण, पुस्तकालय, परीक्षा एवं प्रयोगशाला शुल्क की प्रतिपूर्ति' } },
-      { label: { en: 'Maintenance Allowance', hi: 'निर्वाह भत्ता' }, value: { en: 'Group-specific monthly allowance up to ₹1,200/month', hi: 'पाठ्यक्रम समूह अनुसार ₹1,200 प्रति माह तक' } },
+      { label: { en: 'Maintenance Allowance', hi: 'निर्वाह भत्ता' }, value: { en: 'Group-specific monthly allowance up to ₹1,200/month for day scholars, ₹1,500/month for hostellers', hi: 'पाठ्यक्रम समूह अनुसार ₹1,200 प्रति माह तक' } },
     ],
     officialSource: {
       portalUrl: 'https://scholarships.gov.in',
@@ -226,28 +219,26 @@ export const SCHEMES = {
     code: 'TOP_CLASS',
     icon: 'award',
     status: 'open',
-    applicationMode: 'EXTERNAL_FEDERATED',
+    applicationMode: 'DIRECT',
+    academicForm: 'top-class',
+    applicationTypes: ['FRESH', 'RENEWAL'],
     short: { en: 'Top Class', hi: 'शीर्ष श्रेणी' },
     name: {
       en: 'National Scholarship for Higher Education (Top Class) for ST Students',
       hi: 'अनुसूचित जनजाति छात्रों हेतु शीर्ष श्रेणी शिक्षा राष्ट्रीय छात्रवृत्ति',
     },
-    type: { en: 'Central Sector Scheme (NSP Portal Workflow)', hi: 'केंद्रीय क्षेत्र योजना (एनएसपी पोर्टल)' },
+    type: { en: 'Central Sector Scheme (Direct TribeXcel Intake)', hi: 'केंद्रीय क्षेत्र योजना (प्रत्यक्ष आवेदन)' },
     level: { en: 'Premier Notified Institutes (IIT, IIM, NIT, AIIMS, NLU, etc.)', hi: 'अधिसूचित उत्कृष्ट संस्थान' },
-    window: { en: 'Processed via National Scholarship Portal (NSP)', hi: 'एनएसपी के माध्यम से' },
+    window: { en: '1 July 2026 – 31 October 2026', hi: '1 जुलाई 2026 – 31 अक्टूबर 2026' },
     overview: {
-      en: 'Recognizes and promotes quality education among ST students by providing full financial support for studies in 250+ notified premier institutions across India including IITs, IIMs, NITs, and AIIMS. 1000 fresh scholarships awarded every year.',
-      hi: 'आईआईटी, आईआईएम, एनआईटी, एम्स सहित 250+ अधिसूचित उत्कृष्ट संस्थानों में अध्ययनरत अनुसूचित जनजाति के छात्रों को पूर्ण वित्तीय सहायता प्रदान करने वाली योजना। प्रतिवर्ष 1000 नई छात्रवृत्तियां।',
-    },
-    externalPortalName: 'National Scholarship Portal (NSP)',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: {
-      en: 'Applications for the Top Class Education scheme are scrutinized and processed centrally through the National Scholarship Portal (NSP). Candidates must apply directly on scholarships.gov.in.',
-      hi: 'शीर्ष श्रेणी शिक्षा योजना के आवेदन केंद्रीय रूप से राष्ट्रीय छात्रवृत्ति पोर्टल (NSP) के माध्यम से संसाधित किए जाते हैं। अभ्यर्थी सीधे scholarships.gov.in पर आवेदन करें।',
+      en: 'Recognizes and promotes quality education among ST students by providing full financial support for studies in 250+ notified premier institutions across India including IITs, IIMs, NITs, and AIIMS. Supports dedicated Fresh and Renewal application workflows.',
+      hi: 'आईआईटी, आईआईएम, एनआईटी, एम्स सहित 250+ अधिसूचित उत्कृष्ट संस्थानों में अध्ययनरत अनुसूचित जनजाति के छात्रों को पूर्ण वित्तीय सहायता प्रदान करने वाली योजना। फ्रेश एवं नवीनीकरण हेतु समर्पित आवेदन प्रक्रिया।',
     },
     rules: {
       incomeLimit: 600000,
+      orphanIncomeExempt: true,
       premierOnly: true,
+      renewalPassingMarks: 50.0,
     },
     slots: {
       total: 1000,
@@ -256,6 +247,7 @@ export const SCHEMES = {
       { en: 'Belongs to a notified Scheduled Tribe (ST)', hi: 'अधिसूचित अनुसूचित जनजाति से संबंधित हों' },
       { en: 'Secured admission in one of the 250+ premier institutions notified by the Ministry', hi: 'मंत्रालय द्वारा अधिसूचित 250+ उत्कृष्ट संस्थानों में से किसी एक में प्रवेश प्राप्त किया हो' },
       { en: 'Total family income from all sources up to ₹6,00,000 per annum', hi: 'पारिवारिक वार्षिक आय ₹6,00,000 तक हो' },
+      { en: 'For renewals: minimum 50% passing marks in previous academic year without backlogs', hi: 'नवीनीकरण हेतु: पिछले शैक्षणिक वर्ष में बिना बैकलाग के न्यूनतम 50% उत्तीर्ण अंक' },
     ],
     benefits: [
       { label: { en: 'Tuition Fee', hi: 'शिक्षण शुल्क' }, value: { en: 'Full tuition fee and non-refundable charges (up to ₹2.00 Lakhs/yr in private institutes)', hi: 'पूर्ण शिक्षण शुल्क (निजी संस्थानों में ₹2.00 लाख/वर्ष तक)' } },

@@ -1,445 +1,197 @@
 /**
  * Ministry of Tribal Affairs (MoTA), Government of India
- * Authoritative Scheme Rules and Document Configuration Catalogue
+ * Canonical Single Source of Truth for Scheme Configuration & Document Rules
  * Version: 2026.1 (Academic Session 2026-27)
  */
 
+const preMatric = require('./schemes/2026-27/pre-matric');
+const postMatric = require('./schemes/2026-27/post-matric');
+const topClass = require('./schemes/2026-27/top-class');
+const nfst = require('./schemes/2026-27/nfst');
+const nos = require('./schemes/2026-27/nos');
+
+// Compatibility wrapper to ensure both .eligibilityRules and .eligibilityCriteria are accessible
+function normalizeScheme(scheme) {
+  const norm = { ...scheme };
+  if (!norm.eligibilityCriteria && norm.eligibilityRules) {
+    norm.eligibilityCriteria = { ...norm.eligibilityRules };
+  }
+  if (!norm.eligibilityRules && norm.eligibilityCriteria) {
+    norm.eligibilityRules = { ...norm.eligibilityCriteria };
+  }
+  norm.applicationMode = 'DIRECT'; // All 5 MoTA schemes process directly through TribeXcel
+  return norm;
+}
+
 const SCHEME_CATALOGUE = {
-  NFST: {
-    code: 'NFST',
-    name: 'National Fellowship for ST Students',
-    hindiName: 'अनुसूचित जनजाति के छात्रों के लिए राष्ट्रीय अध्येतावृत्ति',
-    level: 'M.Phil / Ph.D in Indian Universities',
-    applicationMode: 'DIRECT',
-    selectionYear: '2026-27',
-    ruleVersion: '2026.1',
-    description: 'Provides financial assistance to Scheduled Tribe students for pursuing full-time research studies leading to M.Phil and Ph.D degrees in Indian Universities and Research Institutes.',
-    officialPortalUrl: 'https://fellowship.tribal.gov.in',
-    guidelineDocUrl: 'https://tribal.nic.in/NFST.aspx',
-    managingAuthority: 'Ministry of Tribal Affairs, New Delhi',
-    slots: {
-      total: 750,
-      breakdown: {
-        divyangjan: 38,
-        pvtg: 25,
-        female: 225,
-        generalST: 462,
-      },
-    },
-    financialBenefits: {
-      jrf: 'Rs. 37,000 / month (first 2 years)',
-      srf: 'Rs. 42,000 / month (remaining duration)',
-      contingencyHumanities: 'Rs. 10,000 / annum (JRF), Rs. 20,500 / annum (SRF)',
-      contingencyScience: 'Rs. 12,000 / annum (JRF), Rs. 25,000 / annum (SRF)',
-      hra: 'As per central government / UGC norms',
-      escortsAllowance: 'Rs. 2,000 / month for physically handicapped / blind candidates',
-    },
-    eligibilityCriteria: {
-      category: ['ST'],
-      minQualifyingMarks: 55.0, // Minimum Master's percentage
-      marksNote: "Master's degree marks only. M.Phil marksheets are not to be used for minimum qualifying marks.",
-      incomeLimit: null, // No family income ceiling in official NFST guidelines
-      maxAge: 36, // General ST limit (with relaxation as per guidelines)
-      allowedCourses: ['M.Phil', 'Ph.D', 'Integrated M.Phil-Ph.D'],
-      regularFullTimeOnly: true,
-      otherFellowshipDeclarationRequired: true,
-    },
-    sections: ['identity', 'community', 'disability', 'academic', 'bank', 'declarations'],
-    documents: [
-      {
-        id: 'photo',
-        title: 'Applicant Photograph',
-        description: 'Recent passport-size photograph with white background',
-        mandatory: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'signature',
-        title: 'Applicant Signature',
-        description: 'Scanned signature on plain white paper with blue/black ink',
-        mandatory: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'class10_certificate',
-        title: '10th Board Certificate (Proof of Date of Birth)',
-        description: 'Matriculation/Secondary School Board Certificate showing Date of Birth',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: '10CR',
-      },
-      {
-        id: 'st_certificate',
-        title: 'Scheduled Tribe (ST) Certificate',
-        description: 'Valid ST Certificate issued by the competent Revenue/Administrative authority (Tehsildar/SDM/DM)',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'CASTC',
-      },
-      {
-        id: 'pvtg_certificate',
-        title: 'PVTG Certificate',
-        description: 'Certificate certifying inclusion in Particularly Vulnerable Tribal Group (if applicable)',
-        mandatory: false,
-        condition: 'isPVTG',
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'disability_certificate',
-        title: 'UDID / Disability Certificate',
-        description: 'Disability Certificate / UDID card issued by Medical Board (40% or more disability)',
-        mandatory: false,
-        condition: 'hasDisability',
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'DISCR',
-      },
-      {
-        id: 'pg_marksheet',
-        title: "Post-Graduate (Master's) Marksheet / Degree",
-        description: 'Consolidated marksheet or all semester marksheets of qualifying Master’s Degree with at least 55% marks',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'DEGRR',
-      },
-      {
-        id: 'cgpa_conversion',
-        title: 'CGPA to Percentage Conversion Formula',
-        description: 'Official notification or formula from Registrar/Controller of Examination for CGPA conversion',
-        mandatory: false,
-        condition: 'usesCGPA',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'admission_letter',
-        title: 'University Admission / Joining Document',
-        description: 'Official joining report or admission letter for M.Phil / Ph.D issued by University Registrar/Dean',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-    ],
-  },
-
-  NOS: {
-    code: 'NOS',
-    name: 'National Overseas Scholarship for ST Students',
-    hindiName: 'अनुसूचित जनजाति के छात्रों के लिए राष्ट्रीय विदेशी छात्रवृत्ति',
-    level: "Master's / Ph.D / Post-Doctoral Abroad",
-    applicationMode: 'DIRECT',
-    selectionYear: '2026-27',
-    ruleVersion: '2026.1',
-    description: 'Provides financial support to selected ST candidates for pursuing Master’s level courses, Ph.D. and Post-Doctoral research programmes in recognized foreign institutions/universities.',
-    officialPortalUrl: 'https://overseas.tribal.gov.in',
-    guidelineDocUrl: 'https://tribal.nic.in/NOS.aspx',
-    managingAuthority: 'Ministry of Tribal Affairs, Overseas Scholarship Cell, New Delhi',
-    slots: {
-      total: 20,
-      breakdown: {
-        st: 17,
-        pvtg: 3,
-      },
-    },
-    financialBenefits: {
-      maintenanceAllowanceUSA: 'USD 15,400 / annum (or actual living expenses)',
-      maintenanceAllowanceUK: 'GBP 9,900 / annum',
-      tuitionFees: 'Actual tuition fees paid directly to institution',
-      contingency: 'USD 1,500 / annum or GBP 1,100 / annum',
-      airfare: 'Economy class airfare to destination and return upon completion',
-      incidentalTravel: 'Actuals as per rules',
-    },
-    eligibilityCriteria: {
-      category: ['ST'],
-      minQualifyingMarks: 55.0, // Minimum marks in qualifying exam
-      incomeLimit: 600000, // Total family income <= Rs. 6,00,000 / annum
-      orphanIncomeExempt: true,
-      maxAgeByCourse: {
-        masters: 32,
-        phd: 35,
-        postdoc: 38,
-      },
-      allowedLevels: ['masters', 'phd', 'postdoc'],
-      foreignInstitutionCriteria: {
-        qsRankLimit: 1000,
-        admissionStatusRequired: ['unconditional_offer', 'conditional_offer', 'admitted'],
-      },
-      twoChildrenRule: true, // Only 2 children of same parents eligible
-      employmentRules: {
-        requiresNOC: true,
-      },
-    },
-    sections: ['identity', 'community', 'programme', 'academic', 'foreign_university', 'employment_gap', 'family_income', 'bank', 'declarations'],
-    documents: [
-      {
-        id: 'photo',
-        title: 'Applicant Photograph',
-        description: 'Recent passport-size colour photograph',
-        mandatory: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'signature',
-        title: 'Applicant Signature',
-        description: 'Scanned signature on plain white paper',
-        mandatory: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'class10_certificate',
-        title: '10th Board Certificate (Proof of Date of Birth)',
-        description: 'Secondary School Board Certificate showing Date of Birth',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: '10CR',
-      },
-      {
-        id: 'st_certificate',
-        title: 'Scheduled Tribe (ST) Certificate',
-        description: 'Valid ST Certificate issued by competent Revenue Authority',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'CASTC',
-      },
-      {
-        id: 'pvtg_certificate',
-        title: 'PVTG Certificate',
-        description: 'Certificate of inclusion in Particularly Vulnerable Tribal Group (if applicable)',
-        mandatory: false,
-        condition: 'isPVTG',
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'qualifying_degree',
-        title: 'Qualifying Degree / Marksheets',
-        description: "Bachelor's degree for Master's; Master's for Ph.D; Ph.D degree for Post-Doctoral",
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'DEGRR',
-      },
-      {
-        id: 'cgpa_conversion',
-        title: 'CGPA Conversion Formula',
-        description: 'Official formula issued by University for converting CGPA/OGPA to percentage',
-        mandatory: false,
-        condition: 'usesCGPA',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'foreign_admission_letter',
-        title: 'Foreign University Admission / Offer Letter',
-        description: 'Unconditional or conditional admission letter from a recognized foreign university (within QS Top 1000)',
-        mandatory: true,
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'family_income_proof',
-        title: 'Family Income Certificate / ITR',
-        description: 'Income Certificate issued by Executive Magistrate / Tehsildar or ITR Form 16 / Acknowledgement for all earning family members',
-        mandatory: true,
-        condition: '!isOrphan',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: true,
-        digilockerDocType: 'INCER',
-      },
-      {
-        id: 'orphan_certificate',
-        title: 'Death Certificates of Parents / Orphan Certificate',
-        description: 'Official death certificates of both parents or certificate from Child Welfare Committee',
-        mandatory: false,
-        condition: 'isOrphan',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'employer_noc',
-        title: 'Employer NOC & Experience Certificate',
-        description: 'No Objection Certificate from current employer with leave sanction assurance',
-        mandatory: false,
-        condition: 'isEmployed',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-      {
-        id: 'gap_certificate',
-        title: 'Gap Certificate / Affidavit',
-        description: 'Self-declaration affidavit explaining academic/professional gap years',
-        mandatory: false,
-        condition: 'hasGap',
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 2097152,
-        stage: 'APPLICATION',
-        digilockerSupported: false,
-      },
-    ],
-    awardStageDocuments: [
-      {
-        id: 'passport',
-        title: 'Valid Indian Passport',
-        stage: 'POST_SELECTION',
-      },
-      {
-        id: 'visa',
-        title: 'Student / Research Visa',
-        stage: 'POST_SELECTION',
-      },
-      {
-        id: 'bond_agreement',
-        title: 'Executed Legal Bond with Two Sureties',
-        stage: 'POST_SELECTION',
-      },
-      {
-        id: 'medical_certificate',
-        title: 'Medical Fitness Certificate from Civil Surgeon',
-        stage: 'POST_SELECTION',
-      },
-    ],
-  },
-
-  PRE_MATRIC: {
-    code: 'PRE_MATRIC',
-    name: 'Pre-Matric Scholarship Scheme for ST Students',
-    hindiName: 'अनुसूचित जनजाति के छात्रों के लिए प्री-मैट्रिक छात्रवृत्ति योजना',
-    level: 'Class IX & X',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    selectionYear: '2026-27',
-    ruleVersion: '2026.1',
-    description: 'Centrally sponsored scholarship scheme implemented through State Governments and UT Administrations to support ST parents in sending children to school at Class IX and X levels.',
-    externalPortalName: 'State Scholarship Portals / National Scholarship Portal (NSP)',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: 'Applications are processed directly through the designated State/UT scholarship portal or National Scholarship Portal (NSP). TribeXcel provides scheme information, eligibility verification, and state portal redirection.',
-    managingAuthority: 'Ministry of Tribal Affairs & Respective State Tribal Welfare Departments',
-    eligibilityCriteria: {
-      category: ['ST'],
-      classes: ['IX', 'X'],
-      incomeLimit: 250000,
-      orphanIncomeExempt: true,
-      dayScholarHosteller: ['Day Scholar', 'Hosteller'],
-    },
-    officialGuidelinesUrl: 'https://tribal.nic.in/preMatric.aspx',
-  },
-
-  POST_MATRIC: {
-    code: 'POST_MATRIC',
-    name: 'Post-Matric Scholarship Scheme for ST Students',
-    hindiName: 'अनुसूचित जनजाति के छात्रों के लिए पोस्ट-मैट्रिक छात्रवृत्ति योजना',
-    level: 'Class XI, XII, Diploma, UG, PG, Ph.D in India',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    selectionYear: '2026-27',
-    ruleVersion: '2026.1',
-    description: 'Open-ended entitlement scheme providing financial assistance to Scheduled Tribe students studying at post-matriculation or post-secondary stages.',
-    externalPortalName: 'State Scholarship Portals / National Scholarship Portal (NSP)',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: 'Applications are submitted through the State/UT Scholarship Portal or NSP under State-specific schemes. DBT disbursements are managed jointly by States and MoTA.',
-    managingAuthority: 'Ministry of Tribal Affairs & Respective State/UT Governments',
-    eligibilityCriteria: {
-      category: ['ST'],
-      classes: ['XI', 'XII', 'Graduation', 'Post-Graduation', 'Professional Degrees'],
-      incomeLimit: 250000,
-      orphanIncomeExempt: true,
-    },
-    officialGuidelinesUrl: 'https://tribal.nic.in/postMatric.aspx',
-  },
-
-  TOP_CLASS: {
-    code: 'TOP_CLASS',
-    name: 'National Scholarship Scheme for Higher Education (Top Class) for ST Students',
-    hindiName: 'अनुसूचित जनजाति के छात्रों के लिए शीर्ष श्रेणी शिक्षा राष्ट्रीय छात्रवृत्ति योजना',
-    level: 'Notified Premier Institutes (IITs, IIMs, NITs, AIIMS, NLUs, etc.)',
-    applicationMode: 'EXTERNAL_FEDERATED',
-    selectionYear: '2026-27',
-    ruleVersion: '2026.1',
-    description: 'Recognizes and promotes quality education among ST students by providing full financial support for studies in 250+ notified premier institutions across India.',
-    externalPortalName: 'National Scholarship Portal (NSP)',
-    externalPortalUrl: 'https://scholarships.gov.in',
-    applicationRouteNotice: 'Applications are submitted and scrutinized directly through the National Scholarship Portal (NSP) under Ministry of Tribal Affairs schemes.',
-    managingAuthority: 'Ministry of Tribal Affairs, New Delhi',
-    slots: {
-      total: 1000,
-    },
-    eligibilityCriteria: {
-      category: ['ST'],
-      admittedToPremierInstitute: true,
-      incomeLimit: 600000,
-      financialAssistance: 'Full tuition fee + living expense allowance + books/stationery + computer grant',
-    },
-    officialGuidelinesUrl: 'https://tribal.nic.in/topClass.aspx',
-  },
+  PRE_MATRIC: normalizeScheme(preMatric),
+  POST_MATRIC: normalizeScheme(postMatric),
+  TOP_CLASS: normalizeScheme(topClass),
+  NFST: normalizeScheme(nfst),
+  NOS: normalizeScheme(nos),
 };
 
 const DOCUMENT_REGISTRY = {
-  photo: { label: 'Passport Photograph', defaultMime: 'image/jpeg' },
-  signature: { label: 'Signature', defaultMime: 'image/jpeg' },
-  class10_certificate: { label: 'Class 10 Certificate / DOB Proof', defaultMime: 'application/pdf', digilockerType: '10CR' },
-  st_certificate: { label: 'Scheduled Tribe Certificate', defaultMime: 'application/pdf', digilockerType: 'CASTC' },
-  pvtg_certificate: { label: 'PVTG Certificate', defaultMime: 'application/pdf' },
-  disability_certificate: { label: 'Disability Certificate (UDID)', defaultMime: 'application/pdf', digilockerType: 'DISCR' },
-  pg_marksheet: { label: "Master's Degree Marksheet / Grade Sheet", defaultMime: 'application/pdf', digilockerType: 'DEGRR' },
-  cgpa_conversion: { label: 'CGPA Conversion Formula Document', defaultMime: 'application/pdf' },
-  admission_letter: { label: 'University Admission / Joining Letter', defaultMime: 'application/pdf' },
-  qualifying_degree: { label: 'Qualifying Degree Certificate', defaultMime: 'application/pdf', digilockerType: 'DEGRR' },
-  foreign_admission_letter: { label: 'Foreign University Offer Letter', defaultMime: 'application/pdf' },
-  family_income_proof: { label: 'Family Income Certificate / ITR', defaultMime: 'application/pdf', digilockerType: 'INCER' },
-  orphan_certificate: { label: 'Orphan / Parents Death Certificate', defaultMime: 'application/pdf' },
-  employer_noc: { label: 'Employer NOC', defaultMime: 'application/pdf' },
-  gap_certificate: { label: 'Gap Affidavit / Certificate', defaultMime: 'application/pdf' },
+  photo: { id: 'photo', label: 'Passport Photograph', defaultMime: 'image/jpeg', digilockerSupported: false },
+  signature: { id: 'signature', label: 'Applicant Signature', defaultMime: 'image/jpeg', digilockerSupported: false },
+  class10_certificate: { id: 'class10_certificate', label: 'Class 10 Certificate / DOB Proof', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: '10CR' },
+  st_certificate: { id: 'st_certificate', label: 'Scheduled Tribe (ST) Certificate', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'CASTC' },
+  pvtg_certificate: { id: 'pvtg_certificate', label: 'PVTG Certificate', defaultMime: 'application/pdf', digilockerSupported: false },
+  disability_certificate: { id: 'disability_certificate', label: 'Disability Certificate (UDID)', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'DISCR' },
+  family_income_proof: { id: 'family_income_proof', label: 'Family Income Certificate / ITR', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'INCER' },
+  domicile_certificate: { id: 'domicile_certificate', label: 'Domicile / Residential Certificate', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'DOMCR' },
+  orphan_certificate: { id: 'orphan_certificate', label: 'Orphan / Parents Death Certificate', defaultMime: 'application/pdf', digilockerSupported: false },
+  pg_marksheet: { id: 'pg_marksheet', label: "Master's Degree Marksheet / Grade Sheet", defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'DEGRR' },
+  qualifying_degree: { id: 'qualifying_degree', label: 'Qualifying Degree Certificate / Marksheet', defaultMime: 'application/pdf', digilockerSupported: true, digilockerType: 'DEGRR' },
+  cgpa_conversion: { id: 'cgpa_conversion', label: 'CGPA Conversion Formula Document', defaultMime: 'application/pdf', digilockerSupported: false },
+  admission_letter: { id: 'admission_letter', label: 'University Admission / Joining Letter', defaultMime: 'application/pdf', digilockerSupported: false },
+  foreign_admission_letter: { id: 'foreign_admission_letter', label: 'Foreign University Offer Letter', defaultMime: 'application/pdf', digilockerSupported: false },
+  bonafide_certificate: { id: 'bonafide_certificate', label: 'Institute Bonafide Certificate', defaultMime: 'application/pdf', digilockerSupported: false },
+  fee_receipt: { id: 'fee_receipt', label: 'Institute Fee Receipt / Structure', defaultMime: 'application/pdf', digilockerSupported: false },
+  bank_passbook: { id: 'bank_passbook', label: 'Bank Passbook / Cancelled Cheque', defaultMime: 'application/pdf', digilockerSupported: false },
+  last_passing_marksheet: { id: 'last_passing_marksheet', label: 'Last Passing Semester / Annual Marksheet', defaultMime: 'application/pdf', digilockerSupported: false },
+  visa_and_studentid: { id: 'visa_and_studentid', label: 'Valid Student Visa & Foreign Student ID Card', defaultMime: 'application/pdf', digilockerSupported: false },
+  joining_letter: { id: 'joining_letter', label: 'Official Department Joining Letter', defaultMime: 'application/pdf', digilockerSupported: false },
+  employer_noc: { id: 'employer_noc', label: 'Employer NOC & Experience Certificate', defaultMime: 'application/pdf', digilockerSupported: false },
+  gap_certificate: { id: 'gap_certificate', label: 'Gap Affidavit / Certificate', defaultMime: 'application/pdf', digilockerSupported: false },
 };
+
+/**
+ * Returns dynamic document checklist for any of the 5 schemes based on context
+ * @param {string} schemeCode - PRE_MATRIC | POST_MATRIC | TOP_CLASS | NFST | NOS
+ * @param {object} context - Form values, student profile, applicationType
+ */
+function getDocumentChecklist(schemeCode, context = {}) {
+  const scheme = SCHEME_CATALOGUE[schemeCode];
+  if (!scheme) return [];
+
+  const applicationType = (context.applicationType || 'FRESH').toUpperCase();
+  let baseReqs = [];
+  let conditionalReqs = [];
+
+  if (schemeCode === 'TOP_CLASS') {
+    const config = scheme.formConfigurations?.[applicationType] || scheme.formConfigurations?.FRESH;
+    baseReqs = config?.documents || [];
+    conditionalReqs = config?.conditionalDocuments || [];
+  } else {
+    baseReqs = scheme.documentRequirements || scheme.documents || [];
+    conditionalReqs = scheme.conditionalDocuments || [];
+  }
+
+  const checklist = [];
+
+  baseReqs.forEach((doc) => {
+    const reg = DOCUMENT_REGISTRY[doc.id] || {};
+    checklist.push({
+      ...reg,
+      ...doc,
+      required: doc.mandatory !== false,
+      isConditional: false,
+    });
+  });
+
+  conditionalReqs.forEach((doc) => {
+    let conditionMet = false;
+    if (typeof doc.condition === 'function') {
+      conditionMet = Boolean(doc.condition(context));
+    } else if (typeof doc.condition === 'string') {
+      const condKey = doc.condition.startsWith('!') ? doc.condition.slice(1) : doc.condition;
+      const isNegated = doc.condition.startsWith('!');
+      const val = context[condKey] === 'yes' || context[condKey] === true;
+      conditionMet = isNegated ? !val : val;
+    }
+    if (conditionMet) {
+      const reg = DOCUMENT_REGISTRY[doc.id] || {};
+      checklist.push({
+        ...reg,
+        ...doc,
+        required: true,
+        isConditional: true,
+      });
+    }
+  });
+
+  return checklist;
+}
+
+/**
+ * Helper to return array of required document IDs for a scheme and section context
+ */
+function requiredDocTypes(schemeCode, sections = {}) {
+  const c = sections.category || {};
+  const a = sections.academic || {};
+  const e = sections.employment_gap || {};
+  const appType = sections.applicationType || 'FRESH';
+
+  const flatContext = {
+    ...c,
+    ...a,
+    ...e,
+    applicationType: appType,
+    isPVTG: c.isPVTG === 'yes' || c.isPVTG === true,
+    hasDisability: c.hasDisability === 'yes' || c.hasDisability === true,
+    isOrphan: c.isOrphan === 'yes' || c.isOrphan === true,
+    usesCGPA: a.usesCGPA === 'yes' || a.usesCGPA === true || a.gradeType === 'cgpa',
+    isEmployed: e.isEmployed === 'yes' || e.isEmployed === true,
+    hasGap: e.hasGap === 'yes' || e.hasGap === true,
+    hasJoinedForeignUniversity: a.hasJoinedForeignUniversity === 'yes' || a.hasJoinedForeignUniversity === true,
+  };
+
+  const checklist = getDocumentChecklist(schemeCode, flatContext);
+  return checklist.map((d) => d.id);
+}
+
+/**
+ * Evaluate preliminary eligibility deterministically for a student against a scheme
+ */
+function evaluateEligibility(schemeCode, profile = {}) {
+  const scheme = SCHEME_CATALOGUE[schemeCode];
+  if (!scheme) return { eligible: false, reasons: ['Unknown scheme'] };
+
+  const rules = scheme.eligibilityRules;
+  const reasons = [];
+
+  // 1. Scheduled Tribe Check
+  const category = (profile.category || '').toUpperCase();
+  if (category && category !== 'ST' && category !== 'SCHEDULED TRIBE') {
+    reasons.push('Candidate must belong to the Scheduled Tribe (ST) category');
+  }
+
+  // 2. Income Check
+  if (rules.incomeLimit !== null && rules.incomeLimit !== undefined) {
+    const income = Number(profile.annualFamilyIncome ?? profile.familyAnnualIncome ?? profile.declaredIncome);
+    const isOrphan = profile.isOrphan === true || profile.isOrphan === 'yes';
+    if (!isOrphan && Number.isFinite(income) && income > rules.incomeLimit) {
+      reasons.push(`Annual family income (Rs. ${income.toLocaleString('en-IN')}) exceeds scheme ceiling of Rs. ${rules.incomeLimit.toLocaleString('en-IN')}`);
+    }
+  }
+
+  // 3. Class Check for Pre-Matric
+  if (schemeCode === 'PRE_MATRIC' && rules.allowedClasses) {
+    const cls = String(profile.className || profile.class || '').toUpperCase();
+    if (cls && !rules.allowedClasses.includes(cls)) {
+      reasons.push(`Scheme is open exclusively to Class IX & X students (Found Class ${cls})`);
+    }
+  }
+
+  // 4. Minimum Marks Check (NFST / NOS)
+  if (rules.minQualifyingMarks) {
+    const marks = Number(profile.qualifyingMarksPercentage ?? profile.pgMarksPercentage ?? profile.declaredMarks);
+    if (Number.isFinite(marks) && marks < rules.minQualifyingMarks) {
+      reasons.push(`Qualifying marks (${marks}%) are below mandatory minimum of ${rules.minQualifyingMarks}%`);
+    }
+  }
+
+  return {
+    eligible: reasons.length === 0,
+    reasons,
+  };
+}
 
 module.exports = {
   SCHEME_CATALOGUE,
   DOCUMENT_REGISTRY,
+  getDocumentChecklist,
+  requiredDocTypes,
+  evaluateEligibility,
 };

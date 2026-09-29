@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -8,28 +10,78 @@ const studentAuthRoutes = require('./routes/studentAuthRoutes');
 const studentApplicationRoutes = require('./routes/studentApplicationRoutes');
 const studentPortalRoutes = require('./routes/studentPortalRoutes');
 const { UPLOAD_ROOT } = require('./controllers/studentUploadController');
+const { protectAny } = require('./middleware/authMiddleware');
 
 connectDB();
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_URL,
+  process.env.STUDENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. curl, test runners) or matching allowed origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Blocked by CORS policy'));
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Documents uploaded from the student portal. File names are random and
-// unguessable; see CHANGES.md before using this in production.
-app.use(
-  '/uploads',
-  express.static(UPLOAD_ROOT, {
-    index: false,
-    dotfiles: 'deny',
-    setHeaders: (res) => {
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('Content-Disposition', 'inline');
-    },
-  })
-);
+// SECURE CITIZEN DOCUMENT STREAMING: Public express.static eliminated.
+// Enforces authentication and strict applicant ownership (anti-IDOR protection).
+app.get('/uploads/:studentId/:filename', protectAny, (req, res) => {
+  const { studentId, filename } = req.params;
+
+  // Student check: Students can only view their own uploaded documents
+  if (req.student && req.student._id.toString() !== studentId) {
+    return res.status(403).json({ message: 'Forbidden: You do not have permission to access this document' });
+  }
+
+  // Admin/Reviewer check: Permitted
+  if (!req.student && !req.admin) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const safeFilename = path.basename(filename);
+  const filePath = path.join(UPLOAD_ROOT, studentId, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'Document not found' });
+  }
+
+  const ext = path.extname(safeFilename).toLowerCase();
+  const mimeMap = {
+    '.pdf': 'application/pdf',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+  };
+  const mime = mimeMap[ext] || 'application/octet-stream';
+
+  res.setHeader('Content-Type', mime);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', 'inline');
+  fs.createReadStream(filePath).pipe(res);
+});
 
 const mongoose = require('mongoose');
 const { SCHEME_RULES } = require('./config/schemeRules');
@@ -56,8 +108,8 @@ app.get('/api/schemes', (req, res) => {
   res.json(SCHEME_RULES);
 });
 
-/* AI Document Analysis Proxy — public so student portal can call it directly */
-app.post(['/api/ai/analyze-document', '/api/analyze-document'], async (req, res) => {
+/* AI Document Analysis Proxy — protected: requires valid student or admin credentials */
+app.post(['/api/ai/analyze-document', '/api/analyze-document'], protectAny, async (req, res) => {
   try {
     const { data, fileName, docType, documentType, applicationId, documentId } = req.body || {};
     if (!data && !req.body.file) {
@@ -108,13 +160,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/student', studentAuthRoutes);
 app.use('/api/student', studentPortalRoutes);
 app.use('/api/student', studentApplicationRoutes);
-app.use('/api/student', digilockerRoutes);
+app.use('/api/student/digilocker', digilockerRoutes);
+app.use('/api/digilocker', digilockerRoutes);
+app.use('/api/digilocker-sandbox', digilockerRoutes);
 app.use('/api', applicationRoutes);
 
-
-
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Scholarship admin API running' });
+  res.json({ status: 'ok', message: 'TribeXcel scholarship API running' });
 });
 
 const PORT = process.env.PORT || 5000;

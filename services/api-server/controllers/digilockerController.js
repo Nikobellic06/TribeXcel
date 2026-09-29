@@ -1,9 +1,10 @@
 const digilockerService = require('../integrations/digilocker/digilockerService');
 const { DIGILOCKER_DOCUMENT_CATALOGUE } = require('../integrations/digilocker/documentCatalogue');
+const DigiLockerSession = require('../models/DigiLockerSession');
 const Document = require('../models/Document');
 
 /**
- * GET /api/student/digilocker/catalogue
+ * GET /api/digilocker/catalogue or /api/student/digilocker/catalogue
  */
 const getCatalogue = async (req, res) => {
   res.json({
@@ -13,108 +14,235 @@ const getCatalogue = async (req, res) => {
 };
 
 /**
- * GET /api/student/digilocker/authorize
+ * POST /api/digilocker/authorize
+ * Initiate a sandbox authorization session
  */
-const getAuthorizationUrl = async (req, res) => {
+const authorize = async (req, res) => {
   try {
-    const studentId = req.student._id;
-    const authData = digilockerService.getAuthorizationUrl(studentId);
-    res.json({
-      success: true,
-      ...authData,
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const student = req.student;
+    const { applicationId, schemeCode, requestedDocuments, redirectUri, scenario } = req.body || {};
 
-/**
- * POST /api/student/digilocker/token
- * Body: { code, state }
- */
-const exchangeToken = async (req, res) => {
-  try {
-    const { code, state } = req.body || {};
-    if (!code || !state) {
-      return res.status(400).json({ success: false, message: 'Code and state are required' });
-    }
-    const tokenData = await digilockerService.exchangeCodeForToken(code, state, req.student._id);
-    res.json({
-      success: true,
-      ...tokenData,
-    });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-};
-
-/**
- * GET /api/student/digilocker/issued-documents
- * Headers: Authorization (student token), dl-token (digilocker access token)
- */
-const getIssuedDocuments = async (req, res) => {
-  try {
-    const dlToken = req.headers['x-digilocker-token'] || req.query.dl_token;
-    const documents = await digilockerService.getIssuedDocuments(dlToken, req.student);
-    res.json({
-      success: true,
-      documents,
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-/**
- * POST /api/student/digilocker/pull-document
- * Body: { docType, uri, issuerId, certificateNo, applicationId }
- */
-const pullDocument = async (req, res) => {
-  try {
-    const { docType, uri, issuerId, certificateNo, applicationId } = req.body || {};
-    if (!docType || !uri) {
-      return res.status(400).json({ success: false, message: 'docType and uri are required' });
-    }
-
-    const ipAddress = req.ip || req.connection?.remoteAddress || '';
-    const documentRecord = await digilockerService.pullAndVerifyDocument({
-      student: req.student,
-      docType,
-      uri,
-      issuerId,
-      certificateNo,
+    const authData = await digilockerService.getAuthorizationUrl(student, {
       applicationId,
-      ipAddress,
+      schemeCode,
+      requestedDocuments,
+      redirectUri,
+      scenario,
     });
 
-    res.status(201).json({
+    res.status(201).json(authData);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'AUTHORIZATION_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * GET /api/digilocker/session/:id
+ * Retrieve session state and current state machine position
+ */
+const getSession = async (req, res) => {
+  try {
+    const session = await digilockerService.getSession(req.params.id, req.student._id);
+    res.json({
       success: true,
-      message: 'Document successfully retrieved and verified from DigiLocker repository',
-      document: {
-        documentId: documentRecord.documentId,
-        _id: documentRecord._id,
-        documentType: documentRecord.documentType,
-        source: documentRecord.source,
-        fileName: documentRecord.fileName,
-        fileUrl: documentRecord.fileUrl,
-        mimeType: documentRecord.mimeType,
-        size: documentRecord.fileSize,
-        verificationStatus: documentRecord.verificationStatus,
-        verificationMethod: documentRecord.verificationMethod,
-        issuer: documentRecord.digilocker.issuerName,
-        certificateNo: documentRecord.digilocker.certificateNo,
-        digilockerUri: documentRecord.digilocker.documentUri,
-        verifiedAt: documentRecord.verifiedAt,
+      session: {
+        sessionId: session.sessionId,
+        state: session.state,
+        status: session.status,
+        provider: session.provider,
+        environment: session.environment,
+        requestedDocuments: session.requestedDocuments,
+        selectedDocuments: session.selectedDocuments,
+        mobile: session.mobile,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+        failureReason: session.failureReason,
+        scenario: session.scenario,
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'SESSION_ERROR',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/session/:id/auth-otp
+ * Authenticate session using OTP
+ */
+const authenticateOtp = async (req, res) => {
+  try {
+    const { otp } = req.body || {};
+    const result = await digilockerService.authenticateWithOtp(req.params.id, req.student._id, otp);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'AUTHENTICATION_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/session/:id/consent
+ * Process consent decision (grant or deny)
+ */
+const processConsent = async (req, res) => {
+  try {
+    const { consentGranted } = req.body;
+    const result = await digilockerService.processConsent(
+      req.params.id,
+      req.student._id,
+      consentGranted !== false
+    );
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 400;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'CONSENT_ERROR',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * GET /api/digilocker/documents or /api/digilocker/session/:id/documents
+ * List issued documents in the identity repository
+ */
+const getIssuedDocuments = async (req, res) => {
+  try {
+    let sessionId = req.params.id || req.query.sessionId;
+
+    if (!sessionId) {
+      // Find latest active session for this student
+      const latestSession = await DigiLockerSession.findOne({
+        studentId: req.student._id,
+        state: { $nin: ['FAILED', 'EXPIRED', 'REVOKED'] },
+      }).sort({ createdAt: -1 });
+
+      if (latestSession) {
+        sessionId = latestSession.sessionId;
+      } else {
+        // Create an ad-hoc session if needed
+        const auth = await digilockerService.getAuthorizationUrl(req.student, {});
+        sessionId = auth.sessionId;
+      }
+    }
+
+    const docsResult = await digilockerService.getIssuedDocuments(sessionId, req.student._id);
+    res.json(docsResult);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'DOCUMENTS_FETCH_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/documents/retrieve or /api/digilocker/session/:id/retrieve
+ * Retrieve and verify selected issued documents
+ */
+const retrieveDocuments = async (req, res) => {
+  try {
+    const sessionId = req.params.id || req.body.sessionId;
+    const selectedDocumentIds = req.body.selectedDocumentIds || (req.body.docType ? [req.body.docType] : []);
+    const ipAddress = req.ip || req.connection?.remoteAddress || '';
+
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required for retrieval' });
+    }
+
+    const result = await digilockerService.retrieveDocuments(
+      sessionId,
+      req.student._id,
+      selectedDocumentIds,
+      ipAddress
+    );
+
+    res.status(200).json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'RETRIEVAL_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/session/:id/complete
+ * Complete session and return to TribeXcel
+ */
+const completeSession = async (req, res) => {
+  try {
+    const result = await digilockerService.completeSession(req.params.id, req.student._id);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'COMPLETE_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/session/:id/cancel
+ * Cancel authorization
+ */
+const cancelAuthorization = async (req, res) => {
+  try {
+    const result = await digilockerService.cancelAuthorization(req.params.id, req.student._id);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'CANCEL_FAILED',
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * POST /api/digilocker/revoke
+ * Revoke integration access
+ */
+const revokeAccess = async (req, res) => {
+  try {
+    const sessionId = req.body.sessionId;
+    const result = await digilockerService.revokeAccess(sessionId, req.student._id);
+    res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      code: err.code || 'REVOKE_FAILED',
+      message: err.message,
+    });
   }
 };
 
 /**
  * GET /api/student/documents
- * Retrieve all verified and uploaded documents for the logged in student
+ * List all verified and uploaded documents for the student
  */
 const getStudentDocuments = async (req, res) => {
   try {
@@ -132,6 +260,7 @@ const getStudentDocuments = async (req, res) => {
         size: d.fileSize,
         verificationStatus: d.verificationStatus,
         verificationMethod: d.verificationMethod,
+        integrityStatus: d.integrityStatus,
         issuer: d.digilocker?.issuerName || '',
         certificateNo: d.digilocker?.certificateNo || '',
         digilockerUri: d.digilocker?.documentUri || '',
@@ -145,11 +274,59 @@ const getStudentDocuments = async (req, res) => {
   }
 };
 
+/**
+ * Developer Sandbox Scenarios Control
+ * GET /api/digilocker/dev/scenarios
+ */
+const getDeveloperScenarios = async (req, res) => {
+  const currentScenario = digilockerService.provider.defaultScenario || 'SUCCESS';
+  res.json({
+    success: true,
+    currentScenario,
+    availableScenarios: [
+      { id: 'SUCCESS', label: 'Successful Authorization', description: 'Nominal happy path: OTP 123456, full documents available, successful retrieval' },
+      { id: 'AUTH_CANCELLED', label: 'Cancelled Authorization', description: 'Simulates candidate clicking cancel or aborting authorization screen' },
+      { id: 'OTP_FAILURE', label: 'OTP Failure', description: 'Simulates OTP validation rejection / expired OTP code' },
+      { id: 'CONSENT_DENIED', label: 'Consent Denied', description: 'Simulates candidate declining statutory data sharing consent' },
+      { id: 'NO_DOCUMENTS', label: 'No Documents', description: 'Simulates repository returning 0 issued records for the candidate' },
+      { id: 'RETRIEVAL_FAILURE', label: 'Document Retrieval Failure', description: 'Simulates downstream provider failure during document fetch' },
+      { id: 'SESSION_EXPIRED', label: 'Session Expired', description: 'Simulates session TTL expiry requiring reconnection' },
+      { id: 'PROVIDER_UNAVAILABLE', label: 'Provider Unavailable', description: 'Simulates 503 gateway outage from external identity provider' },
+      { id: 'DOC_MISMATCH', label: 'Document Mismatch', description: 'Simulates failure when mapping returned certificate to scheme requirement' },
+    ],
+  });
+};
+
+/**
+ * POST /api/digilocker/dev/scenario
+ */
+const setDeveloperScenario = async (req, res) => {
+  const { scenario } = req.body || {};
+  if (!scenario) {
+    return res.status(400).json({ success: false, message: 'Scenario name is required' });
+  }
+  if (digilockerService.provider.setDefaultScenario) {
+    digilockerService.provider.setDefaultScenario(scenario);
+  }
+  res.json({
+    success: true,
+    message: `Developer sandbox scenario set to: ${scenario}`,
+    activeScenario: scenario,
+  });
+};
+
 module.exports = {
   getCatalogue,
-  getAuthorizationUrl,
-  exchangeToken,
+  authorize,
+  getSession,
+  authenticateOtp,
+  processConsent,
   getIssuedDocuments,
-  pullDocument,
+  retrieveDocuments,
+  completeSession,
+  cancelAuthorization,
+  revokeAccess,
   getStudentDocuments,
+  getDeveloperScenarios,
+  setDeveloperScenario,
 };

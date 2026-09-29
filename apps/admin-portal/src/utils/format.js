@@ -26,7 +26,14 @@ export function formatINR(v) {
 
 export function fileHref(url) {
   if (!url) return '';
-  return /^(https?:|data:|blob:)/.test(url) ? url : `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (/^(https?:|data:|blob:)/.test(url)) return url;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const base = `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (token && url.startsWith('/uploads/')) {
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}token=${encodeURIComponent(token)}`;
+  }
+  return base;
 }
 
 export function humanize(key) {

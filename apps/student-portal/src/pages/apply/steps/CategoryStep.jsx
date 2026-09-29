@@ -76,14 +76,34 @@ export default function CategoryStep({ scheme, values, setValue, errors, documen
         <Field label={tx({ en: 'State/UT that issued the certificate', hi: 'प्रमाण पत्र जारी करने वाला राज्य/संघ राज्य क्षेत्र' })} required htmlFor="domicileState" error={errors.domicileState}>
           <SelectInput {...bind('domicileState')} options={STATES} />
         </Field>
-        <Field label={tx({ en: 'Certificate number', hi: 'प्रमाण पत्र संख्या' })} required htmlFor="stCertificateNo" error={errors.stCertificateNo}>
-          <TextInput {...bind('stCertificateNo')} readOnly={stFetched} />
+        <Field
+          label={tx({ en: 'Certificate number', hi: 'प्रमाण पत्र संख्या' })}
+          required
+          htmlFor="stCertificateNo"
+          error={errors.stCertificateNo}
+          sourceNote={stFetched ? 'Retrieved from DigiLocker' : undefined}
+          diffNote={values.stCertificateNoSourceValue && values.stCertificateNo !== values.stCertificateNoSourceValue}
+        >
+          <TextInput {...bind('stCertificateNo')} />
         </Field>
-        <Field label={tx({ en: 'Issuing authority', hi: 'जारीकर्ता प्राधिकारी' })} required htmlFor="stIssuingAuthority" error={errors.stIssuingAuthority} hint={tx({ en: 'e.g. Tehsildar, Sub-Divisional Magistrate', hi: 'जैसे तहसीलदार, उप-मंडल मजिस्ट्रेट' })}>
-          <TextInput {...bind('stIssuingAuthority')} readOnly={stFetched} />
+        <Field
+          label={tx({ en: 'Issuing authority', hi: 'जारीकर्ता प्राधिकारी' })}
+          required
+          htmlFor="stIssuingAuthority"
+          error={errors.stIssuingAuthority}
+          hint={tx({ en: 'e.g. Tehsildar, Sub-Divisional Magistrate', hi: 'जैसे तहसीलदार, उप-मंडल मजिस्ट्रेट' })}
+          sourceNote={stFetched ? 'Retrieved from DigiLocker' : undefined}
+        >
+          <TextInput {...bind('stIssuingAuthority')} />
         </Field>
-        <Field label={tx({ en: 'Date of issue', hi: 'जारी करने की तिथि' })} required htmlFor="stIssueDate" error={errors.stIssueDate}>
-          <TextInput {...bind('stIssueDate')} type="date" readOnly={stFetched} />
+        <Field
+          label={tx({ en: 'Date of issue', hi: 'जारी करने की तिथि' })}
+          required
+          htmlFor="stIssueDate"
+          error={errors.stIssueDate}
+          sourceNote={stFetched ? 'Retrieved from DigiLocker' : undefined}
+        >
+          <TextInput {...bind('stIssueDate')} type="date" />
         </Field>
         {scheme.id !== 'pre-matric' && (
           <Field
@@ -156,14 +176,34 @@ export default function CategoryStep({ scheme, values, setValue, errors, documen
               </Field>
               <div className="hidden md:block" aria-hidden="true" />
               <DigiLockerStrip fetched={incomeFetched} onFetch={fetchIncome} label={tx({ en: 'income certificate', hi: 'आय प्रमाण पत्र' })} />
-              <Field label={tx({ en: 'Income certificate number', hi: 'आय प्रमाण पत्र संख्या' })} required htmlFor="incomeCertificateNo" error={errors.incomeCertificateNo}>
-                <TextInput {...bind('incomeCertificateNo')} readOnly={incomeFetched} />
+              <Field
+                label={tx({ en: 'Income certificate number', hi: 'आय प्रमाण पत्र संख्या' })}
+                required
+                htmlFor="incomeCertificateNo"
+                error={errors.incomeCertificateNo}
+                sourceNote={incomeFetched ? 'Retrieved from DigiLocker' : undefined}
+                diffNote={values.incomeCertificateNoSourceValue && values.incomeCertificateNo !== values.incomeCertificateNoSourceValue}
+              >
+                <TextInput {...bind('incomeCertificateNo')} />
               </Field>
-              <Field label={tx({ en: 'Issuing authority', hi: 'जारीकर्ता प्राधिकारी' })} required htmlFor="incomeIssuingAuthority" error={errors.incomeIssuingAuthority} hint={tx({ en: 'Revenue officer not below Tehsildar. Self-declarations are not accepted.', hi: 'तहसीलदार से अनिम्न राजस्व अधिकारी। स्व-घोषणा मान्य नहीं।' })}>
-                <TextInput {...bind('incomeIssuingAuthority')} readOnly={incomeFetched} />
+              <Field
+                label={tx({ en: 'Issuing authority', hi: 'जारीकर्ता प्राधिकारी' })}
+                required
+                htmlFor="incomeIssuingAuthority"
+                error={errors.incomeIssuingAuthority}
+                hint={tx({ en: 'Revenue officer not below Tehsildar. Self-declarations are not accepted.', hi: 'तहसीलदार से अनिम्न राजस्व अधिकारी। स्व-घोषणा मान्य नहीं।' })}
+                sourceNote={incomeFetched ? 'Retrieved from DigiLocker' : undefined}
+              >
+                <TextInput {...bind('incomeIssuingAuthority')} />
               </Field>
-              <Field label={tx({ en: 'Date of issue', hi: 'जारी करने की तिथि' })} required htmlFor="incomeCertificateDate" error={errors.incomeCertificateDate}>
-                <TextInput {...bind('incomeCertificateDate')} type="date" readOnly={incomeFetched} />
+              <Field
+                label={tx({ en: 'Date of issue', hi: 'जारी करने की तिथि' })}
+                required
+                htmlFor="incomeCertificateDate"
+                error={errors.incomeCertificateDate}
+                sourceNote={incomeFetched ? 'Retrieved from DigiLocker' : undefined}
+              >
+                <TextInput {...bind('incomeCertificateDate')} type="date" />
               </Field>
             </>
           )}

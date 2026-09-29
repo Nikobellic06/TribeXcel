@@ -489,7 +489,7 @@ const Landing = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
-                  to="/apply/nfst"
+                  to="/schemes"
                   className="inline-flex items-center gap-1 rounded bg-navy px-3 py-1 text-[12px] font-semibold text-white hover:bg-navy/90"
                 >
                   {isHindi ? 'आवेदन करें' : 'Apply Now'}
@@ -528,7 +528,7 @@ const Landing = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
-                  to="/apply/nos"
+                  to="/schemes"
                   className="inline-flex items-center gap-1 rounded bg-navy px-3 py-1 text-[12px] font-semibold text-white hover:bg-navy/90"
                 >
                   {isHindi ? 'आवेदन करें' : 'Apply Now'}
