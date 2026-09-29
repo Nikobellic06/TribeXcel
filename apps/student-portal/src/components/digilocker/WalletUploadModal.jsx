@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, X, FileText, CheckCircle2, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react';
 import { uploadWalletDocument } from '../../api/student';
 
@@ -15,15 +15,47 @@ const SCHEMAS_LIST = [
   { type: 'DISABILITY_CERTIFICATE', label: 'Unique Disability ID (UDID) / Certificate', category: 'Identity' },
   { type: 'PVTG_CERTIFICATE', label: 'Particularly Vulnerable Tribal Group (PVTG) Certificate', category: 'Caste / Tribe' },
   { type: 'BANK_PASSBOOK', label: 'Bank Passbook / Cancelled Cheque', category: 'Income' },
+  { type: 'OTHER_DOCUMENT', label: 'Other Supporting Document / Certificate', category: 'General' },
 ];
 
 export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) {
   const [docType, setDocType] = useState('ST_CERTIFICATE');
+  const [customDocName, setCustomDocName] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const timerRef = useRef(null);
+
+  // Always reset state when modal opens or closes to prevent stuck success screen
+  useEffect(() => {
+    if (isOpen) {
+      setDocType('ST_CERTIFICATE');
+      setCustomDocName('');
+      setSelectedFile(null);
+      setDragActive(false);
+      setUploading(false);
+      setUploadSuccess(false);
+      setErrorMessage('');
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleClose = () => {
+    if (uploading) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setUploadSuccess(false);
+    setSelectedFile(null);
+    setUploading(false);
+    setErrorMessage('');
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -69,6 +101,7 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
 
       const payload = {
         documentType: docType,
+        documentName: customDocName.trim() || undefined,
         fileName: selectedFile.name,
         mimeType: selectedFile.type || 'application/pdf',
         fileBase64: base64Data,
@@ -78,10 +111,11 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
 
       if (res && res.success) {
         setUploadSuccess(true);
-        setTimeout(() => {
+        setUploading(false);
+        timerRef.current = setTimeout(() => {
           onUploadSuccess(res.document);
-          onClose();
-        }, 700);
+          handleClose();
+        }, 1200);
       } else {
         setErrorMessage(res?.message || 'Upload failed');
         setUploading(false);
@@ -105,7 +139,7 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={uploading}
             className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
           >
@@ -116,16 +150,27 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
         {/* Content */}
         <div className="p-6">
           {uploadSuccess ? (
-            <div className="py-8 text-center space-y-3">
+            <div className="py-8 text-center space-y-4">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest-soft text-forest">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
-              <h4 className="font-serif text-base font-bold text-navy">
-                Document Uploaded Successfully!
-              </h4>
-              <p className="text-xs text-muted">
-                Your document is securely stored in DigiLocker and ready to share with your scholarship application.
-              </p>
+              <div>
+                <h4 className="font-serif text-base font-bold text-navy">
+                  Document Uploaded Successfully!
+                </h4>
+                <p className="text-xs text-muted max-w-xs mx-auto mt-1">
+                  Your document is securely stored in DigiLocker and ready to share with your scholarship application.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded bg-navy px-6 py-2 text-xs font-semibold text-white hover:bg-navy/90"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -154,6 +199,22 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
                   ))}
                 </select>
               </div>
+
+              {/* Custom Document Name if OTHER_DOCUMENT selected */}
+              {docType === 'OTHER_DOCUMENT' && (
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Document Title / Name <span className="text-alert">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Migration Certificate, Experience Letter, etc."
+                    value={customDocName}
+                    onChange={(e) => setCustomDocName(e.target.value)}
+                    className="w-full rounded border border-line bg-paper px-3 py-2 text-xs font-medium text-ink focus:border-navy focus:outline-none"
+                  />
+                </div>
+              )}
 
               {/* File Dropzone */}
               <div>
@@ -223,7 +284,7 @@ export default function WalletUploadModal({ isOpen, onClose, onUploadSuccess }) 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   disabled={uploading}
                   className="rounded border border-line px-4 py-2 text-xs font-semibold text-ink hover:bg-paper"
                 >

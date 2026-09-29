@@ -236,16 +236,26 @@ export default function DigiLockerWallet() {
             ))}
           </div>
 
-          {/* Search Box */}
-          <div className="relative min-w-[240px]">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
-            <input
-              type="text"
-              placeholder="Search documents or references..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded border border-line bg-paper pl-8 pr-3 py-1.5 text-xs text-ink focus:border-navy focus:outline-none"
-            />
+          {/* Search Box and Upload Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <div className="relative min-w-[220px]">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
+              <input
+                type="text"
+                placeholder="Search documents or references..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded border border-line bg-paper pl-8 pr-3 py-1.5 text-xs text-ink focus:border-navy focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setUploadModalOpen(true)}
+              className="rounded bg-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy/90 flex items-center gap-1.5 shrink-0 shadow-sm transition-colors cursor-pointer"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              + Upload Document
+            </button>
           </div>
         </div>
 
@@ -389,6 +399,19 @@ export default function DigiLockerWallet() {
                 </div>
               );
             })}
+
+            {/* Upload Another Document Card */}
+            <button
+              type="button"
+              onClick={() => setUploadModalOpen(true)}
+              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-navy/30 bg-white/60 p-6 text-center hover:border-navy hover:bg-navy-soft/30 transition-all min-h-[200px] group cursor-pointer"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-navy-soft group-hover:bg-navy group-hover:text-white transition-colors text-navy mb-2.5">
+                <Upload className="h-5 w-5" />
+              </div>
+              <h4 className="text-xs font-bold text-navy mb-0.5">+ Upload Another Document</h4>
+              <p className="text-[11px] text-muted max-w-[190px]">Add certificates, marksheets, or proofs</p>
+            </button>
           </div>
         )}
       </main>

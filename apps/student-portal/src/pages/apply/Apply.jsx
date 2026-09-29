@@ -36,8 +36,21 @@ import ReviewStep from './steps/ReviewStep';
 
 const SECTIONS = ['personal', 'category', 'academic', 'bank', 'documents', 'declarations'];
 const EMPTY = { personal: {}, category: {}, academic: {}, bank: {}, documents: {}, declarations: {} };
-/** Statuses that mean "already applied this session" — only Deficient can be corrected. */
-const LOCKED_STATUSES = ['Pending', 'Eligible', 'Flagged', 'Selected', 'Rejected'];
+/** Statuses that mean "already applied this session" — only Deficient/Resubmission can be corrected. */
+const LOCKED_STATUSES = [
+  'Submitted',
+  'Under Document Verification',
+  'Under Scrutiny',
+  'Under Selection',
+  'Selected',
+  'Waitlisted',
+  'Not Selected',
+  'Awarded',
+  'Rejected',
+  'Pending',
+  'Eligible',
+  'Flagged',
+];
 
 const STEP_INTRO = {
   personal: { en: 'Your basic details, contact and permanent address.', hi: 'आपका मूल विवरण, संपर्क और स्थायी पता।' },
@@ -128,7 +141,7 @@ export default function Apply() {
       const apps = appsRes.status === 'fulfilled' ? appsRes.value : [];
       const mine = apps.filter((a) => a.scheme === code && (a.session || SELECTION_YEAR) === SELECTION_YEAR);
       const locked = mine.find((a) => LOCKED_STATUSES.includes(a.status));
-      const returned = mine.find((a) => a.status === 'Deficient');
+      const returned = mine.find((a) => a.status === 'Deficient' || a.status === 'Resubmission Required');
       setLockedApp(locked || null);
       setReturnedApp(returned || null);
 
@@ -328,6 +341,18 @@ export default function Apply() {
       setConfirmOpen(false);
       navigate(`/applications/${application._id}/acknowledgement`, { replace: true, state: { justSubmitted: true } });
     } catch (err) {
+      if (err.response?.status === 409) {
+        try {
+          deleteDraft(code).catch(() => {});
+          const apps = await fetchMyApplications();
+          const matched = apps?.find((a) => a.scheme === code && (a.session || SELECTION_YEAR) === SELECTION_YEAR);
+          if (matched?._id) {
+            setConfirmOpen(false);
+            navigate(`/applications/${matched._id}/acknowledgement`, { replace: true, state: { justSubmitted: true } });
+            return;
+          }
+        } catch (_) {}
+      }
       setSubmitError(apiErrorMessage(err) || t('err.network'));
       setSubmitting(false);
     }

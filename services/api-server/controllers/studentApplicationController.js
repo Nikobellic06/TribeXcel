@@ -6,6 +6,7 @@ const { evaluate } = require('../services/ruleEngine');
 const aiAnalysis = require('../services/aiAnalysis');
 const review = require('../services/review');
 const { processApplicationDocumentAnalysis } = require('../services/documentAnalysisEngine');
+const { parseFlexibleDate } = require('../utils/date');
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -54,6 +55,11 @@ const submitApplication = async (req, res) => {
       if (!val) {
         return res.status(400).json({ success: false, message: `Applicant ${key} is required` });
       }
+    }
+
+    const parsedDob = parseFlexibleDate(dob);
+    if (!parsedDob || isNaN(new Date(parsedDob).getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid Date of Birth provided' });
     }
 
     const sections = sanitizeSections(body.sections) || {};
@@ -178,7 +184,7 @@ const submitApplication = async (req, res) => {
       application.name = name;
       application.email = email;
       application.phone = phone;
-      application.dob = dob;
+      application.dob = parsedDob;
       application.gender = gender;
       application.state = state;
       application.district = district;
@@ -215,7 +221,7 @@ const submitApplication = async (req, res) => {
         name,
         email,
         phone,
-        dob,
+        dob: parsedDob,
         gender,
         category: 'Scheduled Tribe',
         subTribe: sections.category?.tribeName || '',

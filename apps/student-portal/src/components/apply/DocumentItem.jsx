@@ -24,7 +24,7 @@ const typeLabel = (accept) =>
  * One row of the document checklist. A document can come from DigiLocker
  * (issued, treated as verified) or be uploaded by the student.
  */
-export default function DocumentItem({ doc, record, onChange, onDigiLocker, onViewDetails, error, locked, applicationData = {} }) {
+export default function DocumentItem({ doc, record, onChange, onDigiLocker, onViewDetails, onRemoveItem, error, locked, applicationData = {} }) {
   const { t, tx } = useLang();
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -54,11 +54,7 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, onVi
         throw new Error('Server did not return a valid document storage reference');
       }
 
-      // Execute visible multi-stage AI document intelligence pipeline
-      const aiResult = await analyzeUploadedDocument(file, doc.id, applicationData, (prog) => {
-        setAiProgress(prog);
-      });
-
+      // Directly attach uploaded document without running OCR
       onChange({
         source: 'manual',
         docType: doc.id,
@@ -67,7 +63,6 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, onVi
         mimeType: file.type,
         size: file.size,
         uploadedAt: new Date().toISOString(),
-        aiVerification: aiResult,
       });
     } catch (err) {
       setUploadError(apiErrorMessage(err) || t('err.network'));
@@ -193,6 +188,11 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, onVi
                   className="hidden"
                   aria-label={tx(doc.label)}
                 />
+                {doc.isCustomAdded && onRemoveItem && (
+                  <Button size="sm" variant="ghost" onClick={onRemoveItem} className="text-muted hover:text-alert text-xs">
+                    Remove
+                  </Button>
+                )}
               </>
             )}
           </div>

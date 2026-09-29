@@ -30,11 +30,9 @@ export default function Modal({ open, onClose, title, badge, children, footer, w
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined}>
-      <button
-        type="button"
-        tabIndex={-1}
+      <div
         aria-hidden="true"
-        className="absolute inset-0 cursor-default bg-navy-deep/55"
+        className="absolute inset-0 bg-navy-deep/55"
         onClick={() => dismissable && onClose?.()}
       />
       <div

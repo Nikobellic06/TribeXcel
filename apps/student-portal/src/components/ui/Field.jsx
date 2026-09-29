@@ -1,5 +1,6 @@
 import { CircleAlert, BadgeCheck } from 'lucide-react';
 import { useLang } from '../../i18n/LanguageContext';
+import { toInputDate } from '../../utils/format';
 
 /*
  * Form building blocks used by every step of the application.
@@ -74,12 +75,14 @@ export function Field({ label, required, optional, hint, error, htmlFor, verifie
 }
 
 export function TextInput({ id, name, value, onChange, invalid, readOnly, type = 'text', transform, className = '', ...rest }) {
+  const inputValue = type === 'date' && value ? (toInputDate(value) || value) : value;
+
   return (
     <input
       id={id}
       name={name}
       type={type}
-      value={value}
+      value={inputValue}
       readOnly={readOnly}
       aria-invalid={invalid || undefined}
       aria-describedby={invalid ? `${id}-error` : undefined}

@@ -185,6 +185,22 @@ export const DOCUMENTS = {
     maxKB: 2048,
     digilocker: null,
   },
+  class12_marksheet: {
+    id: 'class12_marksheet',
+    label: { en: 'Class 12 Senior Secondary Marksheet', hi: 'कक्षा 12 समेकित अंकतालिका' },
+    hint: { en: 'Higher Secondary / Intermediate passing certificate and marksheet. PDF/JPG up to 2 MB.', hi: 'उच्च माध्यमिक / इंटरमीडिएट उत्तीर्ण प्रमाण पत्र एवं अंकतालिका।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: { code: '12CR', issuer: { en: 'CBSE / CISCE / State Education Board', hi: 'सीबीएसई / राज्य विद्यालय बोर्ड' } },
+  },
+  other_document: {
+    id: 'other_document',
+    label: { en: 'Additional Supporting Document', hi: 'अतिरिक्त सहायक दस्तावेज़' },
+    hint: { en: 'Any additional certificate, affidavit, or recommendation letter supporting your application. PDF/JPG up to 2 MB.', hi: 'कोई भी अतिरिक्त प्रमाण पत्र, शपथ पत्र या अनुशंसा पत्र।' },
+    accept: PDF_OR_IMAGE,
+    maxKB: 2048,
+    digilocker: { code: 'OTHER', issuer: { en: 'Authorized Issuing Authority', hi: 'अधिकृत जारीकर्ता प्राधिकरण' } },
+  },
 };
 
 const yes = (v) => v === 'yes' || v === true;

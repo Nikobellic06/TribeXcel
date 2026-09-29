@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { parseFlexibleDate } = require('../utils/date');
 
 const addressSchema = new mongoose.Schema(
   {
@@ -17,7 +18,7 @@ const studentSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     rollNumber: { type: String, required: true, unique: true, trim: true },
     phone: { type: String, required: true },
-    dob: { type: Date },
+    dob: { type: Date, set: parseFlexibleDate },
     state: { type: String },
     password: { type: String, required: true },
 

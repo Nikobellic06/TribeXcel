@@ -1,20 +1,29 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Document = require('../models/Document');
 const { logAuditEvent } = require('../services/auditService');
 
 const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
-const MAX_BYTES = 2 * 1024 * 1024; // 2 MB limit
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB limit
 
 const ALLOWED_TYPES = {
   'application/pdf': {
     ext: 'pdf',
-    check: (b) => b.length >= 4 && b.slice(0, 4).toString('latin1') === '%PDF',
+    check: (b) => b.length >= 4 && b.slice(0, 1024).toString('latin1').includes('%PDF'),
   },
   'image/jpeg': {
     ext: 'jpg',
-    check: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+    check: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8,
+  },
+  'image/jpg': {
+    ext: 'jpg',
+    check: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8,
+  },
+  'image/pjpeg': {
+    ext: 'jpg',
+    check: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8,
   },
   'image/png': {
     ext: 'png',
@@ -22,11 +31,16 @@ const ALLOWED_TYPES = {
       b.length >= 8 &&
       b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
   },
+  'image/webp': {
+    ext: 'webp',
+    check: (b) => b.length >= 12 && b.slice(8, 12).toString('latin1') === 'WEBP',
+  },
 };
 
 const uploadFile = async (req, res) => {
   try {
-    const { fileName, mimeType, data, docType, applicationId } = req.body || {};
+    const { fileName, mimeType: rawMime, data, docType, applicationId } = req.body || {};
+    const mimeType = (rawMime || 'application/pdf').toLowerCase();
     const type = ALLOWED_TYPES[mimeType];
     if (!type) {
       return res.status(400).json({ message: 'Only PDF, JPG, and PNG documents are allowed' });
@@ -37,7 +51,7 @@ const uploadFile = async (req, res) => {
 
     const buffer = Buffer.from(data.replace(/^data:[^,]+,/, ''), 'base64');
     if (buffer.length === 0 || buffer.length > MAX_BYTES) {
-      return res.status(400).json({ message: 'Document size must be greater than 0 and less than 2 MB' });
+      return res.status(400).json({ message: 'Document size must be greater than 0 and less than 10 MB' });
     }
     if (!type.check(buffer)) {
       return res.status(400).json({ message: 'Document header signature does not match its claimed MIME type' });
@@ -57,11 +71,13 @@ const uploadFile = async (req, res) => {
     const hash = crypto.createHash('sha256').update(buffer).digest('hex');
     const fileUrl = `/uploads/${studentId}/${storedFileName}`;
 
+    const validAppId = (applicationId && mongoose.Types.ObjectId.isValid(applicationId)) ? applicationId : null;
+
     // Find or create authoritative Document record
     let docRecord = await Document.findOne({
       studentId,
       documentType: safeDocType,
-      ...(applicationId ? { applicationId } : {}),
+      ...(validAppId ? { applicationId: validAppId } : {}),
     });
 
     const documentId = docRecord ? docRecord.documentId : `DOC-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
@@ -69,7 +85,7 @@ const uploadFile = async (req, res) => {
 
     const docData = {
       documentId,
-      applicationId: applicationId || null,
+      applicationId: validAppId,
       studentId,
       documentType: safeDocType,
       source: 'manual',
@@ -79,7 +95,6 @@ const uploadFile = async (req, res) => {
       mimeType,
       fileSize: buffer.length,
       fileHash: hash,
-      // For manual uploads, verificationStatus can NEVER be set to VERIFIED by client!
       verificationStatus: 'PENDING',
       verificationMethod: 'AI_ASSISTED_OFFICER_VERIFIED',
       integrityStatus: 'VALID',
@@ -139,7 +154,8 @@ const uploadFile = async (req, res) => {
       size: buffer.length,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Upload processing failed, please try again' });
+    console.error('[StudentUpload] Upload processing failed:', err);
+    res.status(500).json({ message: err.message || 'Upload processing failed, please try again' });
   }
 };
 

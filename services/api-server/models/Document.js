@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { parseFlexibleDate } = require('../utils/date');
 
 const documentSchema = new mongoose.Schema(
   {
@@ -9,38 +10,7 @@ const documentSchema = new mongoose.Schema(
     documentType: {
       type: String,
       required: true,
-      enum: [
-        'photo',
-        'signature',
-        'class10_certificate',
-        'class12_certificate',
-        'st_certificate',
-        'caste_certificate',
-        'pvtg_certificate',
-        'disability_certificate',
-        'pg_marksheet',
-        'ug_marksheet',
-        'previous_marksheet',
-        'last_passing_marksheet',
-        'cgpa_conversion',
-        'admission_letter',
-        'bonafide_certificate',
-        'school_bonafide',
-        'qualifying_degree',
-        'foreign_admission_letter',
-        'family_income_proof',
-        'income_certificate',
-        'domicile_certificate',
-        'bank_passbook',
-        'orphan_certificate',
-        'employer_noc',
-        'gap_certificate',
-        'fee_receipt',
-        'joining_letter',
-        'visa_and_studentid',
-        'aadhaar_card',
-        'other',
-      ],
+      trim: true,
     },
 
     source: {
@@ -65,7 +35,7 @@ const documentSchema = new mongoose.Schema(
       issuerId: { type: String, default: '' },
       issuerName: { type: String, default: '' },
       certificateNo: { type: String, default: '' },
-      issueDate: { type: Date },
+      issueDate: { type: Date, set: parseFlexibleDate },
       rawXml: { type: String, default: '' },
       retrievedAt: { type: Date },
     },
@@ -102,7 +72,7 @@ const documentSchema = new mongoose.Schema(
 
     ocrStatus: {
       type: String,
-      enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'FAILED'],
+      enum: ['NOT_STARTED', 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED'],
       default: 'NOT_STARTED',
     },
 
@@ -110,7 +80,7 @@ const documentSchema = new mongoose.Schema(
     extractedData: {
       applicantName: { type: String, default: '' },
       fatherName: { type: String, default: '' },
-      dob: { type: Date },
+      dob: { type: Date, set: parseFlexibleDate },
       gender: { type: String, default: '' },
       casteOrTribe: { type: String, default: '' },
       subTribe: { type: String, default: '' },

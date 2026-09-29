@@ -14,10 +14,12 @@ import {
   BadgeCheck,
   Check,
   Building,
+  Upload,
 } from 'lucide-react';
 import { useLang } from '../../i18n/LanguageContext';
 import Button from '../ui/Button';
 import DocumentDetailsDrawer from './DocumentDetailsDrawer';
+import WalletUploadModal from './WalletUploadModal';
 import {
   initiateDigiLockerAuth,
   submitDigiLockerOtp,
@@ -61,6 +63,7 @@ export default function DigiLockerSandboxModal({
   const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [walletUploadOpen, setWalletUploadOpen] = useState(false);
 
   // Retrieval Sequence State
   const [retrievalStepIndex, setRetrievalStepIndex] = useState(0);
@@ -703,20 +706,30 @@ export default function DigiLockerSandboxModal({
           {/* ---------------- STAGE 5: STEP 6 ISSUED DOCUMENTS SCREEN ---------------- */}
           {stage === 'ISSUED_DOCS' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[15px] font-bold text-navy">
                     Issued Documents in Repository
                   </h3>
                   <p className="text-[12px] text-muted">
-                    Candidate: <strong>Arjun Kumar</strong> • Select certificates to attach to your scholarship application.
+                    Select certificates to attach to your scholarship application.
                   </p>
                 </div>
-                <div className="text-[12px]">
-                  <span className="font-semibold text-navy">
-                    {selectedDocIds.length} of {issuedDocs.length}
-                  </span>{' '}
-                  <span className="text-muted">selected</span>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setWalletUploadOpen(true)}
+                    className="rounded border border-navy/30 bg-navy/5 px-2.5 py-1.5 text-xs font-semibold text-navy hover:bg-navy hover:text-white transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    + Upload to DigiLocker
+                  </button>
+                  <div className="text-[12px] text-right">
+                    <span className="font-semibold text-navy">
+                      {selectedDocIds.length} of {issuedDocs.length}
+                    </span>{' '}
+                    <span className="text-muted">selected</span>
+                  </div>
                 </div>
               </div>
 
@@ -919,10 +932,18 @@ export default function DigiLockerSandboxModal({
                 </p>
               </div>
 
-              <div className="pt-4 flex items-center justify-center gap-3">
+              <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
                 <Button variant="secondary" onClick={onClose}>
                   Cancel & Upload Manually
                 </Button>
+                {errorInfo?.code === 'NO_DOCUMENTS' && (
+                  <Button
+                    icon={Upload}
+                    onClick={() => setWalletUploadOpen(true)}
+                  >
+                    Upload Document to DigiLocker
+                  </Button>
+                )}
                 <Button
                   icon={RefreshCw}
                   onClick={() => {
@@ -951,6 +972,16 @@ export default function DigiLockerSandboxModal({
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         document={previewDoc}
+      />
+
+      {/* Upload Modal within DigiLocker Modal */}
+      <WalletUploadModal
+        isOpen={walletUploadOpen}
+        onClose={() => setWalletUploadOpen(false)}
+        onUploadSuccess={async () => {
+          setWalletUploadOpen(false);
+          await fetchDocumentsList();
+        }}
       />
     </div>
   );

@@ -1,9 +1,31 @@
 import { API_ORIGIN } from '../api/axios';
 
+export function parseFlexibleDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const dmy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (dmy) {
+      const d = new Date(Date.UTC(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])));
+      if (!isNaN(d.getTime())) return d;
+    }
+    const ymd = trimmed.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+    if (ymd) {
+      const d = new Date(Date.UTC(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3])));
+      if (!isNaN(d.getTime())) return d;
+    }
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
 export function formatDate(value, lang = 'en') {
   if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
+  const d = parseFlexibleDate(value);
+  if (!d) return String(value);
   return d.toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-IN', {
     day: '2-digit',
     month: 'short',
@@ -14,8 +36,8 @@ export function formatDate(value, lang = 'en') {
 /** yyyy-mm-dd for <input type="date"> */
 export function toInputDate(value) {
   if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
+  const d = parseFlexibleDate(value);
+  if (!d) return '';
   return d.toISOString().slice(0, 10);
 }
 
@@ -34,9 +56,9 @@ export function maskAccount(value) {
 /** Whole years of age on a reference date (age limits use 1 July of the selection year). */
 export function ageOn(dob, reference) {
   if (!dob) return null;
-  const b = new Date(dob);
-  const r = new Date(reference);
-  if (Number.isNaN(b.getTime())) return null;
+  const b = parseFlexibleDate(dob);
+  const r = parseFlexibleDate(reference);
+  if (!b || !r) return null;
   let age = r.getFullYear() - b.getFullYear();
   const m = r.getMonth() - b.getMonth();
   if (m < 0 || (m === 0 && r.getDate() < b.getDate())) age -= 1;

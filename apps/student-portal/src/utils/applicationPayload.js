@@ -54,6 +54,9 @@ export function buildApplicationPayload(scheme, data) {
       };
     });
 
+  const formattedDob = toInputDate(personal.dob) || personal.dob;
+  const sanitizedPersonal = { ...personal, dob: formattedDob };
+
   return {
     scheme: scheme.code,
     applicationType: academic.applicationType || 'FRESH',
@@ -61,7 +64,7 @@ export function buildApplicationPayload(scheme, data) {
     name: personal.fullName,
     email: personal.email,
     phone: personal.mobile,
-    dob: personal.dob,
+    dob: formattedDob,
     gender: personal.gender,
     state: personal.state,
     district: personal.district,
@@ -71,7 +74,7 @@ export function buildApplicationPayload(scheme, data) {
       : Number(category.familyIncome),
     declared_marks: marks === undefined || marks === '' ? undefined : Number(marks),
     sections: {
-      personal,
+      personal: sanitizedPersonal,
       category,
       academic,
       bank,

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { parseFlexibleDate } = require('../utils/date');
 
 const documentItemSchema = new mongoose.Schema(
   {
@@ -115,7 +116,7 @@ const applicationSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
-    dob: { type: Date },
+    dob: { type: Date, set: parseFlexibleDate },
     gender: { type: String, enum: ['Male', 'Female', 'Other'] },
     category: { type: String, default: 'Scheduled Tribe' },
     subTribe: { type: String, default: '' },
