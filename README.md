@@ -1,198 +1,170 @@
-# Ministry of Tribal Affairs (MoTA) — National Scholarship & Fellowship Portal
-## Integrated Digital Platform for Scheduled Tribe Students
-
-An end-to-end, integrated Government of India scholarship verification and lifecycle platform. It unifies the **Student Scholarship Portal**, the **Central Node.js/Express Backend & Database**, the **AI Document & Verification Engine (Python/PaddleOCR/PyMuPDF/OpenCV)**, and the **Scholarship Administration Portal**.
+# Ministry of Tribal Affairs (MoTA) — TribeXcel Platform
+## AI-Enabled Scholarship & Fellowship Management System
+**Government of India | जनजातीय कार्य मंत्रालय, भारत सरकार**
 
 ---
 
-## 1. System Architecture
+## 1. Executive Summary
+
+**TribeXcel** is the production-grade digital platform developed for the **Ministry of Tribal Affairs (MoTA)**, Government of India. The platform oversees the complete scholarship and fellowship lifecycle for Scheduled Tribe (ST) scholars across India and abroad:
 
 ```
-                    STUDENT WEB PORTAL (React + Vite + Tailwind)
-                            [Port 5174: http://localhost:5174]
-                                        │
-                                        │ HTTP API
-                                        ▼
-                       CENTRAL SCHOLARSHIP BACKEND (Node.js + Express)
-                            [Port 5000: http://localhost:5000]
-                                        │
-                 ┌──────────────────────┼──────────────────────┐
-                 │                      │                      │
-                 ▼                      ▼                      ▼
-        MongoDB Database           Local Storage           AI ENGINE (Python + FastAPI)
-    mongodb://127.0.0.1:27017       uploads/            [Port 8000: http://localhost:8000]
-    - Student Profiles                  │                      │
-    - Applications                      │             ┌────────┼────────┐
-    - Documents Metadata                │             ▼        ▼        ▼
-    - Status History                    │          OpenCV  PaddleOCR  PyMuPDF
-    - Officer Decisions                 │             │        │        │
-                 ▲                      │             └────────┼────────┘
-                 │                      │                      │
-                 │                      │             Document Classification
-                 │                      │             Structured Extraction
-                 │                      │             Field Validation
-                 │                      │             Cross-Document Checks
-                 │                      │             Scheme Rule Engine
-                 │                      │                      │
-                 │                      │                      ▼
-                 └──────────────────────┴───────────── Structured AI Analysis
-                                                               │
-                                                               ▼
-                                                 ADMIN PORTAL (React + Vite)
-                                              [Port 5173: http://localhost:5173]
-                                                               │
-                                                               ▼
-                                                   OFFICER DECISION & AUDIT
+Registration 
+  → Verhoeff Aadhaar e-KYC 
+  → Scheme Discovery & Rules Engine 
+  → DigiLocker / API Setu Retrieval 
+  → Multi-Stage Document OCR & Quality Intelligence 
+  → Deterministic Eligibility Evaluation 
+  → Ministry Officer Scrutiny & Deficiency Lifecycle 
+  → Automated DBT-Ready Merit Ranking
 ```
 
 ---
 
-## 2. Directory Structure
+## 2. Official MoTA Scheme Spectrum
+
+TribeXcel implements the authoritative Ministry policy framework covering **5 schemes** under two operational tracks:
+
+### Direct Application Track (Managed natively on TribeXcel)
+1. **NFST — National Fellowship for ST Students (M.Phil / Ph.D)**
+   - **Type:** Central Sector Scheme
+   - **Annual Slots:** 750 (462 General ST, 225 Female ST horizontal, 38 Divyangjan, 25 PVTG)
+   - **Benefits:** JRF ₹37,000/month; SRF ₹42,000/month; Contingency up to ₹25,000/year; HRA (8%/16%/27%); Escort allowance ₹2,000/month
+   - **Rules:** Minimum 55% in Master's; maximum age 36 years; **STRICTLY NO INCOME LIMIT**.
+2. **NOS — National Overseas Scholarship for ST Students**
+   - **Type:** Central Sector Scheme
+   - **Annual Slots:** 20 (17 General ST, 3 PVTG)
+   - **Benefits:** Maintenance allowance (USD 15,400 / GBP 9,900/year); actual tuition fees; contingency USD 1,500/year; return airfare
+   - **Rules:** Top 1000 QS World University Rankings; family income ceiling ₹6,00,000/year (orphans exempt); max 2 children per family.
+
+### External Federated Track (Official Advisory & Federated Routing)
+3. **Top Class Education for ST Students** — 1000 slots in 250+ premier institutions (IITs, IIMs, NITs, AIIMS). Redirection to [scholarships.gov.in](https://scholarships.gov.in).
+4. **Post-Matric Scholarship for ST Students** — Centrally Sponsored entitlement scheme (Class XI through PG). Redirection to State Portals and NSP.
+5. **Pre-Matric Scholarship for ST Students** — Centrally Sponsored scheme for Classes IX and X. Redirection to State Portals and NSP.
+
+---
+
+## 3. Monorepo Architecture
 
 ```
 TribeXcel/
-├── ai-engine/                  # [Python 3.10+ FastAPI] AI Document & Verification Engine
-│   ├── app/
-│   │   ├── config.py           # Pre-Matric, NFST, and NOS scheme configurations
-│   │   ├── main.py             # FastAPI entry point (/api/analyze-document, /health, etc.)
-│   │   ├── models/             # Pydantic request/response schemas
-│   │   ├── ocr/
-│   │   │   ├── engine.py       # RapidOCR (PaddleOCR PP-OCRv6) + PyMuPDF + OpenCV CLAHE/Deskew
-│   │   │   ├── classifier.py   # Content-based classification (14 document types)
-│   │   │   ├── extractors.py   # Specialized schema regex & proximity extractors
-│   │   │   └── validation.py   # Field validation and confidence scoring
-│   │   └── rules/
-│   │       ├── cross_check.py  # Cross-document consistency verification
-│   │       ├── scholarship_rules.py # Pre-Matric, NFST, and NOS rule evaluation
-│   │       └── merit.py        # Objective multi-criteria merit calculation
-│   └── requirements.txt
-│
-├── scholarship-admin/          # [Admin Ecosystem & Backend]
-│   ├── backend/                # Node.js + Express + Mongoose central API (Port 5000)
-│   │   ├── config/             # MongoDB connection and scheme rules
-│   │   ├── controllers/        # Application, Auth, Student Drafts, Uploads
-│   │   ├── models/             # Application, Student, Admin, ApplicationDraft
-│   │   ├── routes/             # Admin, Student, Uploads, Health, AI proxy
-│   │   ├── scripts/            # Database seed scripts (seedAdmin, seedApplications)
-│   │   └── services/           # Rule engine, cross-checks, review assessment
-│   └── frontend/               # React 18 + Vite admin portal for verification officers (Port 5173)
-│
-├── student-web/                # [Student Portal Ecosystem]
-│   └── frontend/               # React 18 + Vite student portal with Gov design (Port 5174)
-│       ├── src/
-│       │   ├── components/     # EligibilityCheckerModal, GovHeader, ApplicationTracker
-│       │   ├── pages/          # Landing, Dashboard, SchemeSelection, Apply, Acknowledgement
-│       │   └── services/       # documentIntelligence.js (live scanning pipeline)
-│
-├── start-all.bat               # 1-Click launcher for all 4 services (Windows Command Prompt)
-├── start-all.ps1               # 1-Click launcher for all 4 services (PowerShell)
-└── seed-all.bat                # 1-Click database seeding script
+├── apps/
+│   ├── student-portal/         # React + Vite Student Web App (Port 5174)
+│   └── admin-portal/           # React + Vite Ministry Scrutiny Portal (Port 5173)
+├── services/
+│   ├── api-server/             # Node.js + Express + Mongoose REST API (Port 5000)
+│   └── ai-engine/              # Python FastAPI OCR & Verification Engine (Port 8000)
+├── packages/
+│   └── scheme-config/          # Shared Canonical Scheme Definitions & Rules
+├── docs/                       # Architecture, Security, Schemes, and API Documentation
+│   ├── ARCHITECTURE.md
+│   ├── SCHEMES.md
+│   └── SECURITY.md
+├── scripts/                    # Database seeding and deployment utilities
+├── start-all.ps1               # 1-Click PowerShell Service Orchestrator
+├── start-all.bat               # 1-Click Windows Command Prompt Orchestrator
+└── seed-all.bat                # 1-Click Database Seeding Script
 ```
 
 ---
 
-## 3. Technology Stack & Key Highlights
+## 4. Key Security & Compliance Guarantees
 
-- **AI Document Engine:** Python 3.13, FastAPI, RapidOCR (Official PaddleOCR PP-OCRv6 on ONNX), OpenCV, PyMuPDF, Pillow, Regex.
-  - **Zero Gemini:** Purely local, deterministic processing with zero cloud/API charges.
-  - **Content-Based:** Classifies documents strictly from OCR text and keywords, never filenames.
-  - **Assistive AI:** Officers retain final authority; AI provides preliminary checks and evidence.
-- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT authentication.
-- **Student Frontend:** React 18, Vite, Tailwind CSS 4, Lucide React, bilingual (EN/HI).
-- **Admin Frontend:** React 18, Vite, Tailwind CSS, Recharts.
+1. **Aadhaar e-KYC (Verhoeff & Masked Storage):**
+   - Aadhaar numbers are verified via the Verhoeff checksum algorithm.
+   - Raw 12-digit Aadhaar numbers are **never stored** in the database. Only `aadhaarLast4` (`XXXX-XXXX-1234`) and a salted one-way hash are retained.
+2. **Server-Authoritative Document Model:**
+   - The frontend cannot bypass document verification by sending synthetic flags.
+   - Document state is governed by the MongoDB `Document` collection. Manual uploads enter `PENDING` state and require nodal officer scrutiny.
+   - Real DigiLocker / API Setu integration verifies document signatures at source.
+3. **Immutable Snapshot Versioning:**
+   - Each submitted application creates an immutable snapshot (`v1`, `v2`, etc.).
+   - Corrected resubmissions increment version numbers and retain audit history.
+4. **Institutional e-Governance Design:**
+   - Adheres strictly to Government of India (GoI) Guidelines for Indian Government Websites (GIGW 3.0).
+   - Deep navy (`#1a3557`), saffron/ochre accents, accessible contrast ratios, bilingual (Hindi/English), screen-reader friendly typography.
 
 ---
 
-## 4. Quick Start (Windows)
+## 5. Quick Start & Setup
 
 ### Prerequisites
-1. **Node.js** (v18+)
-2. **Python** (v3.10+)
-3. **MongoDB Community Server** running locally on port 27017.
+- **Node.js** >= 18.0.0
+- **Python** >= 3.10
+- **MongoDB** running locally on `mongodb://127.0.0.1:27017`
 
-### Step 1: Seed the Database
-Run the seeding script to initialize the admin officer and 20 realistic test applications:
-```powershell
-.\seed-all.bat
+### 1. Install Dependencies
+```bash
+# Install root workspaces dependencies
+npm install
+
+# Install Python AI Engine requirements
+cd services/ai-engine
+pip install -r requirements.txt
+cd ../..
 ```
-*(Or manually in `scholarship-admin/backend`: `npm run seed:admin admin@mota.gov.in Admin@1234 "Rajesh Kumar"` followed by `npm run seed:applications`)*
 
-### Step 2: Start All Services
-Launch all 4 services simultaneously:
-```powershell
-.\start-all.bat
+### 2. Seed Database
+```bash
+# Seed default scrutiny officer and sample applications
+npm run seed:admin
+npm run seed:applications
+
+# Or use the convenient batch script:
+seed-all.bat
 ```
-*(Or `.\start-all.ps1` in PowerShell)*
 
-This opens 4 terminals:
-| Service | URL | Role |
-|---|---|---|
-| **AI Document Engine** | `http://localhost:8000` | PaddleOCR, classification, extraction |
-| **Central Backend** | `http://localhost:5000` | Express REST API & MongoDB |
-| **Student Web Portal** | `http://localhost:5174` | Student registration, application, document upload |
-| **Admin Web Portal** | `http://localhost:5173` | Verification officer review queue & decisions |
+### 3. Launch All Services
+```bash
+# Windows PowerShell:
+.\start-all.ps1
 
----
-
-## 5. Test Credentials
-
-### Verification Officer (Admin Portal — `http://localhost:5173`)
-- **Email:** `admin@mota.gov.in`
-- **Password:** `Admin@1234`
-- **Role:** Scholarship Verification Officer
-
-### Applicant / Student (Student Portal — `http://localhost:5174`)
-- **Email:** `applicant1@demo.tribexcel.in` (or register a new student account via the Sign Up page)
-- **Password:** `Demo@12345`
+# Or Windows Command Prompt:
+start-all.bat
+```
 
 ---
 
-## 6. End-to-End Walkthrough
+## 6. Port Allocations & Default Credentials
 
-### Part A: Student Submission & Real AI Processing
-1. Open **Student Portal** at `http://localhost:5174`.
-2. Sign in with the registered applicant credentials or click **Sign up** to register a new account.
-3. Click **"Check Eligibility"** on the header to evaluate scheme qualifications.
-4. Select **National Fellowship for Higher Education of ST Students (NFST)**.
-5. In Step 4 (Documents), upload test documents (located in `sample-documents/`):
-   - `sample_st_certificate.pdf`
-   - `sample_income_certificate.pdf`
-   - `sample_marksheet.pdf`
-6. Observe the real-time AI scanning drawer:
-   - `Validating` $\to$ `Reading with PaddleOCR` $\to$ `Classifying Type` $\to$ `Extracting Entities` $\to$ `Completed`.
-   - Inspect extracted fields (Certificate No, Issuing Authority, Financial Year, Income).
-7. Review application details and submit. Print the official system-generated **Acknowledgement Receipt**.
+| Service | Port | Local URL | Documentation / Health |
+| :--- | :--- | :--- | :--- |
+| **AI Verification Engine** | `8000` | http://localhost:8000 | http://localhost:8000/docs |
+| **Central API Server** | `5000` | http://localhost:5000 | http://localhost:5000/api/health |
+| **Student Web Portal** | `5174` | http://localhost:5174 | Portal for applicants |
+| **Ministry Admin Portal**| `5173` | http://localhost:5173 | Portal for scrutiny officers |
 
-### Part B: Verification Officer Action & Decision
-1. Open **Admin Portal** at `http://localhost:5173` and log in.
-2. Go to **Review Queue** or **Applications**. Open the newly submitted application.
-3. Review:
-   - **Uploaded Documents:** View/download links.
-   - **AI Preliminary Checks:** Bounding box confidence, OCR text, extracted entities.
-   - **Cross-Document Verification:** Name match, DOB match, Income match between certificates and form.
-   - **Scheme Rules:** Pre-Matric/NFST/NOS eligibility rule outcomes.
-4. Choose an Officer Action:
-   - **Verify:** Marks application as `Eligible` for final merit selection.
-   - **Mark Defective:** Enter mandatory defect category (e.g., *Illegible document*) and required correction.
-   - **Reject:** Enter mandatory statutory rejection reason and officer remarks.
-
-### Part C: Defect & Resubmission Flow
-1. If the officer marks an application **Defective**, switch back to the **Student Portal** (`http://localhost:5174`).
-2. Student Dashboard displays an **"Action Required / Defective Application"** card with the officer's exact remarks and a 15-day compliance notice.
-3. Student clicks **"Correct and Resubmit"**, updates the requested document, and resubmits.
-4. The application returns to the Admin Review Queue with updated audit history (`Resubmitted after correction`).
+### Default Credentials
+- **Ministry Verification Officer (Admin):**
+  - **Email:** `admin@mota.gov.in`
+  - **Password:** `Admin@123`
+  - **Role:** Verification Officer / Scrutiny Cell
+- **Student Beneficiary Account:**
+  - Self-register at `http://localhost:5174/signup` or login with seeded demo accounts.
 
 ---
 
-## 7. Service Health Checks
+## 7. Verification & Build Commands
 
-- **Backend Health:** `http://localhost:5000/api/health`
-  ```json
-  {
-    "status": "UP",
-    "database": "CONNECTED",
-    "aiEngine": "UP",
-    "timestamp": "2026-09-28T11:00:00.000Z"
-  }
-  ```
-- **AI Engine Health & Swagger Docs:** `http://localhost:8000/docs` and `http://localhost:8000/health`
+```bash
+# Build Student Portal
+npm run build:student
+
+# Build Admin Portal
+npm run build:admin
+
+# Build All Portals
+npm run build:all
+
+# Syntax Check Node Backend
+node -c services/api-server/server.js
+
+# Compile Python AI Engine
+python -m py_compile services/ai-engine/app/main.py
+```
+
+---
+
+## 8. License & Ministry Attribution
+Developed for the **Ministry of Tribal Affairs (MoTA), Government of India**.  
+Strictly for official government scholarship administration and public digital welfare.

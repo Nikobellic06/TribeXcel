@@ -1,0 +1,31 @@
+{
+  "name": "tribexcel",
+  "version": "2.0.0",
+  "description": "Ministry of Tribal Affairs — AI-Enabled Scholarship & Fellowship Management Platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/api-server",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:student": "npm --prefix apps/student-portal run dev",
+    "dev:admin": "npm --prefix apps/admin-portal run dev",
+    "dev:api": "npm --prefix services/api-server run dev",
+    "build:student": "npm --prefix apps/student-portal run build",
+    "build:admin": "npm --prefix apps/admin-portal run build",
+    "build:all": "npm run build:student && npm run build:admin",
+    "seed:admin": "node scripts/development/seedAdmin.js",
+    "test:security": "node tests/security/securityAudit.js"
+  },
+  "keywords": [
+    "scholarship",
+    "fellowship",
+    "tribal-affairs",
+    "mota",
+    "digilocker",
+    "ai-verification"
+  ],
+  "author": "Ministry of Tribal Affairs",
+  "license": "UNLICENSED"
+}
