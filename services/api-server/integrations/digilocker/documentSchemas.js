@@ -131,12 +131,13 @@ const DOCUMENT_SCHEMAS = {
     description: 'Postgraduate degree transcript or final semester marksheet',
     fields: [
       { key: 'studentName', label: 'Student Name', type: 'string', required: true, example: 'Rahul Kumar', autoFillKey: 'fullName' },
-      { key: 'institution', label: 'University / Institute', type: 'string', required: true, example: 'Jawaharlal Nehru University (JNU)', autoFillKey: 'pgInstitute' },
-      { key: 'programme', label: 'Programme (e.g. M.Sc, M.Phil)', type: 'string', required: true, example: 'M.Sc Environmental Sciences', autoFillKey: 'pgDegree' },
+      { key: 'institution', label: 'University / Institute', type: 'string', required: true, example: 'Central Institute of Physical Sciences', autoFillKey: 'pgUniversity' },
+      { key: 'programme', label: 'Programme (e.g. M.Sc, M.Phil)', type: 'string', required: true, example: 'M.Sc Physics', autoFillKey: 'pgDegree' },
+      { key: 'passingYear', label: 'Passing Year', type: 'string', required: false, example: '2025', autoFillKey: 'pgYear' },
       { key: 'semesterOrYear', label: 'Semester / Year', type: 'string', required: false, example: 'Final Semester', autoFillKey: 'pgSemester' },
-      { key: 'marks', label: 'Marks Obtained', type: 'string', required: false, example: '1620 / 2000', autoFillKey: 'pgMarks' },
-      { key: 'percentage', label: 'Percentage (%)', type: 'string', required: false, example: '81.0', autoFillKey: 'pgPercentage' },
-      { key: 'cgpa', label: 'CGPA', type: 'string', required: false, example: '8.2', autoFillKey: 'pgCgpa' },
+      { key: 'marks', label: 'Marks Obtained', type: 'string', required: false, example: '1899 / 2400', autoFillKey: 'pgMarks' },
+      { key: 'percentage', label: 'Percentage (%)', type: 'string', required: false, example: '79.13', autoFillKey: 'percentage' },
+      { key: 'cgpa', label: 'CGPA', type: 'string', required: false, example: '8.2', autoFillKey: 'cgpa' },
     ],
   },
 

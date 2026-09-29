@@ -1,9 +1,67 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { getSchemaByType } = require('./documentSchemas');
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://127.0.0.1:8000';
+
+/**
+ * Robust extraction of text from PDF binary streams without external dependencies
+ */
+function extractTextFromPdfBuffer(buffer) {
+  try {
+    const raw = buffer.toString('latin1');
+    let allText = '';
+
+    // 1. Inflate FlateDecode compressed streams
+    const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
+    let match;
+    while ((match = streamRegex.exec(raw)) !== null) {
+      const streamBytes = Buffer.from(match[1], 'latin1');
+      try {
+        const decompressed = zlib.inflateSync(streamBytes);
+        allText += ' ' + decompressed.toString('utf-8');
+      } catch (err) {
+        allText += ' ' + match[1];
+      }
+    }
+
+    if (!allText) {
+      allText = raw;
+    }
+
+    // 2. Extract text inside Tj and TJ PDF text operators
+    const textPieces = [];
+    const tjRegex = /\(([^)]+)\)\s*Tj/g;
+    let tjMatch;
+    while ((tjMatch = tjRegex.exec(allText)) !== null) {
+      textPieces.push(tjMatch[1]);
+    }
+
+    const arrayTjRegex = /\[([^\]]+)\]\s*TJ/g;
+    let arrMatch;
+    while ((arrMatch = arrayTjRegex.exec(allText)) !== null) {
+      const parts = arrMatch[1].match(/\(([^)]+)\)/g);
+      if (parts) {
+        textPieces.push(parts.map((p) => p.slice(1, -1)).join(' '));
+      }
+    }
+
+    if (textPieces.length > 2) {
+      return textPieces.join('\n');
+    }
+
+    // 3. Fallback: match clean ASCII words
+    const asciiMatches = allText.match(/[A-Za-z0-9/.,\-:₹ %()]{4,}/g);
+    if (asciiMatches && asciiMatches.length > 3) {
+      return asciiMatches.join(' ');
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return '';
+}
 
 /**
  * Compute SHA-256 file hash
@@ -40,10 +98,16 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
     switch (key) {
       case 'certificateNumber':
       case 'applicationNumber': {
-        const match = cleanText.match(certNoRegex);
-        if (match) {
-          extractedVal = match[1].trim();
-          confidence = 0.94;
+        const explicitMatch = cleanText.match(/(?:certificate|application|admission|enrollment|ref|roll)\s*(?:no|number)?\s*[:.-]?\s*([A-Z0-9/-]{5,30})/i);
+        if (explicitMatch) {
+          extractedVal = explicitMatch[1].trim();
+          confidence = 0.98;
+        } else {
+          const match = cleanText.match(certNoRegex);
+          if (match) {
+            extractedVal = match[1].trim();
+            confidence = 0.94;
+          }
         }
         break;
       }
@@ -51,16 +115,14 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
       case 'studentName':
       case 'candidateName':
       case 'accountHolderName': {
-        // Look for student name if available in context
         if (studentContext.name && cleanText.toLowerCase().includes(studentContext.name.toLowerCase())) {
           extractedVal = studentContext.name;
           confidence = 0.98;
         } else {
-          // Look for 'Name: ...'
           const nameMatch = cleanText.match(/(?:name|shri|smt|student|candidate)\s*[:.-]?\s*([A-Za-z\s]{3,35})/i);
           if (nameMatch) {
             extractedVal = nameMatch[1].trim().split('\n')[0];
-            confidence = 0.88;
+            confidence = 0.92;
           }
         }
         break;
@@ -69,7 +131,15 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
         const fMatch = cleanText.match(/(?:father(?:'?s)?(?:\s+name)?|s\/o|d\/o)\s*[:.-]?\s*(?:shri|mr\.?)?\s*([A-Za-z\s]{3,35})/i);
         if (fMatch) {
           extractedVal = fMatch[1].trim().split('\n')[0];
-          confidence = 0.89;
+          confidence = 0.92;
+        }
+        break;
+      }
+      case 'motherName': {
+        const mMatch = cleanText.match(/(?:mother(?:'?s)?(?:\s+name)?)\s*[:.-]?\s*(?:smt|mrs\.?)?\s*([A-Za-z\s]{3,35})/i);
+        if (mMatch) {
+          extractedVal = mMatch[1].trim().split('\n')[0];
+          confidence = 0.92;
         }
         break;
       }
@@ -83,22 +153,90 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
         break;
       }
       case 'issueDate': {
-        const iMatch = cleanText.match(/(?:date\s*of\s*issue|issue\s*date|dated)\s*[:.-]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i);
+        const iMatch = cleanText.match(/(?:date\s*of\s*issue|issue\s*date|dated)\s*[:.-]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i) || cleanText.match(dateRegex);
         if (iMatch) {
           extractedVal = iMatch[1];
-          confidence = 0.91;
+          confidence = 0.95;
         }
         break;
       }
       case 'tribeName':
       case 'communityName': {
-        const tribes = ['Santhal', 'Gond', 'Munda', 'Oraon', 'Bhil', 'Bodo', 'Khasi', 'Garo', 'Mizo', 'Ho', 'Birhor', 'Chenchu'];
-        for (const t of tribes) {
-          if (new RegExp(`\\b${t}\\b`, 'i').test(cleanText)) {
-            extractedVal = t;
-            confidence = 0.95;
-            break;
+        const commMatch = cleanText.match(/(?:community|tribe|caste)\s*[:.-]?\s*([A-Za-z\s]{3,25})/i);
+        if (commMatch) {
+          extractedVal = commMatch[1].trim();
+          confidence = 0.97;
+        } else {
+          const tribes = ['Santhal', 'Gond', 'Munda', 'Oraon', 'Bhil', 'Bodo', 'Khasi', 'Garo', 'Mizo', 'Ho', 'Birhor', 'Chenchu'];
+          for (const t of tribes) {
+            if (new RegExp(`\\b${t}\\b`, 'i').test(cleanText)) {
+              extractedVal = t;
+              confidence = 0.95;
+              break;
+            }
           }
+        }
+        break;
+      }
+      case 'institution':
+      case 'university':
+      case 'school': {
+        const uMatch = cleanText.match(/(?:university|institute|college|institution|school)\s*[:.-]?\s*([A-Za-z\s().,-]{3,60})/i);
+        if (uMatch) {
+          extractedVal = uMatch[1].trim().split('\n')[0].replace(/\s{2,}/g, ' ');
+          confidence = 0.96;
+        }
+        break;
+      }
+      case 'programme':
+      case 'course':
+      case 'degree': {
+        const pMatch = cleanText.match(/(?:programme|degree|course)\s*[:.-]?\s*([A-Za-z0-9\s().,-]{3,50})/i);
+        if (pMatch) {
+          extractedVal = pMatch[1].trim().split('\n')[0];
+          confidence = 0.96;
+        }
+        break;
+      }
+      case 'passingYear':
+      case 'year': {
+        const yMatch = cleanText.match(/(?:passing\s*year|year\s*of\s*passing|year)\s*[:.-]?\s*(\b20\d{2}\b|\b19\d{2}\b)/i);
+        if (yMatch) {
+          extractedVal = yMatch[1];
+          confidence = 0.96;
+        }
+        break;
+      }
+      case 'marks':
+      case 'totalMarks': {
+        const mMatch = cleanText.match(/(?:total|marks(?:\s*obtained)?)\s*[:.-]?\s*(\d{1,4}\s*\/\s*\d{1,4})/i);
+        if (mMatch) {
+          extractedVal = mMatch[1].trim();
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'percentage': {
+        const pMatch = cleanText.match(/(?:aggregate|percentage|total\s*%)\s*[:.-]?\s*(\d{1,2}(?:\.\d{1,2})?)\s*%?/i) || cleanText.match(percentageRegex);
+        if (pMatch) {
+          extractedVal = pMatch[1].trim();
+          confidence = 0.96;
+        }
+        break;
+      }
+      case 'cgpa': {
+        const cMatch = cleanText.match(/(?:cgpa|grade\s*point)\s*[:.-]?\s*(\d{1,2}(?:\.\d{1,2})?)/i);
+        if (cMatch) {
+          extractedVal = cMatch[1].trim();
+          confidence = 0.94;
+        }
+        break;
+      }
+      case 'semesterOrYear': {
+        const sMatch = cleanText.match(/(?:semester\s*[IVX]+|final\s*semester)/i);
+        if (sMatch) {
+          extractedVal = sMatch[0];
+          confidence = 0.92;
         }
         break;
       }
@@ -114,14 +252,6 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
         }
         break;
       }
-      case 'percentage': {
-        const pMatch = cleanText.match(percentageRegex);
-        if (pMatch) {
-          extractedVal = pMatch[1];
-          confidence = 0.91;
-        }
-        break;
-      }
       case 'rollNumber': {
         const rMatch = cleanText.match(rollNoRegex);
         if (rMatch) {
@@ -130,24 +260,125 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
         }
         break;
       }
+      case 'financialYear': {
+        const fyMatch = cleanText.match(/(?:financial\s*year|fy)\s*[:.-]?\s*(\b20\d{2}[-/]\d{2,4}\b)/i);
+        if (fyMatch) {
+          extractedVal = fyMatch[1].trim();
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'admissionYear':
+      case 'academicYear': {
+        const ayMatch = cleanText.match(/(?:admission\s*year|academic\s*year|session)\s*[:.-]?\s*(\b20\d{2}[-/]\d{2,4}\b|\b20\d{2}\b)/i);
+        if (ayMatch) {
+          extractedVal = ayMatch[1].trim();
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'board': {
+        const bMatch = cleanText.match(/(?:board|examination\s*board)\s*[:.-]?\s*([A-Za-z\s]{3,35})/i);
+        if (bMatch) {
+          extractedVal = bMatch[1].trim().split('\n')[0];
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'address': {
+        const addrMatch = cleanText.match(/(?:permanent\s*address|address|resident\s*of)\s*[:.-]?\s*([A-Za-z0-9\s,.-]{5,80})/i);
+        if (addrMatch) {
+          extractedVal = addrMatch[1].trim().split('\n')[0];
+          confidence = 0.94;
+        }
+        break;
+      }
+      case 'subjects': {
+        const subMatch = cleanText.match(/(?:stream|subjects?)\s*[:.-]?\s*([A-Za-z0-9\s,.-]{5,60})/i);
+        if (subMatch) {
+          extractedVal = subMatch[1].trim().split('\n')[0];
+          confidence = 0.92;
+        }
+        break;
+      }
+      case 'disabilityType': {
+        const dtMatch = cleanText.match(/(?:type\s*of\s*disability|disability\s*type)\s*[:.-]?\s*([A-Za-z\s]{4,40})/i);
+        if (dtMatch) {
+          extractedVal = dtMatch[1].trim().split('\n')[0];
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'percentageDisability': {
+        const dpMatch = cleanText.match(/(?:disability\s*(?:percentage|%)|percentage\s*of\s*disability)\s*[:.-]?\s*(\d{1,2}%?)/i);
+        if (dpMatch) {
+          extractedVal = dpMatch[1].trim();
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'accountNumber': {
+        const accMatch = cleanText.match(/(?:account\s*(?:no|number)?)\s*[:.-]?\s*(\d{9,18})/i);
+        if (accMatch) {
+          extractedVal = accMatch[1].trim();
+          confidence = 0.96;
+        }
+        break;
+      }
+      case 'ifscCode': {
+        const ifscMatch = cleanText.match(/(?:ifsc(?:\s*code)?)\s*[:.-]?\s*([A-Z]{4}0[A-Z0-9]{6})/i);
+        if (ifscMatch) {
+          extractedVal = ifscMatch[1].trim().toUpperCase();
+          confidence = 0.97;
+        }
+        break;
+      }
+      case 'bankName': {
+        const bnMatch = cleanText.match(/(?:bank(?:\s*name)?)\s*[:.-]?\s*([A-Za-z\s]{4,40})/i);
+        if (bnMatch) {
+          extractedVal = bnMatch[1].trim().split('\n')[0];
+          confidence = 0.95;
+        }
+        break;
+      }
+      case 'branchName': {
+        const brMatch = cleanText.match(/(?:branch(?:\s*name)?)\s*[:.-]?\s*([A-Za-z0-9\s,.-]{3,40})/i);
+        if (brMatch) {
+          extractedVal = brMatch[1].trim().split('\n')[0];
+          confidence = 0.95;
+        }
+        break;
+      }
       case 'state': {
-        const states = ['Jharkhand', 'Madhya Pradesh', 'Odisha', 'Chhattisgarh', 'Assam', 'Rajasthan', 'Gujarat', 'Maharashtra', 'Telangana', 'Andhra Pradesh', 'Meghalaya', 'Manipur', 'Nagaland'];
-        for (const s of states) {
-          if (new RegExp(`\\b${s}\\b`, 'i').test(cleanText)) {
-            extractedVal = s;
-            confidence = 0.95;
-            break;
+        const explicitState = cleanText.match(/(?:state)\s*[:.-]?\s*([A-Za-z\s]{3,30})/i);
+        if (explicitState) {
+          extractedVal = explicitState[1].trim().split('\n')[0];
+          confidence = 0.96;
+        } else {
+          const states = ['Jharkhand', 'Madhya Pradesh', 'Odisha', 'Chhattisgarh', 'Assam', 'Rajasthan', 'Gujarat', 'Maharashtra', 'Telangana', 'Andhra Pradesh', 'Meghalaya', 'Manipur', 'Nagaland'];
+          for (const s of states) {
+            if (new RegExp(`\\b${s}\\b`, 'i').test(cleanText)) {
+              extractedVal = s;
+              confidence = 0.95;
+              break;
+            }
           }
         }
         break;
       }
       case 'district': {
-        const districts = ['Ranchi', 'Seoni', 'Mayurbhanj', 'Bastar', 'Dungarpur', 'Sundargarh', 'Gumla', 'Khunti', 'West Singhbhum', 'Hazaribagh'];
-        for (const d of districts) {
-          if (new RegExp(`\\b${d}\\b`, 'i').test(cleanText)) {
-            extractedVal = d;
-            confidence = 0.94;
-            break;
+        const explicitDistrict = cleanText.match(/(?:district)\s*[:.-]?\s*([A-Za-z\s]{3,30})/i);
+        if (explicitDistrict) {
+          extractedVal = explicitDistrict[1].trim().split('\n')[0];
+          confidence = 0.96;
+        } else {
+          const districts = ['Ranchi', 'Seoni', 'Mayurbhanj', 'Bastar', 'Dungarpur', 'Sundargarh', 'Gumla', 'Khunti', 'West Singhbhum', 'Hazaribagh'];
+          for (const d of districts) {
+            if (new RegExp(`\\b${d}\\b`, 'i').test(cleanText)) {
+              extractedVal = d;
+              confidence = 0.94;
+              break;
+            }
           }
         }
         break;
@@ -160,7 +391,11 @@ function extractFieldsFromText(text, docType, studentContext = {}) {
         break;
       }
       case 'issuingAuthority': {
-        if (/tehsildar/i.test(cleanText)) {
+        const authMatch = cleanText.match(/(?:issuing\s*authority)\s*[:.-]?\s*([A-Za-z\s(),—–-]{4,60})/i);
+        if (authMatch) {
+          extractedVal = authMatch[1].trim().split('\n')[0];
+          confidence = 0.96;
+        } else if (/tehsildar/i.test(cleanText)) {
           extractedVal = 'Office of the Tehsildar';
           confidence = 0.92;
         } else if (/sub-?divisional/i.test(cleanText)) {
@@ -265,13 +500,20 @@ async function processDocumentOcr({ filePath, buffer, originalName, mimeType, do
 
   // 2. If OCR text was not obtained via AI engine, inspect buffer for text (e.g. text in PDF)
   if (!ocrText) {
-    // Basic text extraction from buffer string representation if PDF/text stream
-    const rawStr = buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
-    const asciiMatches = rawStr.match(/[A-Za-z0-9/.,\-:₹ ]{4,}/g);
-    if (asciiMatches && asciiMatches.length > 5) {
-      ocrText = asciiMatches.join(' ');
-    } else {
-      ocrText = `Document: ${originalName} [Format: ${mimeType}]`;
+    if (mimeType === 'application/pdf' || (originalName && originalName.endsWith('.pdf'))) {
+      const pdfText = extractTextFromPdfBuffer(buffer);
+      if (pdfText && pdfText.length > 5) {
+        ocrText = pdfText;
+      }
+    }
+    if (!ocrText) {
+      const rawStr = buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
+      const asciiMatches = rawStr.match(/[A-Za-z0-9/.,\-:₹ %()]{4,}/g);
+      if (asciiMatches && asciiMatches.length > 5) {
+        ocrText = asciiMatches.join(' ');
+      } else {
+        ocrText = `Document: ${originalName} [Format: ${mimeType}]`;
+      }
     }
   }
 

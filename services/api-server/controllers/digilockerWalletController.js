@@ -536,7 +536,7 @@ const markDocumentReady = async (req, res) => {
 const streamDocumentFile = async (req, res) => {
   try {
     const studentId = req.student ? req.student._id : null;
-    const userRole = req.user ? req.user.role : null; // Admin/officer
+    const isOfficer = !!(req.admin || req.user);
 
     const doc = await DigiLockerDocument.findById(req.params.id);
     if (!doc) {
@@ -544,8 +544,10 @@ const streamDocumentFile = async (req, res) => {
     }
 
     // Ownership or authorized access check
-    const isOwner = studentId && (doc.ownerId?.equals(studentId) || doc.studentId?.equals(studentId));
-    const isOfficer = !!userRole;
+    const isOwner = studentId && (
+      (doc.ownerId && doc.ownerId.equals ? doc.ownerId.equals(studentId) : String(doc.ownerId) === String(studentId)) ||
+      (doc.studentId && doc.studentId.equals ? doc.studentId.equals(studentId) : String(doc.studentId) === String(studentId))
+    );
 
     if (!isOwner && !isOfficer) {
       // Check if an active access grant exists
