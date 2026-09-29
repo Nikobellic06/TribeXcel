@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const studentAuthMiddleware = require('../middleware/studentAuthMiddleware');
+const { protectStudent } = require('../middleware/studentAuthMiddleware');
 const {
   getCatalogue,
   getAuthorizationUrl,
@@ -14,7 +14,7 @@ const {
 router.get('/digilocker/catalogue', getCatalogue);
 
 // Protected routes requiring student authentication
-router.use(studentAuthMiddleware);
+router.use(protectStudent);
 router.get('/digilocker/authorize', getAuthorizationUrl);
 router.post('/digilocker/token', exchangeToken);
 router.get('/digilocker/issued-documents', getIssuedDocuments);
