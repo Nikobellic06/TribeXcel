@@ -41,10 +41,10 @@ export default function ApplicationTracker({ status, schemeCode }) {
 
   const labels = [
     { en: 'Submitted', hi: 'जमा किया' },
-    { en: 'AI Preliminary Check', hi: 'एआई प्रारंभिक जाँच' },
+    { en: 'Documents Processing', hi: 'दस्तावेज़ प्रसंस्करण' },
     institutionalLabel,
     { en: 'Ministry Scrutiny', hi: 'मंत्रालय जाँच' },
-    { en: 'Final Decision', hi: 'अंतिम निर्णय' },
+    { en: 'Final Status', hi: 'अंतिम स्थिति' },
   ];
 
   const states = stageStates(status);

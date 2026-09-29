@@ -61,8 +61,14 @@ export default function Sidebar({ counts, onLogout, onNavigate }) {
         <NavLink to="/merit" className={link} onClick={onNavigate}>
           <Trophy className="h-4 w-4" aria-hidden="true" /> Merit / Selection
         </NavLink>
+        <NavLink to="/reports" className={link} onClick={onNavigate}>
+          <FileText className="h-4 w-4" aria-hidden="true" /> Reports &amp; Exports
+        </NavLink>
         <NavLink to="/analytics" className={link} onClick={onNavigate}>
           <ChartColumn className="h-4 w-4" aria-hidden="true" /> Analytics
+        </NavLink>
+        <NavLink to="/settings" className={link} onClick={onNavigate}>
+          <ChevronDown className="h-4 w-4 rotate-[-90deg]" aria-hidden="true" /> System Settings
         </NavLink>
       </div>
       <div className="mt-auto border-t border-line py-2">

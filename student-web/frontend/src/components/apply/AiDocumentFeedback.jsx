@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import {
+  AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Clock,
-  Cpu,
-  FileSearch,
+  FileCheck,
   FileText,
   Loader2,
-  ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
 import { useLang } from '../../i18n/LanguageContext';
@@ -17,164 +15,140 @@ export default function AiDocumentFeedback({ processing, aiData }) {
   const { tx } = useLang();
   const [expanded, setExpanded] = useState(false);
 
-  // 1. Processing State
+  // 1. Processing State — calm, informative government progress
   if (processing) {
     const { stageLabel, progress } = processing;
     return (
-      <div className="mt-3 rounded-md border border-navy/20 bg-navy-soft/60 p-3.5 text-[12.5px] transition-all animate-pulse">
+      <div className="mt-3 rounded-md border border-line bg-paper p-3.5 text-[12.5px] transition-all">
         <div className="flex items-center justify-between text-navy font-semibold mb-2">
           <span className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-navy" />
-            <Cpu className="h-4 w-4 text-ochre" />
-            <span>{tx(stageLabel || { en: 'AI Document Intelligence Ingestion...', hi: 'एआई दस्तावेज़ विश्लेषण जारी...' })}</span>
+            <span>{tx(stageLabel || { en: 'Verifying document format and text...', hi: 'दस्तावेज़ प्रारूप एवं पाठ सत्यापन जारी...' })}</span>
           </span>
-          <span className="font-mono text-[12px]">{progress || 40}%</span>
+          <span className="font-mono text-[12px] text-muted">{progress || 40}%</span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-line">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
           <div
             className="h-full bg-navy transition-all duration-300"
             style={{ width: `${progress || 40}%` }}
           />
         </div>
-        <p className="mt-2 text-[11px] text-muted">
+        <p className="mt-2 text-[11.5px] text-muted">
           {tx({
-            en: 'Scanning layout, verifying statutory stamps, extracting text and validating scheme rules...',
-            hi: 'लेआउट स्कैन, सांविधिक मुहर सत्यापन, पाठ निष्कर्षण एवं योजना नियमों की जांच जारी...',
+            en: 'Reading document text and checking statutory requirements for verification...',
+            hi: 'दस्तावेज़ पाठ पढ़ा जा रहा है एवं सत्यापन हेतु सांविधिक आवश्यकताओं की जाँच जारी है...',
           })}
         </p>
       </div>
     );
   }
 
-  // If no AI data available, return null
+  // If no data available, return null
   if (!aiData) return null;
 
   const isVerified = aiData.preliminaryStatus === 'VERIFIED';
   const fields = aiData.extractedFields || {};
-  const checks = aiData.checks || [];
+  const fieldEntries = Object.entries(fields).filter(([, v]) => v !== null && v !== undefined && v !== '');
+  const hasIssues = !isVerified || (aiData.flags && aiData.flags.length > 0);
 
   return (
-    <div className="mt-3 rounded-md border border-line bg-paper text-[12.5px] overflow-hidden">
+    <div className="mt-3 rounded-md border border-line bg-white text-[12.5px] overflow-hidden">
       {/* Summary Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-3.5 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper px-3.5 py-2.5">
         <div className="flex items-center gap-2">
-          <FileSearch className="h-4 w-4 text-navy" />
-          <span className="font-bold text-navy font-serif">
-            {tx({ en: 'AI Preliminary Document Analysis', hi: 'एआई प्रारंभिक दस्तावेज़ विश्लेषण' })}
+          <FileCheck className="h-4 w-4 text-navy" />
+          <span className="font-semibold text-navy">
+            {tx({ en: 'Document Information Extracted', hi: 'दस्तावेज़ विवरण निकाला गया' })}
           </span>
-          <span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">
-            {aiData.typeLabel || aiData.detectedType}
-          </span>
-          <span className="text-[11px] text-muted font-mono">
-            ({Math.round((aiData.confidence || 0.95) * 100)}% match)
-          </span>
+          {aiData.typeLabel && (
+            <span className="rounded bg-navy-soft px-2 py-0.5 text-[11px] font-semibold text-navy">
+              {aiData.typeLabel}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11.5px] font-bold ${
-              isVerified
+            className={`inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11.5px] font-semibold ${
+              !hasIssues
                 ? 'bg-leaf-soft text-leaf border border-leaf/30'
                 : 'bg-amber-50 text-amber-800 border border-amber-300'
             }`}
           >
-            {isVerified ? (
+            {!hasIssues ? (
               <ShieldCheck className="h-3.5 w-3.5" />
             ) : (
-              <ShieldAlert className="h-3.5 w-3.5" />
+              <AlertCircle className="h-3.5 w-3.5" />
             )}
-            {isVerified
-              ? tx({ en: 'Preliminary Validated', hi: 'प्रारंभिक रूप से सत्यापित' })
-              : tx({ en: 'Requires Officer Review', hi: 'अधिकारी समीक्षा आवश्यक' })}
+            {!hasIssues
+              ? tx({ en: 'Ready for Review', hi: 'समीक्षा हेतु तैयार' })
+              : tx({ en: 'Scrutiny Required', hi: 'जाँच आवश्यक' })}
           </span>
 
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy hover:underline ml-1"
-          >
-            {expanded ? (
-              <>
-                <span>{tx({ en: 'Hide Details', hi: 'विवरण छुपाएं' })}</span>
-                <ChevronUp className="h-3.5 w-3.5" />
-              </>
-            ) : (
-              <>
-                <span>{tx({ en: 'View Extracted Fields', hi: 'निकाला गया विवरण देखें' })}</span>
-                <ChevronDown className="h-3.5 w-3.5" />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Extracted Key Summary Bar */}
-      <div className="px-3.5 py-2.5 bg-paper">
-        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-[12px]">
-          {Object.entries(fields).slice(0, 4).map(([key, val]) => (
-            <li key={key} className="truncate">
-              <span className="text-muted capitalize">{key.replace(/([A-Z])/g, ' $1')}: </span>
-              <span className="font-semibold text-ink">{String(val)}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* Verification Checks List */}
-        <div className="mt-2.5 pt-2 border-t border-line/80 flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px]">
-          {checks.map((c, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-ink">
-              {c.passed ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-leaf shrink-0" />
+          {fieldEntries.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy hover:underline ml-1"
+            >
+              {expanded ? (
+                <>
+                  <span>{tx({ en: 'Hide Details', hi: 'विवरण छुपाएं' })}</span>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </>
               ) : (
-                <ShieldAlert className="h-3.5 w-3.5 text-ochre shrink-0" />
+                <>
+                  <span>{tx({ en: 'View Extracted Details', hi: 'निकाला गया विवरण देखें' })}</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </>
               )}
-              <span className={c.passed ? 'text-ink' : 'font-semibold text-ochre'}>{c.label}</span>
-            </span>
-          ))}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Expanded Details Drawer */}
-      {expanded && (
-        <div className="border-t border-line bg-white p-3.5 text-[12px] space-y-3">
-          <div>
-            <p className="font-bold text-navy mb-1.5">
-              {tx({ en: 'All Extracted Fields (Schema & Proximity Engine):', hi: 'सभी निकाले गए फ़ील्ड (स्कीमा एवं प्रॉक्सिमिटी इंजन):' })}
-            </p>
-            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded bg-paper p-3 border border-line">
-              {Object.entries(fields).map(([k, v]) => (
-                <div key={k} className="overflow-hidden">
-                  <dt className="text-muted text-[11px] capitalize">{k.replace(/([A-Z])/g, ' $1')}</dt>
-                  <dd className="font-semibold text-ink text-[12.5px] truncate">{String(v)}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {aiData.evidence && aiData.evidence.length > 0 && (
-            <div>
-              <p className="font-bold text-navy mb-1">
-                {tx({ en: 'Classification Evidence:', hi: 'वर्गीकरण साक्ष्य:' })}
-              </p>
-              <ul className="list-disc pl-4 space-y-0.5 text-[11.5px] text-muted">
-                {aiData.evidence.map((ev, i) => (
-                  <li key={i}>{ev}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="rounded border border-navy/15 bg-navy-soft/40 p-2.5 text-[11.5px] text-muted">
-            <span className="font-semibold text-navy">
-              {tx({ en: 'Government Disclaimer: ', hi: 'सरकारी अस्वीकरण: ' })}
-            </span>
+      {/* Advisory Message */}
+      <div className="px-3.5 py-2 text-[12px] text-muted border-b border-line/60 bg-white">
+        {!hasIssues ? (
+          <p>
             {tx({
-              en: 'AI verification provides preliminary document reading to assist the student and nodal officers. Final statutory eligibility is decided by authorized Government Verification Officials.',
-              hi: 'एआई सत्यापन छात्र एवं नोडल अधिकारियों की सहायता हेतु प्रारंभिक दस्तावेज़ पठन प्रदान करता है। अंतिम सांविधिक पात्रता का निर्णय अधिकृत सरकारी सत्यापन अधिकारियों द्वारा ही लिया जाता है।',
+              en: 'Please verify that the extracted details match your physical document before submitting.',
+              hi: 'कृपया आवेदन जमा करने से पहले जाँच लें कि निकाला गया विवरण आपके मूल दस्तावेज़ से मेल खाता है।',
             })}
-          </div>
+          </p>
+        ) : (
+          <p className="text-amber-800 font-medium">
+            {tx({
+              en: 'Some details could not be completely extracted or require officer scrutiny. Please ensure the document is clear, upright, and legible.',
+              hi: 'कुछ विवरण पूरी तरह नहीं पढ़े जा सके अथवा अधिकारी जाँच आवश्यक है। कृपया सुनिश्चित करें कि दस्तावेज़ स्पष्ट, सीधा और पठनीय है।',
+            })}
+          </p>
+        )}
+      </div>
+
+      {/* Primary Extracted Fields Grid */}
+      {fieldEntries.length > 0 && (
+        <div className="px-3.5 py-2.5 bg-white">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-[12px]">
+            {fieldEntries.slice(0, expanded ? undefined : 3).map(([key, val]) => (
+              <div key={key} className="rounded border border-line/70 bg-paper/60 px-2.5 py-1.5">
+                <dt className="text-[11px] text-muted capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+                <dd className="font-semibold text-ink truncate mt-0.5">{String(val)}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       )}
+
+      {/* Verification Notice */}
+      <div className="border-t border-line/60 bg-paper px-3.5 py-2 text-[11px] text-muted flex items-center justify-between">
+        <span>
+          {tx({
+            en: 'Automated optical extraction is for preliminary verification. Official eligibility is decided by the verifying officer.',
+            hi: 'स्वचालित ऑप्टिकल निष्कर्षण प्रारंभिक सत्यापन हेतु है। आधिकारिक पात्रता का निर्णय सत्यापन अधिकारी द्वारा लिया जाता है।',
+          })}
+        </span>
+      </div>
     </div>
   );
 }

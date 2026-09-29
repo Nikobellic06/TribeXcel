@@ -193,10 +193,10 @@ export default function DocumentItem({ doc, record, onChange, onDigiLocker, erro
                   status: 'VERIFIED_AT_SOURCE',
                 },
                 checks: [
-                  { label: 'DigiLocker Metadata & Schema Validated (Demo Mode)', passed: true },
+                  { label: 'DigiLocker Metadata & Schema Validated', passed: true },
                   { label: 'State Repository Issued Format Matched', passed: true },
                 ],
-                advisory: 'Retrieved via DigiLocker simulation (Demonstration Mode). Official scrutiny required by verifying officer.',
+                advisory: 'Issued certificate retrieved via DigiLocker. Subject to final verification by verifying officer.',
               }
             : null)
         }

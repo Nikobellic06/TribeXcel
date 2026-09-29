@@ -140,7 +140,7 @@ export default function MyApplications() {
                         <div className="flex items-center gap-2">
                           <FileSearch className="h-4 w-4 text-navy" />
                           <h4 className="text-[13px] font-bold text-navy">
-                            {tx({ en: 'Submitted Documents & Preliminary AI Verification', hi: 'जमा किए गए दस्तावेज़ एवं प्रारंभिक एआई सत्यापन' })}
+                            {tx({ en: 'Submitted Documents & Verification Status', hi: 'जमा किए गए दस्तावेज़ एवं सत्यापन स्थिति' })}
                           </h4>
                         </div>
                         <span className="text-[11px] font-semibold text-muted">

@@ -10,6 +10,8 @@ const ReviewQueue = lazy(() => import('./pages/ReviewQueue'));
 const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
 const Merit = lazy(() => import('./pages/Merit'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Settings = lazy(() => import('./pages/Settings'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const guard = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
@@ -26,7 +28,9 @@ function App() {
         <Route path="/applications/:view" element={guard(<Applications />)} />
         <Route path="/application/:id" element={guard(<ApplicationDetail />)} />
         <Route path="/merit" element={guard(<Merit />)} />
+        <Route path="/reports" element={guard(<Reports />)} />
         <Route path="/analytics" element={guard(<Analytics />)} />
+        <Route path="/settings" element={guard(<Settings />)} />
         <Route path="*" element={guard(<NotFound />)} />
       </Routes>
     </Suspense>

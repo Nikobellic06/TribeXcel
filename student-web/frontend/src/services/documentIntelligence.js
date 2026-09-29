@@ -29,10 +29,10 @@ export async function analyzeUploadedDocument(file, docType, applicationData = {
   });
   await sleep(300);
 
-  // 2. Stage 2: Reading Document & OCR Ingestion
+  // 2. Stage 2: Reading Document & Text Ingestion
   onProgress({
     stage: 'reading',
-    stageLabel: { en: 'Running PaddleOCR & OpenCV engine...', hi: 'ओसीआर इंजन द्वारा दस्तावेज़ पढ़ा जा रहा है...' },
+    stageLabel: { en: 'Reading document text...', hi: 'दस्तावेज़ का पाठ पढ़ा जा रहा है...' },
     progress: 40,
   });
 
@@ -105,21 +105,21 @@ export async function analyzeUploadedDocument(file, docType, applicationData = {
     const flags = liveResult.flags || [];
     const extracted = liveResult.extractedFields || {};
     const checks = [
-      { label: `Document verified as ${typeLabel}`, passed: true },
-      { label: `OCR quality score: ${liveResult.qualityScore || 95}%`, passed: (liveResult.qualityScore || 95) >= 50 },
+      { label: `Document identified as ${typeLabel}`, passed: true },
+      { label: 'Document legibility and format verified', passed: (liveResult.qualityScore || 95) >= 50 },
     ];
     if (extracted.applicantName || extracted.studentName || extracted.fullName) {
       const docName = extracted.applicantName || extracted.studentName || extracted.fullName;
       checks.push({ label: `Applicant name: ${docName}`, passed: true });
     }
     if (extracted.certificateNumber || extracted.rollNumber) {
-      checks.push({ label: `Registration/Cert No: ${extracted.certificateNumber || extracted.rollNumber}`, passed: true });
+      checks.push({ label: `Certificate / Roll No: ${extracted.certificateNumber || extracted.rollNumber}`, passed: true });
     }
     if (extracted.annualIncome) {
-      checks.push({ label: `Extracted Income: Rs. ${Number(extracted.annualIncome).toLocaleString('en-IN')}`, passed: true });
+      checks.push({ label: `Extracted Family Income: ₹${Number(extracted.annualIncome).toLocaleString('en-IN')}`, passed: true });
     }
     if (extracted.percentage) {
-      checks.push({ label: `Academic percentage: ${extracted.percentage}%`, passed: true });
+      checks.push({ label: `Extracted Marks: ${extracted.percentage}%`, passed: true });
     }
     flags.forEach((f) => checks.push({ label: f, passed: false }));
 
@@ -131,10 +131,10 @@ export async function analyzeUploadedDocument(file, docType, applicationData = {
       preliminaryStatus: flags.length === 0 ? 'VERIFIED' : 'NEEDS_REVIEW',
       extractedFields: extracted,
       checks,
-      evidence: liveResult.evidence || ['Layout and textual keywords matched statutory format'],
+      evidence: liveResult.evidence || ['Layout and statutory format identified'],
       advisory: flags.length === 0
-        ? 'Preliminary statutory validation passed. Stored for official scrutiny by verifying officer.'
-        : 'Potential discrepancy detected by OCR engine. Officer manual review required.',
+        ? 'Preliminary statutory validation passed. Prepared for scrutiny by the verifying officer.'
+        : 'Potential discrepancy detected during automated reading. Nodal officer verification required.',
     };
   } else {
     intelligence = generateDocumentIntelligence(file, docType, applicationData);

@@ -134,25 +134,24 @@ This opens 4 terminals:
 
 ---
 
-## 5. Demo Credentials
+## 5. Test Credentials
 
 ### Verification Officer (Admin Portal — `http://localhost:5173`)
 - **Email:** `admin@mota.gov.in`
 - **Password:** `Admin@1234`
 - **Role:** Scholarship Verification Officer
 
-### Demo ST Student (Student Portal — `http://localhost:5174`)
-- **Email:** `sunita.soren@scholarship.gov.in`
-- **Password:** `Demo@1234`
-- *(Or use the 1-Click "SIH Evaluator Quick Access" button on the student login page)*
+### Applicant / Student (Student Portal — `http://localhost:5174`)
+- **Email:** `applicant1@demo.tribexcel.in` (or register a new student account via the Sign Up page)
+- **Password:** `Demo@12345`
 
 ---
 
-## 6. End-to-End Demonstration Walkthrough
+## 6. End-to-End Walkthrough
 
 ### Part A: Student Submission & Real AI Processing
 1. Open **Student Portal** at `http://localhost:5174`.
-2. Click **"1-Click Demo Login"** (or sign in as Sunita Soren).
+2. Sign in with the registered applicant credentials or click **Sign up** to register a new account.
 3. Click **"Check Eligibility"** on the header to evaluate scheme qualifications.
 4. Select **National Fellowship for Higher Education of ST Students (NFST)**.
 5. In Step 4 (Documents), upload test documents (located in `sample-documents/`):

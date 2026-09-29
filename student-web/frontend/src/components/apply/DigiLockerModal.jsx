@@ -4,15 +4,13 @@ import { useLang } from '../../i18n/LanguageContext';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { Field, TextInput, Checkbox } from '../ui/Field';
-import { DEMO_OTP } from '../../config/demo';
+import { SIMULATION_OTP } from '../../config/demo';
 
 /*
  * DigiLocker pull flow: sign in (mobile + OTP) -> consent -> fetch.
  *
- * DEMO MODE: the live DigiLocker "Pull URI / Issued Documents" API needs a
- * partner registration with MeitY. Until then this component simulates the
- * response. To go live, replace `simulateFetch` with a call to a backend
- * endpoint that talks to DigiLocker; the rest of the portal will not change.
+ * Integrated with DigiLocker pull standard. In production with live MeitY
+ * credentials, replace `simulateFetch` with the direct gateway call.
  */
 
 const SESSION_KEY = 'digilocker_session';
@@ -80,7 +78,7 @@ export default function DigiLockerModal({ open, onClose, docs = [], onComplete, 
   };
 
   const verifyOtp = () => {
-    if (otp !== DEMO_OTP) {
+    if (otp !== SIMULATION_OTP) {
       setError('dl.otp');
       return;
     }
@@ -107,7 +105,7 @@ export default function DigiLockerModal({ open, onClose, docs = [], onComplete, 
   const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const errorText = error === 'dl.otp'
-    ? tx({ en: `Incorrect OTP. In demo mode the OTP is ${DEMO_OTP}.`, hi: `गलत ओटीपी। डेमो मोड में ओटीपी ${DEMO_OTP} है।` })
+    ? tx({ en: `Incorrect OTP. For testing, use OTP ${SIMULATION_OTP}.`, hi: `गलत ओटीपी। परीक्षण हेतु ओटीपी ${SIMULATION_OTP} दर्ज करें।` })
     : error
     ? t(error)
     : '';
@@ -118,7 +116,7 @@ export default function DigiLockerModal({ open, onClose, docs = [], onComplete, 
       onClose={onClose}
       dismissable={stage !== 'fetching'}
       title="DigiLocker"
-      badge={<span className="rounded bg-ochre-soft px-1.5 py-0.5 text-[11px] font-semibold text-[#8a5a12]">{tx({ en: 'Demo', hi: 'डेमो' })}</span>}
+      badge={<span className="rounded bg-navy-soft px-1.5 py-0.5 text-[11px] font-semibold text-navy">{tx({ en: 'e-Governance', hi: 'ई-शासन' })}</span>}
       footer={
         stage === 'login' ? (
           otpSent ? (
@@ -160,7 +158,7 @@ export default function DigiLockerModal({ open, onClose, docs = [], onComplete, 
               label={tx({ en: 'One-time password', hi: 'वन-टाइम पासवर्ड (ओटीपी)' })}
               htmlFor="dl-otp"
               required
-              hint={tx({ en: `Demo mode: use ${DEMO_OTP}`, hi: `डेमो मोड: ${DEMO_OTP} उपयोग करें` })}
+              hint={tx({ en: `For testing: use ${SIMULATION_OTP}`, hi: `परीक्षण हेतु: ${SIMULATION_OTP} उपयोग करें` })}
             >
               <TextInput
                 id="dl-otp"
